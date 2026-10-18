@@ -32,6 +32,6 @@
 
 原先實站「未關分頁卻顯示追蹤中斷」的精確根因仍未重現。同檔跨 Katfile 網域跳轉與手動接手通過，不能代替該事故根因證明。真人 CAPTCHA、真 Katfile 全自動兩筆、日常 Chrome 重開、原生工具列 popup、讀屏實機仍待觀察；不為驗證干擾使用者下載。
 
-完整發行評論仍 limited、任務保留 Review。[Mission Center SKILL.md](C:/Users/USER/.codex/plugins/cache/mission-center-local/mission-center/0.5.2/skills/mission-center/SKILL.md) 規定：「無通過證據不得 Done。」這裡保留實際驗收缺口，不另加批准要求。CodeRabbit 沒有外送；套件缺少 critic_contract.py，未宣稱契約驗證通過。Rust sync／verify／doctor 只代表 Mission Center 本機資料檢查。
+完整發行評論仍 limited、任務保留 Review。Mission Center 的 SKILL.md 規定：「無通過證據不得 Done。」這裡保留實際驗收缺口，不另加批准要求。CodeRabbit 沒有外送；套件缺少 critic_contract.py，未宣稱契約驗證通過。Rust sync／verify／doctor 只代表 Mission Center 本機資料檢查。
 
 快照：queuecat-full-audit-20261018-01 → -02；最終85個內容定址項目。各席報告在 output/mission-center-critique，提詞見 [專家提詞](full-audit-critic-prompts.md)，補充查證見 [Gemini 裁定](gemini-full-audit-triage.md)。

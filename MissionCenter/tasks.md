@@ -19,3 +19,8 @@
 | QC-T7 | 重現問題、修復與收斂評論 | Task | QC-E5 | P1 | Review | Codex | - | 完整實站與原來源追蹤事故另需觀察 | 三席盲審及聚焦複查、獨立仲裁；快照01→02 | - | execution,verification | Gemini已完成查證，未操作個人Chrome；驗收缺口不冒稱完成 |
 
 所有 Review 項目不代表完成；完整實站下載尚未驗收；正式評論預算已由使用者核准。
+
+| QC-E6 | 最終獨立驗收與 GitHub main 交付 | Epic | - | P1 | Review | Codex | - | 本機測試版source交付，保留產品實站Review | 分身報告、隔離 Chrome、GitHub main 對帳 | - | verification,closeout | 本輪只交付本機測試版原始碼，不宣稱實站 release |
+| QC-T8 | 不同領域盲審與隔離修復驗收 | Task | QC-E6 | P1 | Review | Codex | - | 四席閉合已核；97單測/23隔離通過；實站缺口維持Review | 不可變快照、重現、回歸、獨立仲裁 | - | verification | 保護個人 Chrome 與正在下載的檔案 |
+| QC-T9 | CodeRabbit 全範圍程式碼審查與結案 | Task | QC-E6 | P1 | Review | Codex | QC-T8 | 92檔3issues全fixed；6檔複審0issues（2次額度） | 原始 NDJSON、查證處置與必要聚焦複審 | - | verification | 使用者同意上傳程式碼；每小時至多3次、每次150檔 |
+| QC-T10 | 更新文件並將 main 推送 GitHub | Task | QC-E6 | P1 | In Progress | Codex | QC-T8,QC-T9 | 更新 README 任務中心、提交並核對遠端 | 本機／遠端 SHA 相同且僅 main | - | closeout | 既有空白 Gale0418/QueueCat；不建長留分支 |

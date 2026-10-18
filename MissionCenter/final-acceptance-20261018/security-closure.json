@@ -1,0 +1,54 @@
+{
+  "seatId": "security-delivery",
+  "snapshotId": "queuecat-final-20261018-02",
+  "snapshotSha256": "43e96c43852c8d5e2dc6d5a0414b653e92445e988f9a9478c41c1d9e7ed48fd4",
+  "parentSnapshotId": "queuecat-final-20261018-01",
+  "actualScope": "有界 closure：只核對先前 SEC-DEL-01、CodeRabbit 三項修正及指定 engine/client 信任邊界與其既有驗證紀錄。凍結快照、source 與 MissionCenter 唯讀。",
+  "actions": [
+    "核對 snapshot.json SHA-256 與指派值一致；manifest snapshotId 為 queuecat-final-20261018-02，parent 為 -01。",
+    "唯讀檢查 README 安裝/授權段落、MissionCenter/full-audit-report.md 的政策文字、src/background/engine.ts 啟動恢復與 alarm 路徑、src/ui/client.ts previewManagerUrl 及 tests/engine.test.ts、tests/client.test.ts。",
+    "唯讀檢查 MissionCenter/final-acceptance-20261018/issue-dispositions.json、CodeRabbit 兩輪紀錄與 isolated-browser-final-report.json；未重跑未受影響測試或 build。",
+    "只新增 artifacts/final-acceptance/security/security-closure.json；未修改 source、MissionCenter 或任何快照，也未操作個人 Chrome/真實網站。"
+  ],
+  "resolvedFindings": [
+    {
+      "id": "SEC-DEL-01",
+      "status": "closed",
+      "evidence": "README.md:15-29 提供 GitHub clone、cd、npm ci、npm run build，並要求載入剛建置且有 manifest.json 的 QueueCat 專案資料夾；README.md:97-99 明確說明未指定開源授權及重用權利不因此授予，沒有替權利人選擇授權。",
+      "residual": "公開原始碼仍未指定開源授權，README 已明確揭露此狀態；若日後需要授予重用權利，仍由維護者另行決定。"
+    },
+    {
+      "id": "CR-1",
+      "status": "fixed-and-focused-review-clean",
+      "evidence": "src/ui/client.ts:9-13 以相對 manager.html URL 保留 preview=1 和可選 hash；tests/client.test.ts 涵蓋 /entries/、/、/queuecat/entries/。"
+    },
+    {
+      "id": "CR-2",
+      "status": "fixed-and-focused-review-clean",
+      "evidence": "src/background/engine.ts:1201-1215 啟動時仍先 tabs.get 並核對實際來源 URL；僅對未到期 waiting 狀態略過 QC_OBSERVE receiver 探測。src/background/engine.ts:1147-1161 到期 alarm 轉 preparing 後重新觀察；tests/engine.test.ts:874-905 覆蓋 future、expired、missing tab，未到期保留 deadline，失效 tab/過期情境另行處理且不啟動下載。"
+    },
+    {
+      "id": "CR-3",
+      "status": "fixed-and-focused-review-clean",
+      "evidence": "MissionCenter/full-audit-report.md:35 保留原政策引述為一般文字，沒有機器本機 SKILL.md 絕對連結；維持歷史報告語意。"
+    }
+  ],
+  "verificationEvidence": {
+    "coderabbit": "快照紀錄顯示全範圍 92 檔、3 項發現；三項均列 fixed。針對 README、engine、client 與測試共 6 檔的複審為 0 findings。這是引用快照內報告，本席未執行 CodeRabbit。",
+    "unitTestsAndBuild": "issue-dispositions.json 記錄 12 檔 97 項測試與 build pass；本席未重跑。",
+    "isolatedBrowser": "隔離 Chromium 報告列 23 項 pass、0 page errors、profile removed、personalChromeAttached=false；本席未重跑。報告限於合成 Katfile/隔離環境，不代表真人 CAPTCHA、原生 toolbar popup 或真實網站驗收。"
+  },
+  "findings": [],
+  "coverage": [
+    "SEC-DEL-01 已解除為文件可用性問題；授權未被推定，未授權選擇仍明確揭露。",
+    "未到期 wait 的 receiver 暫不可用不再導致錯誤阻塞；分頁仍須存在且實際 URL 仍需符合原來源。到期 alarm 會重新觀察頁面後再進展。",
+    "Preview 管理頁連結使用目前 entry 目錄下的相對路徑，query/hash 有對應回歸測試。",
+    "歷史 audit 文件不再包含本機 skill 絕對連結。"
+  ],
+  "unknown": [
+    "未執行本席獨立測試/build；驗證數字取自快照內報告。",
+    "真實 Katfile 全自動循環與原始分頁追蹤事故、真人 CAPTCHA、原生 toolbar popup/實機讀屏及 discarded-tab/lifecycle 組合仍在既有報告的未驗收範圍。",
+    "未指定開源授權是維護者明示的狀態，不由本席代為選擇。"
+  ],
+  "summary": "bounded closure 通過：先前 P3 SEC-DEL-01 的本機絕對路徑已改為可從 GitHub clone、安裝依賴、build 並載入建置資料夾；未指定開源授權也已明確揭露。CodeRabbit 三項發現均修復，6 檔聚焦複審為零發現。future wait 修正保留 tabs.get 來源 URL 驗證，未到期時跳過 content receiver 探測，deadline alarm 到期後重新觀察。快照記錄 97 項單測/build 通過及隔離 Chromium 23 項通過，但本席未重跑，且不延伸宣稱完整實站 release 驗收。"
+}

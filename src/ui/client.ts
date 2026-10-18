@@ -6,6 +6,12 @@ import {
 } from "../shared/types";
 import { normalizeSource, sourceKey } from "../shared/urls";
 export const preview = !globalThis.chrome?.runtime?.id;
+export function previewManagerUrl(pageUrl: string, section?: string): string {
+  const target = new URL("manager.html", pageUrl);
+  target.searchParams.set("preview", "1");
+  if (section) target.hash = section;
+  return target.href;
+}
 let sample = initialState();
 export function scenario(name: string): void {
   sample = initialState();
@@ -130,7 +136,10 @@ export async function request(command?: Command): Promise<Response> {
         break;
       }
       case "open-manager":
-        window.location.href = `/manager.html?preview=1${command.section ? "#" + command.section : ""}`;
+        window.location.href = previewManagerUrl(
+          window.location.href,
+          command.section,
+        );
         break;
       default:
         return {

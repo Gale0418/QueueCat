@@ -1,0 +1,37 @@
+{
+  "seatId": "security-delivery",
+  "snapshotId": "queuecat-final-20261018-01",
+  "actualScope": "唯讀核查凍結快照之 Chrome runtime 訊息來源、source/final URL 綁定、可見 DOM 判讀、UI 動態資料 escaping/localization 與 query 熱路徑、build/publish/package 輸出邊界及回滾、GitHub source 交付適用性。",
+  "actions": [
+    "核對 snapshot.json SHA-256 為 8761954736f0cb7ff57dac83d889f25c80f6938323bc0fba4b56cfcc96291219，revision 為 766871a2e7fe38e10f6e5d985b83f6edd5fd0977。",
+    "讀取凍結快照中的 src/background/index.ts、src/background/engine.ts、src/content/index.ts、src/content/katfile.ts、src/shared/urls.ts、src/shared/messages.ts、src/ui/main.ts、src/ui/presentation.ts、src/ui/localization.ts、scripts/publish-extension.mjs、scripts/package.mjs 與相關 tests。",
+    "讀取 artifacts/verification-20261018.md、artifacts/full-audit-verification-20261018.md、artifacts/full-audit-findings-20261018.json、隔離 Chromium reports、visibility-before/after 與 content-performance 報告；未重跑既有全套。",
+    "未碰觸 src、快照、MissionCenter、日常 Chrome 或真實網站；僅新增本驗收 JSON。"
+  ],
+  "findings": [
+    {
+      "id": "SEC-DEL-01",
+      "severity": "P3",
+      "observation": "README 的未封裝安裝步驟要求選取 D:\\MyGame\\QueueCat，這是作者機器的絕對路徑；GitHub 讀者無法照此路徑安裝。凍結快照也未含 LICENSE 檔，公開原始碼的授權狀態因此未明。",
+      "evidenceLocator": "README.md:17-20; 凍結快照檔案清單未包含 LICENSE。",
+      "reproOrReadPath": "唯讀：artifacts/review-snapshots/queuecat-final-20261018-01/files/README.md 第 13-20 行；快照清單由 artifacts/review-snapshots/queuecat-final-20261018-01/snapshot.json entries 核對。",
+      "impact": "公開 GitHub source 的安裝說明對其他使用者不可直接操作；缺少授權檔讓公開重用條件不清楚。",
+      "confidence": "high",
+      "recommendation": "若要公開 GitHub source，將安裝步驟改為 repo-relative / 解壓後的實際資料夾指引，並由權利人決定是否加入 LICENSE；目前證據不足以替使用者選定授權。"
+    }
+  ],
+  "coverage": [
+    "Chrome sender：QC_PAGE 僅接受有 tab id 的非 extension sender；其他請求僅接受 extension URL；engine 再核對 active item tab id、來源 file id/host 與 tabs.get 的實際 URL。",
+    "最終下載 URL：content 僅選唯一可見、HTTPS Katfile host、無帳密且具下載形狀的連結；background 再驗 HTTPS、Katfile host 與無帳密，然後固定 expectedUrl 交由 chrome.downloads。",
+    "可見性與熱路徑：每次 inspect 建立 WeakMap，避免跨次快取隱藏狀態；隔離 Chromium before/after 報告涵蓋 content-visibility:hidden、closed details 子項及正常 summary/open details。JSDOM 報告記錄 300 spans/8 shared ancestors 的 style queries 3308→312，僅為查詢數而非 Chrome latency。",
+    "DOM escaping/locales：動態文字/屬性經 e() escaping；外部資料以 data-raw 排除介面翻譯；測試覆蓋未知網站文字、路徑、檔名及含標記字串不遞迴翻譯。",
+    "發布/package：root 輸出白名單、建置快照與 receipt、失敗回滾/保留備份；ZIP 會解壓/CRC 驗證後再 replace，dist 邊界限 zip/sha256；既有故障注入測試覆蓋失敗與回滾失敗。",
+    "既有報告記錄 78 項 Vitest、build、隔離 Chromium 與封裝故障注入通過；本席未獨立重跑。未執行 CodeRabbit，也不宣稱完整 release 驗收。"
+  ],
+  "unknown": [
+    "真實 Katfile 全自動交接、真人 CAPTCHA、連續兩筆完成、日常 Chrome 重開與原生 toolbar popup 未由本席驗收；沿用既有報告限制。",
+    "Chromium 真實耗時未量測；目前性能證據只有 JSDOM style-query 次數。",
+    "公開 GitHub release 的授權選擇、是否應公開 MissionCenter/設計素材及最終倉庫可見性需由發布者決定。"
+  ],
+  "summary": "安全與效能核查未發現 P0/P1 或可重現的安全缺陷。sender/source URL 綁定、Katfile final URL 驗證、UI escaping/data-raw 與熱路徑快取均有實作和對應證據。build/publish/package 有輸出界線、回滾及封裝檢查；既有報告通過，但本席未重跑。唯一 P3 交付問題是 README 含作者本機絕對安裝路徑，且快照沒有 LICENSE；這是公開 GitHub source 的準備事項，不代表目前 ZIP 安全或功能失敗。未宣稱 CodeRabbit 或完整 release 通過。"
+}

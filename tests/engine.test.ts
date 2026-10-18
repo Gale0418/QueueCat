@@ -19,6 +19,7 @@ function fixture(seed?: AppState) {
   const alarms: number[] = [];
   const notifications: string[] = [];
   let sendReply: unknown = { ok: true };
+  let sendUnavailable = false;
   const downloads: DownloadRecord[] = [];
   const ports: EnginePorts = {
     storage: {
@@ -44,6 +45,7 @@ function fixture(seed?: AppState) {
       async update() {},
       async send(_id, m) {
         actions.push(m);
+        if (sendUnavailable) throw new Error("no receiving content script");
         return sendReply;
       },
     },
@@ -118,6 +120,9 @@ function fixture(seed?: AppState) {
     },
     setSendReply(v: unknown) {
       sendReply = v;
+    },
+    setSendUnavailable(v: boolean) {
+      sendUnavailable = v;
     },
     setTabMissing(v: boolean) {
       tabMissing = v;
@@ -865,6 +870,44 @@ describe("QueueEngine", () => {
     expect(f.state!.items[0].status).toBe("waiting");
     expect(f.actions).toHaveLength(before);
   });
+
+  it.each(["future", "expired", "missing"] as const)(
+    "recovers a %s wait without mistaking a dormant content script for a missing tab",
+    async (mode) => {
+      const f = fixture();
+      await f.engine.command({ kind: "add", urls: [url1] });
+      await f.engine.command({ kind: "start" });
+      const item = f.state!.items[0];
+      await f.engine.handleRequest(
+        {
+          type: "QC_PAGE",
+          observation: {
+            kind: "waiting",
+            pageUrl: item.sourceUrl,
+            waitSeconds: 120,
+          },
+        },
+        item.tabId,
+      );
+      const deadline = f.state!.items[0].waitUntil;
+      const restarted = new QueueEngine(f.ports);
+      f.setSendUnavailable(true);
+      f.setTabMissing(mode === "missing");
+      if (mode === "expired") f.setNow(f.ports.now() + 121_000);
+      const before = f.actions.length;
+      await restarted.onStartup();
+      expect(f.downloads).toHaveLength(0);
+      if (mode === "future") {
+        expect(f.state!.items[0].status).toBe("waiting");
+        expect(f.state!.items[0].waitUntil).toBe(deadline);
+        expect(f.activeAlarm).toBeDefined();
+        expect(f.actions).toHaveLength(before);
+        f.setNow(f.ports.now() + 121_000);
+        await restarted.onAlarm();
+        expect(f.state!.items[0].status).toBe("blocked");
+      } else expect(f.state!.items[0].status).toBe("blocked");
+    },
+  );
 
   it("rechecks for external Katfile downloads just before handoff and continues after completion", async () => {
     const f = fixture();

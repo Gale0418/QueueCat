@@ -1,0 +1,108 @@
+{
+  "seatId": "final-evidence-arbiter",
+  "phase": "bounded-final-closure",
+  "snapshot": {
+    "snapshotId": "queuecat-final-20261018-02",
+    "parentSnapshotId": "queuecat-final-20261018-01",
+    "sha256": "43e96c43852c8d5e2dc6d5a0414b653e92445e988f9a9478c41c1d9e7ed48fd4",
+    "revision": "766871a2e7fe38e10f6e5d985b83f6edd5fd0977",
+    "independentlyVerified": true,
+    "manifestVerification": "本席計算 snapshot.json SHA-256 並解析 snapshot 身分；再逐一核對 139 個 entries 的封存檔案存在及 SHA-256，139/139 相符。未修改快照。"
+  },
+  "writeBoundary": {
+    "sourceModified": false,
+    "missionCenterModified": false,
+    "snapshotModified": false,
+    "personalChromeKatfileOrDownloadsOperated": false,
+    "onlyWrittenPath": "artifacts/final-acceptance/arbiter/final-arbitration.json"
+  },
+  "decision": {
+    "scopedSourceHandoffClosure": "passed",
+    "overallProductAndLiveRelease": "limited; retain Review",
+    "reason": "本快照中的 source 修復及其聚焦回歸證據成立；隔離 Chromium 的 23 項流程亦有通過報告。證據不涵蓋真實 Katfile 完整循環、原始追蹤中斷事故、真人 CAPTCHA、原生工具列 popup、實機讀屏或 discarded-tab/lifecycle 卡住組合，因此不可把本輪 source handoff closure 擴大解讀為完整產品或 live release sign-off。",
+    "taskStatusContext": "依主代理提供的任務狀態，E6/T8/T9 維持 Review；T10 是本輪 main source delivery。此仲裁不把未驗收的完整產品工作標為 Done。"
+  },
+  "sourceFindingDispositions": [
+    {
+      "id": "SEC-DEL-01",
+      "originalSeverity": "P3",
+      "status": "closed-fixed",
+      "evidence": "封存 README 提供 GitHub clone、cd QueueCat、npm ci、npm run build，並指示 Chrome 載入剛建置且含 manifest.json 的實際專案資料夾，已移除作者電腦絕對路徑。README 明確說明目前未指定開源授權，公開倉庫不授予額外重用、改作或散布權利；沒有替維護者選授權。",
+      "residual": "授權仍未指定是維護者明示狀態，不構成本輪文件缺陷；若要授予開源重用權利，仍需維護者另行決定。"
+    },
+    {
+      "id": "CR-1",
+      "originalSeverity": "minor",
+      "status": "fixed-and-focused-review-clean",
+      "evidence": "src/ui/client.ts 的 previewManagerUrl 以目前文件目錄解析 manager.html，保留 preview=1 和可選 section hash；tests/client.test.ts 覆蓋 /entries/、根目錄與 /queuecat/entries/。UX 原席親跑 3 個定向 client tests 通過。"
+    },
+    {
+      "id": "CR-2",
+      "originalSeverity": "major",
+      "status": "fixed-and-focused-review-clean",
+      "evidence": "啟動恢復仍用 tabs.get 核對分頁存在與實際來源 URL；只在未到期 waiting 狀態略過 QC_OBSERVE receiver 探測，保留 deadline alarm，到期後重新觀察。41 個 engine tests 通過；future wait 保留原 deadline、不下載，receiver 不可用時在到期檢查後保守阻擋；expired 與 missing tab 仍阻擋。Queue 原席針對 snapshot 對應 engine/test 親跑 npm exec vitest run tests/engine.test.ts，41 tests pass。"
+    },
+    {
+      "id": "CR-3",
+      "originalSeverity": "minor",
+      "status": "fixed-and-focused-review-clean",
+      "evidence": "MissionCenter/full-audit-report.md 已將 machine-local SKILL.md 絕對路徑連結改為普通規則引述文字，保留歷史語意；本席確認封存內容不再含該本機連結。"
+    }
+  ],
+  "selectedSeatsAndLanes": [
+    {
+      "seatId": "queue-recovery",
+      "lane": "佇列可靠性、worker/瀏覽器恢復、等待與 handoff",
+      "initialEvidence": "唯讀追蹤序列化狀態、wait、下載 ID/URL 配對、外部下載保護、手動認領與分頁關閉路徑；指出 discarded-tab+lifecycle 自動化診斷卡住仍未知。",
+      "closureEvidence": "核對 snapshot-02 source/test/report hashes 與指定變更，親跑 41 個 engine tests；無新增 finding。"
+    },
+    {
+      "seatId": "ux-a11y-i18n",
+      "lane": "UI 操作、三語、鍵盤/DOM 可及性、窄版視覺與導頁",
+      "initialEvidence": "檢視三語 popup/manager 及窄版深色圖；親跑隔離 JSDOM 重現與 14 個定向 UI tests；明列原生 popup、真實讀屏器和完整端到端未知。",
+      "closureEvidence": "核對 previewManagerUrl 與 regression tests，親跑 3 個 client tests；無新增 finding。"
+    },
+    {
+      "seatId": "security-delivery",
+      "lane": "訊息/URL 信任邊界、escaping、交付文件、build/package 與回滾",
+      "initialEvidence": "唯讀檢查 sender/source URL、最終 URL、DOM 資料呈現、發布封裝界線及歷史測試；提出 SEC-DEL-01。",
+      "closureEvidence": "對 README、CR-1/2/3 修復及 engine/client 信任邊界做 bounded closure；引用 snapshot 內 97 tests/build 與隔離瀏覽器報告，未重跑全套；無新增 finding。"
+    }
+  ],
+  "crossChecks": {
+    "codeRabbit": {
+      "run1": "快照 NDJSON 記錄 92 files reviewed、3 findings：CR-1 preview 路徑、CR-2 未到期 waiting 遇到 dormant content receiver 時的啟動阻塞、CR-3 報告內本機 SKILL.md link。",
+      "run2": "快照 NDJSON 記錄 6 focused files reviewed、0 findings。",
+      "assessment": "處置表將三項均列 fixed；本席直接核對封存修復與相應測試，與 run-2 零發現相符。CodeRabbit 輸出是封存證據，本席未執行該工具。"
+    },
+    "testsAndBuild": {
+      "snapshotRecord": "issue-dispositions.json 記錄 97 tests、12 files 與 build pass。",
+      "independentSeatRuns": "queue 原席針對 engine 親跑 41 tests；UX 原席針對 client 親跑 3 tests。security 與本席沒有重跑全套測試/build。",
+      "assessment": "區分完整測試結果的上游紀錄與兩席新增的聚焦複核；不把本席未執行的檢查說成獨立驗證。"
+    },
+    "isolatedBrowser": {
+      "snapshotReport": "23 checks pass、pageErrors=[]、profileRemoved=true、personalChromeAttached=false；使用 production worker 與 loopback synthetic Katfile responses/download fixture。",
+      "assessment": "是隔離瀏覽器流程證據，不是真站、真人 CAPTCHA 或個人 Chrome 驗收； discarded-tab/lifecycle 場景明列仍未知。"
+    },
+    "changesAfterSnapshot": "主代理說明 snapshot-02 後 source 核心未再改，只有審查結果/任務文件補寫；此說明用於界定審查範圍，本席不把 snapshot 以後的文件改動冒充快照內容。"
+  },
+  "remainingUnknowns": [
+    "discarded-tab + lifecycle 診斷曾使隔離 automation session 卡住；特定 Chrome lifecycle 組合仍未重現/判定，沒有據此推定產品故障或正常。",
+    "真實 Katfile 全自動循環、原始工作分頁追蹤中斷事故根因、真人 CAPTCHA 後接續、真站連續下載及日常 Chrome 重啟仍未完整驗收。",
+    "Chrome 原生工具列 popup 與實機讀屏器/對比驗收未完成；DOM、截圖與隔離 popup 頁面不能替代這些檢查。",
+    "隔離 browser report 和 97 tests/build 數字來自快照中的執行紀錄；本席未重新執行。queue 與 UX closure 的定向測試由對應原席實際執行。",
+    "目前未指定開源授權；這已在 README 明確揭露，不由本席或本次驗收選定。"
+  ],
+  "findingThreshold": "沒有新的具體 P0/P1 證據，也沒有基於假設擴增 P2；bounded closure 到此結束。",
+  "finality": {
+    "finalForScopedSourceHandoff": true,
+    "fullLiveReleaseSignoff": false,
+    "claimsNotMade": [
+      "真實 Katfile 或真人 CAPTCHA 完整流程已通過",
+      "原始頁面追蹤事故根因已解決",
+      "discarded-tab/lifecycle 組合已證明正常或已證明故障",
+      "本席獨立重跑了 97 tests、build、CodeRabbit 或 23 項隔離 browser checks",
+      "所有 MissionCenter 任務已 Done"
+    ]
+  }
+}

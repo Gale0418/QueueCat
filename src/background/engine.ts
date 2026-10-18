@@ -1202,7 +1202,13 @@ export class QueueEngine {
           if (item.tabId !== undefined) {
             const t = await this.p.tabs.get(item.tabId);
             if (!t.url || !this.isSourceFor(item, t.url)) throw new Error();
-            await this.p.tabs.send(item.tabId, { type: "QC_OBSERVE" });
+            // A restored/discarded page may not have a content receiver yet.
+            // Keep its saved wait; the deadline alarm will inspect before advancing.
+            if (
+              item.status !== "waiting" ||
+              (item.waitUntil || 0) <= this.p.now()
+            )
+              await this.p.tabs.send(item.tabId, { type: "QC_OBSERVE" });
           } else throw new Error();
         } catch {
           await this.block(s, item, "瀏覽器重啟後無法核對來源分頁，請明確重試");

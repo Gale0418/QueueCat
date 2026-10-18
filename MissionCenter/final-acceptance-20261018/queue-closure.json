@@ -1,0 +1,41 @@
+{
+  "seatId": "queue-recovery",
+  "snapshotId": "queuecat-final-20261018-02",
+  "snapshotSha256": "43e96c43852c8d5e2dc6d5a0414b653e92445e988f9a9478c41c1d9e7ed48fd4",
+  "revision": "766871a2e7fe38e10f6e5d985b83f6edd5fd0977",
+  "actualScope": [
+    "僅複核 worker／瀏覽器重啟時仍處於 waiting 的修復及其 future／expired／missing 對應測試",
+    "核對 snapshot source/test/report 雜湊及工作目錄中 engine.ts、engine.test.ts 與隔離報告一致",
+    "查看新隔離 Chrome 報告和 CodeRabbit 第二次結果作為既有證據"
+  ],
+  "disposition": "修復成立；在頁面來源仍可核對且 waitUntil 尚未到期時，啟動不再把尚未恢復的 content receiver 當作分頁遺失，也不提早檢查／推進；保留 deadline alarm，到期才 QC_OBSERVE。expired 或 missing 分頁仍保守 blocked。沒有新增缺陷。",
+  "evidence": {
+    "source": "src/background/engine.ts:1190-1215",
+    "codeRabbitRun2": "6 files reviewed; 0 findings",
+    "sourceHash": "18350bcce58f2b207de02b3d47a12b43af1d92e1ba6e856eff105c2dba259699",
+    "isolatedReportHash": "f6169add99eec6edc96fec58c473881362c8fd9a5fa7357a68a071468c957e9d",
+    "isolatedReport": "MissionCenter/final-acceptance-20261018/isolated-browser-final-report.json",
+    "isolatedBrowserChecks": "23 pass",
+    "tests": "tests/engine.test.ts:874-910",
+    "sourceAndTestsMatchSnapshot": true,
+    "testsHash": "9f528e80ecd9a8308697075ffd3da9e82afb7a77bd6991e42f1da434a80ae8fb"
+  },
+  "verification": {
+    "result": "passed",
+    "full97Build": "依任務提供的驗收背景為 97 tests/build pass；本席未重跑全套。",
+    "targetedScenarios": [
+      "future deadline: startup retains waiting status/deadline and alarm; no download; alarm expiry with receiver unavailable blocks without handoff",
+      "expired deadline: startup observation failure blocks",
+      "missing tab: startup tab lookup failure blocks"
+    ],
+    "testFiles": 1,
+    "additionalEvidence": "隔離 Chrome 報告中重啟、交接防重及頁面流程檢查均 pass。",
+    "tests": 41,
+    "command": "npm exec vitest run tests/engine.test.ts"
+  },
+  "unknown": [
+    "discarded-tab + lifecycle 診斷在隔離報告中仍曾卡住自動化 session；本次限定複核未重現或判定此特定診斷組合。",
+    "未操作個人 Chrome、真實 Katfile 或真人 CAPTCHA；隔離站點為 loopback synthetic fixture。",
+    "future-wait 確認不早於 deadline 發動頁面觀察；瀏覽器若在 deadline 前未觸發 tab removal，最後仍由 deadline observation 的 receiver 失敗路徑阻擋，此一 Chrome lifecycle 細節未在本席額外做實機測試。"
+  ]
+}

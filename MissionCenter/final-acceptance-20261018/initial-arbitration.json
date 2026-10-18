@@ -1,0 +1,100 @@
+{
+  "seatId": "final-evidence-arbiter",
+  "phase": "initial-arbitration",
+  "snapshotId": "queuecat-final-20261018-01",
+  "snapshot": {
+    "sha256": "8761954736f0cb7ff57dac83d889f25c80f6938323bc0fba4b56cfcc96291219",
+    "revision": "766871a2e7fe38e10f6e5d985b83f6edd5fd0977",
+    "independentlyVerified": true,
+    "verification": "本席直接對 snapshot.json 計算 SHA-256，並解析 revision；均符合委派資訊及三席報告。"
+  },
+  "readOnlyBoundary": {
+    "sourceAndSnapshotModified": false,
+    "missionCenterModified": false,
+    "personalChromeKatfileOrDownloadsOperated": false,
+    "writeScope": "僅本報告 artifacts/final-acceptance/arbiter/initial-arbitration.json"
+  },
+  "seatAssessment": [
+    {
+      "seatId": "queue-recovery",
+      "actualWork": "核對四個佇列／內容來源檔及對應測試、閱讀兩份既有隔離瀏覽器報告；追蹤序列化、等待判讀、下載 URL/ID 配對、外部下載、手動認領、恢復與工作分頁關閉時序。未執行本輪測試、CodeRabbit 或 Chrome 操作。",
+      "requiredLaneCoverage": "主要覆蓋可靠性與佇列交接；對程式路徑和測試對照充足。對所引隔離報告屬讀取既有證據，並非本席重跑。",
+      "assessment": "沒有登錄 finding 與其所述阻擋／不重送保護相符；未把 discarded-tab+lifecycle 自動化卡住誤判為產品缺陷。該組合仍是明確未知。"
+    },
+    {
+      "seatId": "ux-a11y-i18n",
+      "actualWork": "檢視三語 popup/manager 及指定窄版深色截圖；執行一項隔離 JSDOM 重現與 14 項定向 UI 測試。未啟動瀏覽器或真網站，未做真實讀屏器測試。",
+      "requiredLaneCoverage": "主要覆蓋 UI 操作、三語、鍵盤焦點/DOM 可及性，以及指定視覺情境；該席明列原生 toolbar popup、讀屏器、對比量測與完整端到端流程為未知。",
+      "assessment": "無 finding 與所列實測範圍相符；不得外推為完整 Chrome UI 或 WCAG 驗收。"
+    },
+    {
+      "seatId": "security-delivery",
+      "actualWork": "唯讀檢查 sender/source URL 綁定、最終 Katfile URL、DOM escaping/data-raw、style query 熱路徑及發布／封裝／回滾程式與既有報告；未重跑全套。",
+      "requiredLaneCoverage": "主要覆蓋安全邊界、交付建置／封裝與回滾；使用既有測試報告作輔助，清楚聲明非本席重跑，未宣稱 release 完成。",
+      "assessment": "SEC-DEL-01 是合理且有直接文件證據的 P3：舊版 README 寫死作者機器絕對路徑，授權狀態未說明。此為公開 source 的可安裝性／重用條件清晰度問題，不是已證實的程式安全缺陷。"
+    }
+  ],
+  "findingDisposition": [
+    {
+      "id": "SEC-DEL-01",
+      "initialSeverity": "P3",
+      "disposition": "已修復（文件層級）；不再列為目前阻塞 finding。",
+      "verification": "本席檢視目前 README：提供 GitHub clone、cd QueueCat、npm ci、npm run build，要求 Chrome 載入實際建置的專案資料夾並確認 manifest.json；不含 D:\\MyGame\\QueueCat 固定路徑。package.json 確認 build 會執行 Vite、產生內容腳本、同步擴充套件、驗證 dist 並封裝。README 另明示目前未指定開源授權、不主張額外重用／改作／散布權利，沒有替權利人選擇授權。",
+      "evidenceLimit": "本席完成文字與 package script 靜態核對，未在本席工作中實際從乾淨 clone 執行 npm ci/build。主代理回報本輪 npm test 91 pass 與 build pass；此為主代理提供的執行結果，不列作本席獨立重跑。"
+    }
+  ],
+  "crossSeatCoverage": {
+    "covered": [
+      "佇列狀態轉移、等待／觀察、handoff、下載識別與中斷恢復路徑的程式及定向測試證據",
+      "多語 UI、輸入後不自動啟動、開始／暫停、原始資料保留、鍵盤與 DOM 可及性結構、指定窄版深色視覺檢查",
+      "Chrome 訊息來源與 URL 驗證、外部字串呈現、可見 DOM 查詢行為、發布與封裝／回滾實作及歷史報告",
+      "本輪主代理回報的 91 項測試通過及 build 通過（非本席獨立執行）"
+    ],
+    "notCoveredOrNotIndependentlyVerified": [
+      "discarded-tab + lifecycle 卡住的特定診斷組合；原因與產品結果均未知",
+      "真實 Katfile 全自動交接、真人 CAPTCHA 後接續、連續兩筆完成，以及實際重開 Chrome 的恢復驗收",
+      "Chrome 原生工具列 popup 的承載尺寸／焦點行為、真實螢幕閱讀器與對比值量測",
+      "真實 Chromium 延遲；現有 3308→312 數值是 JSDOM style-query 次數，不能當作延遲或實際 Chrome 效能數字",
+      "CodeRabbit 結果；目前只知仍在進行，不推定已完成或通過",
+      "本席沒有獨立重跑其他席引用的歷史測試、隔離瀏覽器報告或 package failure-injection 測試"
+    ],
+    "overallAssessment": "三席互補覆蓋可靠性、UX/可及性/在地化與安全交付；其結論在各自宣告的證據邊界內一致，沒有具體證據支持 P0/P1 或要求擴大新增 P2 finding。這是有範圍限制的程式與 UI 驗收，不是實站完整 release sign-off。"
+  },
+  "remainingBlockers": [
+    {
+      "item": "discarded-tab+lifecycle 自動化診斷卡住",
+      "status": "能力未知，非已證實產品缺陷",
+      "impact": "這個特定生命週期組合尚未被可重現證據覆蓋。"
+    },
+    {
+      "item": "全自動實站交接及真人驗證後續、連續兩筆與重開 Chrome",
+      "status": "尚未完整確認",
+      "impact": "不能據目前隔離測試宣稱真實網站完整流程或 release 已驗收。"
+    },
+    {
+      "item": "CodeRabbit review",
+      "status": "進行中，結果未知",
+      "impact": "不得宣稱已完成或沒有新增意見。"
+    },
+    {
+      "item": "README 授權狀態",
+      "status": "已明確揭露未指定開源授權；權利人尚未作授權選擇",
+      "impact": "文件已消除誤導；若要授予重用權利，仍需權利人另行決定。"
+    }
+  ],
+  "minimalNextSteps": [
+    "待主代理交付新隔離 Chromium 報告與 CodeRabbit 結果後，僅核對報告身分、實際覆蓋、失敗與限制，做 bounded closure；不可將其預先寫成已通過。",
+    "若要解除生命週期診斷未知，只針對可重現的 discarded-tab+lifecycle 場景補一個隔離診斷，保留無真站／個人 Chrome 的既定邊界。",
+    "實站項目沿用 README 限制：維持 Review，直到有明確且可核對的真實流程證據；本席不操作真站。"
+  ],
+  "finality": {
+    "isFinalReleaseSignoff": false,
+    "isBoundedInitialArbitration": true,
+    "doNotClaim": [
+      "CodeRabbit 已完成／通過",
+      "真實 Katfile 全流程或完整 release 已通過",
+      "discarded-tab+lifecycle 已證明正常或已證明有產品缺陷",
+      "本席獨立重跑了 91 tests、build 或所有歷史報告"
+    ]
+  }
+}

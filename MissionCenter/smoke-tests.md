@@ -32,3 +32,7 @@ QC-T2/T3/T4：2026-10-18：使用者回覆重新載入後，已完成「核對�
 QC-T3/T4/T6 2026-10-18 02:42：6檔57項、type/build、17檔hash與5張alpha圖、根目錄與ZIP通過。兩席正式評論三項P2已修復並獨立核對；封存快照04。整體limited，完整實站仍待驗，非Done。
 
 2026-10-18 QC-T2/T3/T4/T6：60項test、type/build通過；15組完整＋2組針對性隔離Chromium檢查PASS，來源/下載限loopback、正式背景/content SHA吻合。時間邊界/水平溢位修正後原兩席複查通過；真實站及native popup/discarded能力unknown仍Review。清理證據artifacts/browser-acceptance/cleanup-20261018.json。
+
+2026-10-18 QC-T8：`npm test` 11檔91項PASS；`npm run build`含型別、17資源及五張alpha、根目錄同步、ZIP完整性PASS。`node tests/browser/run.mjs --playwright-module <已驗證本機模組> --browser-cache <隔離Chromium快取> --openssl <本機openssl>` 新profile/loopback正式MV3 23檢查PASS、pageErrors=[]、profile已回收；報告 final-acceptance-20261018/isolated-browser-report.json。未操作個人Chrome，未驗真實站點/native toolbar popup/讀屏器；discarded-tab+lifecycle組合保持unknown。
+
+2026-10-18 QC-T8/T9 最終修復：新增等待恢復future/expired/missing與preview URL root/entries/subdir回歸；future receiver不可用在舊碼明確FAIL，修後PASS。全套12檔97項、型別/build/ZIP PASS；修後正式MV3隔離23檢查PASS（isolated-browser-final-report.json）。CodeRabbit2次完成：92檔3issues皆fixed、6檔0issues。ZIP7463091bytes SHA256=d62ae88652d1f06566b818d792e71b8974a4d4c0d77a5ae16d9086ce4d737bff。

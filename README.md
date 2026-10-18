@@ -12,9 +12,18 @@ Katfile 免費下載佇列 Chrome 外掛。貓貓負責排隊與網站等待，�
 
 ## 安裝本機版本
 
+從 GitHub 取得的原始碼需先建置。請安裝 Node.js 20.19+（20 系列）或 22.12+，在專案資料夾執行：
+
+```powershell
+git clone https://github.com/Gale0418/QueueCat.git
+cd QueueCat
+npm ci
+npm run build
+```
+
 1. 開啟 Chrome 的 `chrome://extensions`。
 2. 開啟右上角「開發人員模式」。
-3. 選「載入未封裝項目」，直接指定 **`D:\MyGame\QueueCat`** 專案根目錄。
+3. 選「載入未封裝項目」，指定剛才建置的 **QueueCat 專案資料夾**，確認其中有 `manifest.json`。
 4. 將 QueueCat 釘選到工具列，點貓貓圖示開啟小彈窗。
 
 也可解壓縮 `dist/QueueCat-0.1.0.zip`，再載入解壓縮後含 `manifest.json` 的資料夾。`dist` 只放 ZIP 安裝包與 SHA-256 校驗檔；不要直接把 ZIP 拖進 Chrome。Chrome 120 以上。
@@ -34,6 +43,8 @@ Katfile 免費下載佇列 Chrome 外掛。貓貓負責排隊與網站等待，�
 - 下載交接不明會停下；「重新檢查」先核對原下載，不會盲目重送。可續傳中斷必須先到 Chrome 恢復或取消舊下載，才能重新排隊。
 - 已自行點「繼續免費下載」，但 QueueCat 留在待處理時，可按「核對已開始的下載」。候選限於加入項目後開始、同檔名且直接來自 Katfile 的下載；請核對網域、開始時間與容量，再按「確認這筆，接續追蹤」。不會自動認領或重送；原本 API 交接結果未知的項目仍走原有嚴格核對。
 - 清除完成紀錄只清 QueueCat 紀錄，不刪磁碟檔案。
+
+最新獨立驗收、修復與隔離測試見 [最終驗收紀錄](MissionCenter/final-review-20261018.md)。此倉庫交付本機測試版原始碼，完整實站驗收仍保留以下缺口。
 
 ## 已驗證與實站限制
 
@@ -82,3 +93,7 @@ npm run test:browser -- --playwright-module <Playwright/index.mjs> --browser-cac
 佇列存在 `chrome.storage.local` 的 `queuecat.state.v1`，不使用雲端同步與遙測。外掛不讀取密碼、不要求 cookies 權限；Katfile 登入與驗證維持在網站原頁面。桌面通知受 Chrome 與作業系統通知設定影響。
 
 角色依你提供的長髮睡衣貓娘三視圖，以 Codex 內建 ImageGen 製作五張透明靜態小房間切片：小床抱被數羊、書桌工作／招手、同張沙發上拿手機思考／伸懶腰。來源見 `public/assets/PROVENANCE.md`，完整提示詞鏈見 `design/reference/mascot-v3-prompts.json`，五圖總覽見 `design/room-v3-preview.html`。圖示為專案幾何 SVG；Nunito Sans 授權見 `public/assets/FONT-LICENSE.txt`。
+
+## 原始碼授權狀態
+
+本專案目前未指定開源授權；公開倉庫不代表授予額外的重用、改作或散布權利。若需要這些用途，請先聯絡維護者確認授權。隨包第三方字體依上述獨立授權文件處理；角色參考圖與生成素材的來源亦保留於來源紀錄中。

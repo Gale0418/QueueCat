@@ -20,3 +20,9 @@
 正式評論兩席已封存，修正一項查無Chrome紀錄卻允許重送的可靠性問題，及分類/狀態公告兩項無障礙問題。57項test與build通過；原兩席獨立確認三項fixed。完整實站lane仍unknown，評論limited；契約驗證器套件未附，不冒稱通過。
 
 2026-10-18：依使用者明確要求借用隔壁隔離方法，自行建立正式QueueCat MV3＋loopback fixture驗收。15＋2組通過；60單測，採用Gemini時間邊界修正及截圖發現的popup溢位修復。兩席Luna針對性收尾完成。12個舊測試profile及臨時憑證已回收，當前測試profile由runner自動回收；無task-owned browser/runner存活。保留真實站/觀測缺口，不擴張測試到日常Chrome。
+
+2026-10-18 QC-E6/T8/T9：使用者授權多領域驗收、CodeRabbit程式碼外傳與main直接推送。三席盲審與獨立仲裁完成，唯一P3 README作者絕對安裝路徑已改為clone/建置/選實際根目錄；未擅自指定開源授權，改明示授權狀態。91測試/build通過；新全套隔離Chromium報告已封存。CodeRabbit 92檔全範圍審查進行中，非已通過。日常Chrome及實際Katfile下載未操作。
+
+2026-10-18 QC-T8/T9：CodeRabbit全量92檔提出3issues（1major/2minor），全數查證修復。等待恢復回歸舊碼先失敗、修後通過；保留missing/expired阻擋與到期再查。6檔複審0issues，本輪2/3次額度。修後97單測、build、新隔離23檢查PASS（含自有profile回收），證據final-review-20261018.md與final-acceptance-20261018/。
+
+2026-10-18 QC-E6/T8/T9：四席最終有界閉合sealed，139/139快照hash相符；四項確認問題皆fixed，無未解P0/P1或其他確認問題。source handoff passed；整產品live release limited並保持Review。正式報告已複製到MissionCenter；缺少critic_contract.py不宣稱通過。下一步直接commit/push main並核對GitHub，不建PR或支線。

@@ -1,0 +1,32 @@
+{
+  "seatId": "queue-recovery",
+  "snapshotId": "queuecat-final-20261018-01",
+  "actualScope": [
+    "唯讀快照 src/background/engine.ts、src/background/index.ts、src/content/katfile.ts、src/content/index.ts",
+    "對應 tests/engine.test.ts、tests/katfile.test.ts、tests/background-adapter.test.ts",
+    "隔離報告 2026-10-18T00-50-24-059Z 的 23 項檢查及 2026-10-18T00-53-05-493Z 的 7 項 UI 檢查"
+  ],
+  "actualActions": [
+    "核對 snapshot.json SHA256=8761954736f0cb7ff57dac83d889f25c80f6938323bc0fba4b56cfcc96291219、revision 766871a2e7fe38e10f6e5d985b83f6edd5fd0977",
+    "核對本次讀取的 9 個來源、測試及報告檔案雜湊均符合 manifest",
+    "唯讀追蹤狀態序列化、等待／倒數、下載 URL 與 ID 關聯、外部下載防護、手動認領、worker 與瀏覽器重啟、關閉工作分頁及未知交接路徑",
+    "未修改產品程式；未執行全套測試、CodeRabbit、真實 Katfile 或日常 Chrome"
+  ],
+  "findings": [],
+  "coverage": {
+    "serializedTransitions": "QueueEngine.serial 將命令、觀察、Chrome 事件與 alarm 回呼排入同一 promise queue；對應測試覆蓋重複 free step 與事件處理。未見可達的併發交錯缺陷。",
+    "waitingAndValidation": "等待需有正數倒數；無可靠倒數會阻擋。內容端辨識倒數歸零後未更新的頁面為 unknown，背景端對重複等待只允許既有期限最多緩增，alarm 週期性重新觀察。",
+    "downloadMatching": "handoff 先持久化 expectedUrl/action 時間，再發起 Chrome 下載；以 extension ID、原始 URL、時間窗和唯一候選綁定 downloadId。候選缺失或多筆均阻擋且不重送。",
+    "externalDownloads": "佇列啟動與 ready 交接前會掃描其他進行中／可續傳的 Katfile 下載；外部下載完成後再觀察。未知／非 Katfile 下載不會被誤認領。",
+    "manualClaim": "認領僅限目前 blocked、尚未交接的 active item，候選以時間、Katfile 來源、檔名、危險標記與未被其他項目認領過濾；提交前重新查核。",
+    "recovery": "啟動／安裝、alarm 和 Chrome 下載事件會核對已保存的下載 ID 或保守恢復 handoff；缺少、模糊或中斷記錄不會自動重送。",
+    "closedTabs": "工作分頁在下載／交接前關閉會阻擋；handoff／下載中關閉不觸發重送，下載仍依 Chrome ID 追蹤。",
+    "testsAndReports": "對應單元測試和隔離瀏覽器報告都有相符情境；報告中的 23 項隔離檢查全數 pass，7 項 UI 檢查全數 pass。",
+    "codeRabbit": "未執行 CodeRabbit。"
+  },
+  "unknown": [
+    "隔離報告記載 discarded-tab + lifecycle 診斷使該自動化 session 卡住；該特定 lifecycle 組合仍未知，沒有依此推定產品缺陷。",
+    "未做真實 Katfile／真人 CAPTCHA、個人 Chrome、原生 toolbar popup 驗收；隔離報告亦列為限制。",
+    "本席以快照程式、現有測試及兩份隔離報告進行靜態驗收，未另外執行測試或實際 Chrome 操作。"
+  ]
+}

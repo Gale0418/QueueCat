@@ -1,0 +1,42 @@
+{
+  "seatId": "ux-a11y-i18n",
+  "snapshotId": "queuecat-final-20261018-02",
+  "snapshotSha256": "43e96c43852c8d5e2dc6d5a0414b653e92445e988f9a9478c41c1d9e7ed48fd4",
+  "parentSnapshotId": "queuecat-final-20261018-01",
+  "revision": "766871a2e7fe38e10f6e5d985b83f6edd5fd0977",
+  "disposition": "已閉合本席前次驗收範圍內的離線 popup 導頁缺陷；新 snapshot 的修正與定向回歸測試符合預期，未發現需追加的 UX 阻礙。source、MissionCenter 與 snapshot 均未修改。",
+  "changeReviewed": {
+    "source": "files/src/ui/client.ts",
+    "test": "files/tests/client.test.ts",
+    "observation": "previewManagerUrl 以 new URL('manager.html', pageUrl) 相對目前 popup 文件所在目錄產生管理頁網址，設定 preview=1，並可帶入指定 section hash。這修正了開發時 popup 位於 /entries/ 卻錯導到站點根目錄的問題。"
+  },
+  "actions": [
+    {
+      "type": "manifest verification",
+      "result": "snapshot.json SHA256 與指定值相符。"
+    },
+    {
+      "type": "targeted test run",
+      "result": "本席以隔離 Vitest config 親跑 snapshot 的 tests/client.test.ts：3 tests passed。覆蓋 /entries/、/ 與 /queuecat/entries/ 目錄，以及保留 preview=1 和可選 #settings。"
+    },
+    {
+      "type": "referenced isolated MV3 report",
+      "path": "files/MissionCenter/final-acceptance-20261018/isolated-browser-final-report.json",
+      "result": "報告 status=pass，列出 23 組瀏覽器流程通過，包含新增不啟動、鍵盤焦點、unknown handoff、manager/popup 窄版與分享設定流程。此為報告引用，非本席重跑。"
+    },
+    {
+      "type": "review disposition",
+      "result": "CodeRabbit 6-file 複審 0 issues 與 97 單測/build pass 為任務提供的上游結果；本席未獨立重跑或驗證這兩項結果。"
+    }
+  ],
+  "findings": [],
+  "unknown": [
+    "MV3 隔離報告明列 Chrome 工具列原生 popup 未覆蓋；本席本次只核對導頁 helper 與其定向測試。",
+    "隔離報告使用合成 Katfile/驗證流程，不能證明真實 CAPTCHA 或實站行為；本席未連實站、未操作下載或個人 Chrome。",
+    "隔離報告中 discarded-tab 與生命週期診斷卡住的情境仍維持 unknown；未推論為產品通過或失敗。"
+  ],
+  "repro": {
+    "config": "artifacts/final-acceptance/ux/vitest-closure.config.ts",
+    "command": "D:\\MyGame\\QueueCat\\node_modules\\.bin\\vitest.cmd run --root D:\\MyGame\\QueueCat\\artifacts\\final-acceptance\\ux --config D:\\MyGame\\QueueCat\\artifacts\\final-acceptance\\ux\\vitest-closure.config.ts"
+  }
+}

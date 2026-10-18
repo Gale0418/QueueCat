@@ -1,0 +1,41 @@
+{
+  "seatId": "ux-a11y-i18n",
+  "snapshotId": "queuecat-final-20261018-01",
+  "revision": "766871a2e7fe38e10f6e5d985b83f6edd5fd0977",
+  "manifestSha256": "8761954736f0cb7ff57dac83d889f25c80f6938323bc0fba4b56cfcc96291219",
+  "summary": "繁中：本席針對指定唯讀 snapshot 完成操作 UI、三語、原始資料保留、鍵盤焦點語意與指定窄版深色視覺檢視。可觀察項目未發現需要登錄的阻礙；沒有 P0/P1/P2/P3 findings。",
+  "actualScope": "唯讀檢查 snapshot 檔案及指定瀏覽器驗收圖片；以 JSDOM 對 snapshot UI 執行隔離互動，不啟動瀏覽器、不連真網站、不操作下載、不檢查 queue engine 內部算法或打包回滾。",
+  "actions": [
+    {
+      "action": "核對 snapshot 身分",
+      "result": "snapshot.json SHA256 與指定值相符；manifest revision 為 766871a2e7fe38e10f6e5d985b83f6edd5fd0977。"
+    },
+    {
+      "action": "實際檢視六張 popup/manager 三語圖片及 brand-share-narrow-dark.png",
+      "result": "逐張看過 popup-zh-TW.png、popup-ja.png、popup-en.png、manager-zh-TW.png、manager-ja.png、manager-en.png、brand-share-narrow-dark.png。三語各自可辨識；指定窄版深色偏好/分享畫面沒有明顯橫向裁切或使主要文字不可讀的貓圖遮擋。日文側欄部分項目換行，仍可辨識且沒有觀察到操作被遮蔽。"
+    },
+    {
+      "action": "執行本席隔離 UI 重現",
+      "result": "1 個 JSDOM 測試通過：貼入 Katfile URL 後預覽包含原 URL；確認加入後 running 仍為 false；透過 UI 開始再暫停；切換日文後原始檔名維持原文。請見 artifacts/final-acceptance/ux/interaction-repro.test.ts。此重現以記憶體 request stub 模擬擴充功能回應，不代表實際 Chrome 下載。"
+    },
+    {
+      "action": "執行 snapshot 既有的定向 JSDOM 測試",
+      "result": "14 項通過：ui-accessibility、localization、urls、language 四個測試檔。覆蓋語系完整度與 fallback、data-raw/URL/輸入值保留、焦點保留、面板 Escape、分類 aria-pressed、動態狀態公告節制，以及 unknown handoff 不顯示重試但提供重新檢查。這是本席本輪實際執行結果。"
+    }
+  ],
+  "findings": [],
+  "coverage": [
+    "新增流程：顯示輸入預覽、加入後不自動開始；以隔離 UI stub 實際操作開始與暫停。",
+    "三語：實際檢視 zh-TW/ja/en 的 popup 與 manager 圖片；定向測試檢查語系完整度、fallback、可及性標籤翻譯與切換後保留原始檔名/URL。",
+    "鍵盤與螢幕閱讀語意：JSDOM 驗證焦點保留、Escape 收合、分類按鈕 aria-pressed、status/live announcement；未接真實讀屏器。",
+    "驗證/不明狀態：既有 UI 測試以狀態資料檢查 blocked handoff 的安全動作呈現及未知交接時不提供重試；本輪未連網站或實際執行驗證流程。",
+    "完成/分享/設定：UI 測試檢查狀態篩選及分享簡介不含下載 URL/檔名，並驗證複製失敗時選取文字；本席另透過 UI 切換日文。",
+    "窄窗/深色/半透明大貓：指定 brand-share-narrow-dark.png 實際視覺檢查；三語 manager/popup 圖片亦逐張檢查。"
+  ],
+  "unknown": [
+    "Chrome 工具列原生 popup 本輪未覆蓋；圖片與 JSDOM 文件環境不能代表原生工具列承載尺寸及焦點行為。",
+    "未用 NVDA、Narrator、VoiceOver 等真實螢幕閱讀器聽取頁面，也未量測 WCAG 對比值；螢幕閱讀語意僅做 DOM 屬性與狀態公告結構檢查。",
+    "驗證、下載完成與交接不明恢復的完整端到端流程未在本輪執行；相關歷史 23+7 通過數據未作為本席實測結果。",
+    "三語圖片屬已提供的瀏覽器驗收截圖，本輪沒有啟動新的瀏覽器來重拍。"
+  ]
+}
