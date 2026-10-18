@@ -34,3 +34,5 @@
 ## 2026-10-18 自動解壓最終本機驗收
 
 114 TS／22 Rust、type/build、helper06 隔離 Chrome 與加密 RAR 單檔／四卷／錯密碼通過。三輪 CodeRabbit 33/11/4 檔、3/2/2 issues 共 7 項修完，三席閉合與獨立仲裁核對快照03通過可選 Windows x64 source handoff。保留實站 Review；未操作個人 Chrome／現有下載。兩個舊測試暫存目錄刪除遭 blocked by policy，已保留且未繞過。README、公開證據索引及任務狀態已更新，main 推送與 SHA 對帳接續保存回執。
+
+原始碼 main 已推送 9af93cdcb90d0812927230cb2ef2a731c12263c2，本機／遠端 SHA 相符且只有 main。交付回執另存 extraction-delivery-20261018.md；產品實站維持 Review。
