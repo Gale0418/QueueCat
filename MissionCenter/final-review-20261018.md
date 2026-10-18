@@ -39,3 +39,5 @@ SEC-DEL-01（P3）：README 原先將作者的 D 槽路徑當成通用安裝位�
 ZIP 7,463,091 bytes；SHA256 `d62ae88652d1f06566b818d792e71b8974a4d4c0d77a5ae16d9086ce4d737bff`。dist 僅 ZIP 與校驗檔；GitHub main 提交原始碼與文件，不自動建立公開 release。兩次 CodeRabbit 輸入及最終 139 項 manifest 均以內容雜湊保存於本機不可變快照鏈 01→02。
 
 獨立最終仲裁已核對139/139快照項目、三席修復複核及全部四項有效問題處置：本輪source交付閉合通過，整產品實站release仍limited。原始報告見 [最終仲裁](final-acceptance-20261018/final-arbitration.json)，提詞見 [本輪專家提詞](final-critic-prompts-20261018.md)。安裝的Mission Center套件沒有critic_contract.py，僅記錄JSON可解析與Rust資料檢查，不宣稱評論契約驗證器通過。
+
+GitHub 原始碼已交付 [Gale0418/QueueCat main](https://github.com/Gale0418/QueueCat/tree/main)，source commit [3e26a1f](https://github.com/Gale0418/QueueCat/commit/3e26a1f95aadd987bfb6b09f2b528f48726b32bf)，push後本機/遠端SHA逐字相符且remote僅main。此回執以後續文件提交保存，不改動已測試的source或本機ZIP。
