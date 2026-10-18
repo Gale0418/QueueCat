@@ -1,4 +1,5 @@
 import type { AppState, ItemStatus, Mascot, QueueItem } from "../shared/types";
+import { extractionCopy } from "../shared/extraction-copy";
 export const labels: Record<ItemStatus, string> = {
   queued: "排隊中",
   preparing: "準備頁面",
@@ -18,6 +19,20 @@ export function summary(state: AppState): {
   subtitle: string;
 } {
   const active = state.items.find((i) => i.id === state.activeId);
+  if (!active) {
+    const extraction = state.extractions?.find(
+      (g) =>
+        g.status === "extracting" ||
+        g.status === "queued" ||
+        g.status === "failed",
+    );
+    if (extraction)
+      return {
+        mascot: extraction.status === "failed" ? "confused" : "work",
+        title: extractionCopy(extraction.status),
+        subtitle: "",
+      };
+  }
   if (active?.status === "blocked")
     return {
       mascot: "confused",

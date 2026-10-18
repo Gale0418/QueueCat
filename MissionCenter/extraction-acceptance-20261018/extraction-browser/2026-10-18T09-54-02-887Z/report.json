@@ -1,0 +1,148 @@
+{
+  "startedAt": "2026-10-18T09:54:02.888Z",
+  "status": "pass",
+  "checks": [
+    {
+      "name": "bare isolated Chrome preserves archive filename via CDP",
+      "status": "pass",
+      "result": {
+        "suggestedFilename": "fixture.7z.001",
+        "savedFilename": "fixture.7z.001"
+      }
+    },
+    {
+      "name": "native helper check succeeds using the test-only HKCU registration",
+      "status": "pass",
+      "ms": 275,
+      "result": {
+        "available": true,
+        "engineAvailable": true,
+        "registrationOwned": true
+      }
+    },
+    {
+      "name": "manager translations keep extraction controls usable without horizontal overflow",
+      "status": "pass",
+      "ms": 2020,
+      "result": {
+        "languages": [
+          "en",
+          "zh-TW",
+          "ja"
+        ],
+        "horizontalOverflow": false,
+        "passwordFieldFocusable": true
+      }
+    },
+    {
+      "name": "one completed Chrome volume remains queued until every selected volume completes",
+      "status": "pass",
+      "ms": 210,
+      "result": {
+        "completedVolumes": 1,
+        "selectedVolumes": 2,
+        "status": "waiting",
+        "extractionStarted": false
+      }
+    },
+    {
+      "name": "worker restart preserves the completed job and does not extract twice",
+      "status": "pass",
+      "ms": 145,
+      "result": {
+        "status": "complete",
+        "outputDir": "fixture.7z (extracted)",
+        "extractedFolderCount": 1,
+        "passwordPersisted": false
+      }
+    }
+  ],
+  "pageErrors": [],
+  "fixtureDownloads": [
+    {
+      "id": 1,
+      "filename": "fixture.7z.001",
+      "state": "complete",
+      "bytes": 1048576
+    },
+    {
+      "id": 2,
+      "filename": "fixture.7z.002",
+      "state": "complete",
+      "bytes": 301762
+    }
+  ],
+  "nativeJob": {
+    "status": "complete",
+    "sourceCount": 2,
+    "sourceNames": [
+      "fixture.7z.001",
+      "fixture.7z.002"
+    ],
+    "outputFolder": "fixture.7z (extracted)"
+  },
+  "queueGrouping": {
+    "itemCount": 2,
+    "extractionCount": 1,
+    "unresolved": 2,
+    "sourceNames": [
+      "fixture.7z.001",
+      "fixture.7z.002"
+    ],
+    "status": "waiting"
+  },
+  "cleanup": {
+    "metadataProfileClosed": true,
+    "profileClosed": true,
+    "fixtureServerClosed": true,
+    "registryRemoved": true,
+    "profileRemoved": true,
+    "metadataProfileRemoved": true,
+    "helperWorkerExited": true,
+    "helperStateRemoved": true
+  },
+  "isolation": {
+    "profile": "D:\\MyGame\\QueueCat\\artifacts\\extraction-browser\\2026-10-18T09-54-02-887Z\\profile",
+    "extension": "D:\\MyGame\\QueueCat\\artifacts\\extraction-browser\\2026-10-18T09-54-02-887Z\\extension",
+    "downloadsDir": "D:\\MyGame\\QueueCat\\artifacts\\extraction-browser\\2026-10-18T09-54-02-887Z\\test-downloads",
+    "helperHome": "D:\\MyGame\\QueueCat\\artifacts\\extraction-browser\\2026-10-18T09-54-02-887Z\\helper-state",
+    "personalChromeAttached": false,
+    "network": "loopback fixture only",
+    "katfile": false,
+    "personalDownloads": false,
+    "credentialsCopied": false
+  },
+  "extensionId": "bjijcbannmomofofmdhlafecebamfieg",
+  "browserVersion": "151.0.7922.34",
+  "currentCheck": "worker restart preserves the completed job and does not extract twice",
+  "idempotency": {
+    "predicateFixture": [
+      "fixture.7z (extracted)",
+      "fixture.7z (extracted) (1)"
+    ],
+    "outputFolderName": "fixture.7z (extracted)",
+    "matchingDirectoriesBeforeRestart": [
+      "fixture.7z (extracted)"
+    ],
+    "matchingDirectoriesAfterRestart": [
+      "fixture.7z (extracted)"
+    ]
+  },
+  "fixture": {
+    "archive": "encrypted split 7z generated locally",
+    "volumeCount": 2,
+    "volumeBytes": [
+      1048576,
+      301762
+    ],
+    "payloadBytes": 1350000,
+    "downloadIds": [
+      1,
+      2
+    ],
+    "outputFolder": "fixture.7z (extracted)",
+    "sourcesRetained": true,
+    "existingOutputPreserved": true
+  },
+  "finishedAt": "2026-10-18T09:57:46.684Z"
+}

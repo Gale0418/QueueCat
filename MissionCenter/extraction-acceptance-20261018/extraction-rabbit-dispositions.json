@@ -1,0 +1,97 @@
+{
+  "scope": "Optional native extraction implementation and focused repairs",
+  "authorization": "User explicitly consented to source upload; maximum 3 reviews per rolling hour and 150 files per run",
+  "runs": [
+    {
+      "run": 1,
+      "files": 33,
+      "issues": 3,
+      "major": 1,
+      "minor": 2,
+      "raw": "artifacts/coderabbit/extraction-20261018/run-1.ndjson"
+    },
+    {
+      "run": 2,
+      "files": 11,
+      "issues": 2,
+      "major": 2,
+      "minor": 0,
+      "raw": "artifacts/coderabbit/extraction-20261018/run-2.ndjson"
+    },
+    {
+      "run": 3,
+      "files": 4,
+      "issues": 2,
+      "major": 0,
+      "minor": 2,
+      "raw": "artifacts/coderabbit/extraction-20261018/run-3.ndjson"
+    }
+  ],
+  "issues": [
+    {
+      "id": "CR-E-001",
+      "severity": "major",
+      "file": "native/src/main.rs",
+      "impact": "Detached worker may remain in browser Job Object and end with host",
+      "repair": "Request breakaway, retry original flags only on access-denied; preserve lost-worker reconciliation",
+      "verification": "spawn fallback unit and actual Chrome native job",
+      "status": "fixed"
+    },
+    {
+      "id": "CR-E-002",
+      "severity": "minor",
+      "file": "src/ui/main.ts",
+      "impact": "Narrow hidden detail duplicates IDs and global selector can use unrelated password",
+      "repair": "Single detail body in narrow mode; closest-section password lookup",
+      "verification": "Narrow jsdom retry test with unrelated duplicate control; independent UX closure",
+      "status": "fixed"
+    },
+    {
+      "id": "CR-E-003",
+      "severity": "minor",
+      "file": "native/src/main.rs",
+      "impact": "Ordinary names containing .part can be rejected as split RAR",
+      "repair": "Only valid partNN.rar matches short-circuit; fall through other archive formats",
+      "verification": "partial RAR/7z/ZIP filename cases",
+      "status": "fixed"
+    },
+    {
+      "id": "CR-E-004",
+      "severity": "major",
+      "file": "native/src/main.rs",
+      "impact": "Retired password hides a matching persisted extraction result",
+      "repair": "Existing job identity and extant fingerprints precede new-job secret requirement",
+      "verification": "Completed/failed replay after forget-secret, source removal and conflict cases",
+      "status": "fixed"
+    },
+    {
+      "id": "CR-E-005",
+      "severity": "major",
+      "file": "native/src/main.rs",
+      "impact": "Repeated cleanup of first fresh batch starves later expired secrets",
+      "repair": "Locked persistent sorted filename cursor with bounded metadata checks and wrap",
+      "verification": "129 fresh + ineligible entries + expired tail, cursor corruption and inter-pass mutation",
+      "status": "fixed"
+    },
+    {
+      "id": "CR-E-006",
+      "severity": "minor",
+      "file": "native/src/main.rs",
+      "impact": "Extended UNC and ordinary UNC path keys differ",
+      "repair": "Use existing user_path normalization before slash and case normalization",
+      "verification": "Pure UNC/extended-UNC key regression without network access",
+      "status": "fixed"
+    },
+    {
+      "id": "CR-E-007",
+      "severity": "minor",
+      "file": "native/src/main.rs",
+      "impact": "Write/sync failure leaves same-PID temporary file and retry can miss failure state lock",
+      "repair": "Cleanup temp on every post-create failure; save job-state-failed while still holding job lock",
+      "verification": "Injected write/sync/replace failures and extracting-state retry regression",
+      "status": "fixed"
+    }
+  ],
+  "finalReviewPolicy": "Third run used the final hourly allowance. Repairs after run3 will be verified with focused tests and independent critic closure; no fourth run and no claim of zero CodeRabbit issues.",
+  "finalVerification": "All seven issues repaired. Final22 Rust tests, real encrypted single/four-volume RAR and exact helper06 Chrome native integration pass; independent final closure follows snapshot03."
+}

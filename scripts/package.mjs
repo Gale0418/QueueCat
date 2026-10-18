@@ -41,7 +41,7 @@ export async function validateArchive(archive, temporaryDirectory) {
   }
 }
 
-class PackagePublishRollbackError extends AggregateError {
+export class PackagePublishRollbackError extends AggregateError {
   constructor(errors, temporaryDirectory) {
     super(
       errors,
@@ -51,7 +51,7 @@ class PackagePublishRollbackError extends AggregateError {
   }
 }
 
-async function publishFiles(stagedFiles, temporaryDirectory, fileOps) {
+export async function publishFiles(stagedFiles, temporaryDirectory, fileOps) {
   const backups = [];
   const published = [];
 

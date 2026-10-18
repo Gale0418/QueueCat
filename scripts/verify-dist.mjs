@@ -11,6 +11,7 @@ assert.deepEqual(manifest.permissions, [
   "downloads",
   "alarms",
   "notifications",
+  "nativeMessaging",
 ]);
 const files = [
   "popup.html",

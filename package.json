@@ -8,6 +8,8 @@
     "build": "tsc --noEmit && vite build && node scripts/build-content.mjs && node scripts/publish-extension.mjs && node scripts/verify-dist.mjs && node scripts/package.mjs",
     "test": "vitest run",
     "test:browser": "node tests/browser/run.mjs",
+    "test:extraction-browser": "node tests/browser/extraction.mjs",
+    "build:helper": "node scripts/package-native.mjs",
     "check": "tsc --noEmit"
   },
   "devDependencies": {

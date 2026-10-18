@@ -15,6 +15,12 @@ import {
   normalizeLanguagePreference,
 } from "../shared/language";
 import { isKatfileHost, normalizeSource, sourceKey } from "../shared/urls";
+import {
+  planExtractions,
+  extractionError,
+  type NativeRequest,
+  type NativeReply,
+} from "../shared/extraction";
 
 export interface DownloadRecord {
   id: number;
@@ -33,6 +39,7 @@ export interface DownloadRecord {
   startTime?: string;
 }
 export interface EnginePorts {
+  native?: { request(message: NativeRequest): Promise<NativeReply> };
   storage: {
     get(key: string): Promise<unknown>;
     set(value: Record<string, unknown>): Promise<void>;
@@ -63,6 +70,7 @@ export interface EnginePorts {
     show(id: number): Promise<void>;
   };
   alarms: {
+    get?(name: string): Promise<{ scheduledTime: number } | undefined>;
     create(
       name: string,
       info: { when?: number; periodInMinutes?: number },
@@ -146,7 +154,11 @@ export class QueueEngine {
     ).length;
     let text = remaining > 99 ? "99+" : remaining ? String(remaining) : "";
     let color = "#8273a8";
-    if (item?.status === "verification" || item?.status === "blocked") {
+    if (
+      item?.status === "verification" ||
+      item?.status === "blocked" ||
+      s.extractions?.some((g) => g.status === "failed" || !!g.errorCode)
+    ) {
       text = "!";
       color = "#bd6158";
     } else if (item?.status === "waiting") {
@@ -163,8 +175,24 @@ export class QueueEngine {
     item.events.push({ at: item.updatedAt, message });
     if (item.events.length > 60) item.events.splice(0, item.events.length - 60);
   }
-  private async arm(s: AppState): Promise<void> {
+  private async arm(s: AppState, preserveEarlier = false): Promise<void> {
+    if (preserveEarlier) {
+      if (!this.p.alarms.get) return;
+      const existing = await this.p.alarms.get(ALARM);
+      if (existing && existing.scheduledTime <= this.p.now() + 30_000) return;
+    }
     await this.p.alarms.clear(ALARM);
+    if (s.pendingSecretDeletes?.length)
+      await this.p.alarms.create(ALARM, {
+        when: Math.max(s.nextSecretCleanupAt || 0, this.p.now() + 30_000),
+      });
+    if (
+      s.extractions?.some(
+        (g) => g.status === "queued" || g.status === "extracting",
+      )
+    ) {
+      await this.p.alarms.create(ALARM, { when: this.p.now() + 30_000 });
+    }
     if (!s.activeId) {
       if (s.running && s.items.some((x) => x.status === "queued")) {
         // 下載結束與外部下載等待都可能沒有 activeId，仍須保存下一次喚醒。
@@ -199,6 +227,193 @@ export class QueueEngine {
     return this.serial(async () => structuredClone(await this.load()));
   }
 
+  private async native(message: NativeRequest): Promise<NativeReply> {
+    if (!this.p.native) throw new Error("helper_unavailable");
+    try {
+      const reply = await this.p.native.request(message);
+      if (!reply || typeof reply.ok !== "boolean") throw new Error();
+      return reply;
+    } catch {
+      throw new Error("helper_unavailable");
+    }
+  }
+
+  private async extractionPaths(s: AppState, ids: string[]): Promise<string[]> {
+    const paths: string[] = [];
+    for (const id of ids) {
+      const item = s.items.find((i) => i.id === id);
+      if (item?.status !== "complete" || item.downloadId === undefined)
+        throw new Error("source_unavailable");
+      const [download] = await this.p.downloads.search({ id: item.downloadId });
+      if (
+        !download ||
+        download.state !== "complete" ||
+        !download.filename ||
+        (download.danger && !["safe", "accepted"].includes(download.danger))
+      )
+        throw new Error("source_unavailable");
+      paths.push(download.filename);
+    }
+    return paths;
+  }
+
+  private queueSecretCleanup(s: AppState, ids: string[]): void {
+    const needed = new Set(
+      (s.extractions || [])
+        .filter((g) => g.status !== "complete")
+        .map((g) => g.secretId || g.id),
+    );
+    s.pendingSecretDeletes = [
+      ...new Set([...(s.pendingSecretDeletes || []), ...ids]),
+    ].filter((id) => !needed.has(id));
+  }
+
+  private async cleanSecrets(s: AppState): Promise<void> {
+    if (
+      !s.pendingSecretDeletes?.length ||
+      (s.nextSecretCleanupAt || 0) > this.p.now()
+    )
+      return;
+    for (const id of [...s.pendingSecretDeletes]) {
+      try {
+        const reply = await this.native({ op: "forget-secret", id });
+        if (!reply.ok) throw new Error();
+        s.pendingSecretDeletes = s.pendingSecretDeletes.filter(
+          (value) => value !== id,
+        );
+      } catch {
+        s.nextSecretCleanupAt = this.p.now() + 300_000;
+        await this.save(s);
+        return;
+      }
+    }
+    s.nextSecretCleanupAt = undefined;
+    await this.save(s);
+  }
+
+  /** Native starts/status are quick RPCs; extraction runs in its detached worker. */
+  private async syncExtractions(s: AppState): Promise<void> {
+    await this.cleanSecrets(s);
+    let changed = false;
+    const completedSecrets: string[] = [];
+    const resolved = [] as NonNullable<AppState["extractions"]>;
+    for (const group of s.extractions || []) {
+      if (
+        group.unresolved &&
+        group.status === "waiting" &&
+        group.itemIds.every((id) =>
+          s.items.some((i) => i.id === id && i.status === "complete"),
+        )
+      ) {
+        try {
+          const paths = await this.extractionPaths(s, group.itemIds);
+          const names = new Map(
+            group.itemIds.map((id, i) => [id, paths[i].split(/[\\/]/).pop()!]),
+          );
+          const items = group.itemIds.map((id) =>
+            s.items.find((i) => i.id === id)!,
+          );
+          resolved.push(
+            ...planExtractions(items, (item) => names.get(item.id)!).map(
+              (g) => ({ ...g, secretId: group.secretId || group.id }),
+            ),
+          );
+        } catch {
+          group.status = "failed";
+          group.errorCode = "invalid_archive";
+          resolved.push(group);
+        }
+        changed = true;
+      } else resolved.push(group);
+    }
+    if (changed) {
+      s.extractions = resolved;
+      await this.save(s);
+    }
+    for (const group of s.extractions || []) {
+      if (group.status === "complete" || group.status === "failed") continue;
+      if (
+        group.status === "waiting" &&
+        !group.itemIds.every((id) =>
+          s.items.some((i) => i.id === id && i.status === "complete"),
+        )
+      )
+        continue;
+      let reply: NativeReply;
+      try {
+        if (!group.jobId) {
+          group.jobId = crypto.randomUUID();
+          group.status = "queued";
+          // Persist the operation ID before any native side effect.
+          await this.save(s);
+        }
+        reply = await this.native({ op: "status", id: group.jobId });
+        if (!reply.ok && reply.errorCode === "job-not-found") {
+          const paths = await this.extractionPaths(s, group.itemIds);
+          reply = await this.native({
+            op: "start",
+            id: group.jobId,
+            secretId: group.secretId || group.id,
+            paths,
+          });
+        }
+        if (
+          !reply.ok &&
+          ["job-busy", "worker-capacity"].includes(reply.errorCode || "")
+        ) {
+          group.errorCode = undefined;
+        } else if (
+          !reply.ok &&
+          [
+            "job-state-invalid",
+            "job-state-failed",
+            "job-conflict",
+            "internal-error",
+          ].includes(reply.errorCode || "")
+        ) {
+          group.errorCode = "unknown_job"; // Preserve the operation ID; its outcome is ambiguous.
+        } else if (
+          !reply.ok ||
+          !reply.status ||
+          !["queued", "extracting", "complete", "failed"].includes(reply.status)
+        ) {
+          group.status = "failed";
+          group.errorCode = extractionError(reply.errorCode);
+        } else {
+          group.status = reply.status;
+          group.errorCode = reply.errorCode
+            ? extractionError(reply.errorCode)
+            : undefined;
+          group.outputDir =
+            reply.status === "complete" && typeof reply.outputDir === "string"
+              ? reply.outputDir
+              : undefined;
+          if (group.status === "complete")
+            completedSecrets.push(group.secretId || group.id);
+        }
+      } catch (error) {
+        const code =
+          error instanceof Error ? error.message : "helper_unavailable";
+        // A lost start reply may already have launched a worker. Keep the same ID.
+        if (code === "helper_unavailable") {
+          group.errorCode = code;
+          changed = true;
+          break; // One unreachable host must not stall the queue once per archive.
+        } else {
+          group.status = "failed";
+          group.errorCode =
+            code === "source_unavailable" ? code : "extraction_failed";
+        }
+      }
+      changed = true;
+    }
+    if (changed) {
+      this.queueSecretCleanup(s, completedSecrets);
+      await this.save(s);
+      await this.cleanSecrets(s);
+    }
+  }
+
   handleRequest(request: Request, senderTabId?: number): Promise<Response> {
     return this.serial(async () => {
       try {
@@ -207,6 +422,8 @@ export class QueueEngine {
           const item = s.items.find((x) => x.id === s.activeId);
           if (item?.status === "downloading" && item.downloadId !== undefined)
             await this.syncDownload(s, item);
+          await this.syncExtractions(await this.load());
+          await this.arm(await this.load(), true);
           return { ok: true, state: structuredClone(await this.load()) };
         }
         if (request.type === "QC_FIND_DOWNLOADS") {
@@ -239,6 +456,13 @@ export class QueueEngine {
     let s = await this.load();
     switch (c.kind) {
       case "add": {
+        if (
+          c.extraction &&
+          (typeof c.extraction.password !== "string" ||
+            c.extraction.password.length > 1024 ||
+            /[\0\r\n]/.test(c.extraction.password))
+        )
+          throw new Error("invalid_archive");
         const additions: QueueItem[] = [];
         for (const raw of c.urls) {
           const url = normalizeSource(raw);
@@ -260,12 +484,92 @@ export class QueueEngine {
             events: [{ at, message: "已加入佇列" }],
           });
         }
+        if (c.extraction) {
+          const selected = [...s.items, ...additions].filter((i) =>
+            c.urls.some(
+              (u) =>
+                sourceKey(normalizeSource(u) || "") === sourceKey(i.sourceUrl),
+            ),
+          );
+          const groups = selected.some(
+            (item) =>
+              new URL(item.sourceUrl).pathname.split("/").filter(Boolean)
+                .length < 2,
+          )
+            ? [
+                {
+                  id: crypto.randomUUID(),
+                  itemIds: selected.map((i) => i.id),
+                  status: "waiting" as const,
+                  unresolved: true,
+                  secretId: undefined as string | undefined,
+                },
+              ]
+            : planExtractions(selected);
+          if (
+            !groups.length ||
+            groups.length > 100 ||
+            groups.some((g) =>
+              s.extractions?.some(
+                (old) =>
+                  old.status !== "failed" &&
+                  old.status !== "complete" &&
+                  old.itemIds.some((id) => g.itemIds.includes(id)),
+              ),
+            )
+          )
+            throw new Error("invalid_archive");
+          const ping = await this.native({ op: "ping" });
+          if (!ping.ok || !ping.sevenZipAvailable)
+            throw new Error("engine_unavailable");
+          const stored: string[] = [];
+          try {
+            for (const group of groups) {
+              const reply = await this.native({
+                op: "store-secret",
+                id: group.id,
+                password: c.extraction.password,
+              });
+              if (!reply.ok) throw new Error("extraction_failed");
+              stored.push(group.id);
+              group.secretId = group.id;
+            }
+          } catch (error) {
+            for (const id of stored)
+              try {
+                await this.native({ op: "forget-secret", id });
+              } catch {
+                /* encrypted orphan only */
+              }
+            throw error;
+          }
+          const superseded = (s.extractions || []).filter((old) =>
+            groups.some((g) =>
+              old.itemIds.some((id) => g.itemIds.includes(id)),
+            ),
+          );
+          s.extractions = [
+            ...(s.extractions || []).filter(
+              (old) =>
+                !groups.some((g) =>
+                  old.itemIds.some((id) => g.itemIds.includes(id)),
+                ),
+            ),
+            ...groups,
+          ];
+          this.queueSecretCleanup(
+            s,
+            superseded.map((g) => g.secretId || g.id),
+          );
+          s.nativeHelper = { available: true, engineAvailable: true };
+        }
         s.items.push(...additions);
         if (additions.length && !s.running && !s.activeId) {
           s.cycleStartedAt = undefined;
           s.cycleNotifiedAt = undefined;
         }
         await this.save(s);
+        if (c.extraction) await this.syncExtractions(s);
         await this.arm(s);
         return structuredClone(s);
       }
@@ -305,10 +609,34 @@ export class QueueEngine {
       }
       case "remove": {
         const item = s.items.find((x) => x.id === c.id);
-        if (!item || item.id === s.activeId)
+        if (
+          !item ||
+          item.id === s.activeId ||
+          s.extractions?.some(
+            (g) =>
+              g.itemIds.includes(c.id) &&
+              ["queued", "extracting"].includes(g.status),
+          )
+        )
           throw new Error("無法移除目前執行項目");
         s.items = s.items.filter((x) => x.id !== c.id);
+        const canceled = (s.extractions || []).filter(
+          (g) => g.itemIds.includes(c.id) && g.status !== "complete",
+        );
+        s.extractions = s.extractions
+          ?.filter((g) => !canceled.includes(g))
+          .map((g) => ({
+            ...g,
+            itemIds: g.itemIds.filter((id) => id !== c.id),
+          }))
+          .filter((g) => g.itemIds.length);
+        this.queueSecretCleanup(
+          s,
+          canceled.map((g) => g.secretId || g.id),
+        );
         await this.save(s);
+        await this.cleanSecrets(s);
+        await this.arm(s);
         return structuredClone(s);
       }
       case "retry": {
@@ -400,9 +728,69 @@ export class QueueEngine {
         return structuredClone(await this.load());
       }
       case "clear-complete":
-        s.items = s.items.filter((x) => x.status !== "complete");
+        const completedSecrets = (s.extractions || [])
+          .filter((g) => g.status === "complete")
+          .map((g) => g.secretId || g.id);
+        s.items = s.items.filter(
+          (x) =>
+            x.status !== "complete" ||
+            s.extractions?.some(
+              (g) => g.itemIds.includes(x.id) && g.status !== "complete",
+            ),
+        );
+        s.extractions = s.extractions?.filter((g) =>
+          g.itemIds.some((id) => s.items.some((i) => i.id === id)),
+        );
+        this.queueSecretCleanup(s, completedSecrets);
+        await this.save(s);
+        await this.cleanSecrets(s);
+        await this.arm(s);
+        return structuredClone(s);
+      case "check-helper": {
+        try {
+          const r = await this.native({ op: "ping" });
+          s.nativeHelper = {
+            available: r.ok,
+            engineAvailable: !!r.sevenZipAvailable,
+          };
+        } catch {
+          s.nativeHelper = { available: false };
+        }
         await this.save(s);
         return structuredClone(s);
+      }
+      case "retry-extraction": {
+        const group = s.extractions?.find((g) => g.id === c.id);
+        if (!group || group.status !== "failed")
+          throw new Error("extraction_failed");
+        const oldSecret = group.secretId || group.id;
+        if (c.password !== undefined) {
+          if (
+            typeof c.password !== "string" ||
+            c.password.length > 1024 ||
+            /[\0\r\n]/.test(c.password)
+          )
+            throw new Error("invalid_archive");
+          const secretId = crypto.randomUUID();
+          const reply = await this.native({
+            op: "store-secret",
+            id: secretId,
+            password: c.password,
+          });
+          if (!reply.ok) throw new Error("extraction_failed");
+          group.secretId = secretId;
+        }
+        group.status = "waiting";
+        group.jobId = undefined;
+        group.errorCode = undefined;
+        group.outputDir = undefined;
+        this.queueSecretCleanup(s, c.password !== undefined ? [oldSecret] : []);
+        await this.save(s);
+        await this.cleanSecrets(s);
+        await this.syncExtractions(s);
+        await this.arm(s);
+        return structuredClone(s);
+      }
       case "settings":
         if (
           c.settings.language !== undefined &&
@@ -1078,6 +1466,7 @@ export class QueueEngine {
         s.hostNotBefore = Math.max(s.hostNotBefore || 0, now + HOST_GAP);
       }
       await this.save(s);
+      await this.syncExtractions(s);
       if (s.running) await this.pump(s);
       return;
     }
@@ -1105,9 +1494,11 @@ export class QueueEngine {
   onAlarm(): Promise<AppState> {
     return this.serial(async () => {
       const s = await this.load();
+      await this.syncExtractions(s);
       const item = s.items.find((x) => x.id === s.activeId);
       if (!item) {
         if (s.running) await this.pump(s);
+        await this.arm(await this.load());
         return structuredClone(await this.load());
       }
       if (!s.running) {
@@ -1190,6 +1581,7 @@ export class QueueEngine {
   onStartup(): Promise<AppState> {
     return this.serial(async () => {
       const s = await this.load();
+      await this.syncExtractions(s);
       const item = s.items.find((x) => x.id === s.activeId);
       if (item?.downloadId !== undefined) await this.syncDownload(s, item);
       else if (item?.status === "handoff") await this.recoverHandoff(s, item);

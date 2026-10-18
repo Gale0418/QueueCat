@@ -41,6 +41,7 @@ beforeAll(async () => {
       onChanged: event(),
     },
     alarms: {
+      get: vi.fn(async () => undefined),
       clear: vi.fn(async () => true),
       create: vi.fn(async () => undefined),
       onAlarm: event(),

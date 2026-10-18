@@ -157,7 +157,13 @@ describe("publishExtension", () => {
     const manifest = {
       manifest_version: 3,
       version: "1.2.3",
-      permissions: ["storage", "downloads", "alarms", "notifications"],
+      permissions: [
+        "storage",
+        "downloads",
+        "alarms",
+        "notifications",
+        "nativeMessaging",
+      ],
       icons,
     };
     await writeFile(

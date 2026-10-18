@@ -1,0 +1,168 @@
+{
+  "createdAt": "2026-10-18T10:10:18.653Z",
+  "scope": "Curated source handoff evidence; no passwords, profiles, raw collaborator/auth receipts or package binaries",
+  "entries": [
+    {
+      "original": "artifacts/extraction-review-01/manifest.json",
+      "archived": "extraction-review-01/manifest.json",
+      "bytes": 3366,
+      "sha256": "c6a643d94db7039a758484b12a274adbeea53537c737b2c73726f59ba9744e04"
+    },
+    {
+      "original": "artifacts/extraction-review-02/manifest.json",
+      "archived": "extraction-review-02/manifest.json",
+      "bytes": 7177,
+      "sha256": "bade351eb74d60964eee9b7cd012896f50e1df8ae60dc60ec7ee35fd2a75f3f3"
+    },
+    {
+      "original": "artifacts/extraction-review-03/manifest.json",
+      "archived": "extraction-review-03/manifest.json",
+      "bytes": 8981,
+      "sha256": "a59a7baf239a263646e73a9b015e7477ba94b8a376163265a78e015204f8581f"
+    },
+    {
+      "original": "artifacts/extraction-security/report.json",
+      "archived": "extraction-security/report.json",
+      "bytes": 9896,
+      "sha256": "d5fcaebc12ac81ac935dfe06fd56556d8376c388453bb706121a0e6be34db11e"
+    },
+    {
+      "original": "artifacts/extraction-security/closure.json",
+      "archived": "extraction-security/closure.json",
+      "bytes": 10254,
+      "sha256": "55e60af11deedb18937c8fc77f9807ea54c47723f52bb2cd4804f450283aac9a"
+    },
+    {
+      "original": "artifacts/extraction-security/closure-03.json",
+      "archived": "extraction-security/closure-03.json",
+      "bytes": 13868,
+      "sha256": "a17cdabfb941878d2374bc895b735d334b7fffbdc91573923ebf0265335df3ce"
+    },
+    {
+      "original": "artifacts/extraction-queue-review/report.json",
+      "archived": "extraction-queue-review/report.json",
+      "bytes": 5070,
+      "sha256": "dfb59effd3df24e8193b34fda1b968d7bb670fe0c1ee1c8b24cc0a91b4d34325"
+    },
+    {
+      "original": "artifacts/extraction-queue-review/closure.json",
+      "archived": "extraction-queue-review/closure.json",
+      "bytes": 4487,
+      "sha256": "b53bcc4e74c12c6777eef845b29fb972d016e1fec7bbc4431bbb1e5dacdda813"
+    },
+    {
+      "original": "artifacts/extraction-queue-review/closure-03.json",
+      "archived": "extraction-queue-review/closure-03.json",
+      "bytes": 7020,
+      "sha256": "a9530005ec69757d202f214e5f61cd8b3df24f00af98c9393fa19c32dbce5a24"
+    },
+    {
+      "original": "artifacts/extraction-ux/report.json",
+      "archived": "extraction-ux/report.json",
+      "bytes": 5559,
+      "sha256": "e43c6286e240c2ad6383bd99bcaf0caba222bcb05ca85deff7a57d5bac0f1e9c"
+    },
+    {
+      "original": "artifacts/extraction-ux/closure-03.json",
+      "archived": "extraction-ux/closure-03.json",
+      "bytes": 5426,
+      "sha256": "70682d6c771d569ba7c8722500f43ebe86d2b47260f183b4d585c5e6835646cc"
+    },
+    {
+      "original": "artifacts/extraction-arbiter/final.json",
+      "archived": "extraction-arbiter/final.json",
+      "bytes": 7133,
+      "sha256": "3f5e51cd9d36a29b9fbabd4bc078c6d34cc43a1dc920bf6f26bec68ae1f49882"
+    },
+    {
+      "original": "artifacts/extraction-native/security-fixes.json",
+      "archived": "extraction-native/security-fixes.json",
+      "bytes": 4522,
+      "sha256": "4f78b19cedc087feb9af7d89c84b7f569873bc56bf71fc76edc3a57544f3c08d"
+    },
+    {
+      "original": "artifacts/extraction-native/rabbit-repairs.json",
+      "archived": "extraction-native/rabbit-repairs.json",
+      "bytes": 5550,
+      "sha256": "5f6645b1a263685d13c3314e4926e2ad709fa4914d02564f863b455a75df7641"
+    },
+    {
+      "original": "artifacts/extraction-native/rar-acceptance.json",
+      "archived": "extraction-native/rar-acceptance.json",
+      "bytes": 6762,
+      "sha256": "dd8b35fd50ff581ff92044ee0fb16627d637d64f463aa307e8ff8ca6f3f89621"
+    },
+    {
+      "original": "artifacts/native-package-report.json",
+      "archived": "native-package-report.json",
+      "bytes": 279,
+      "sha256": "d5713c8771a475c349027985e7b39efb7685130c191a7c691c04cebac3b45a54"
+    },
+    {
+      "original": "artifacts/extraction-rabbit-dispositions.json",
+      "archived": "extraction-rabbit-dispositions.json",
+      "bytes": 3989,
+      "sha256": "495604c01ad1f6a148d7ca2a87b9db3a5454d95cf31638c9cdffe2ce0d944cf1"
+    },
+    {
+      "original": "artifacts/extraction-impeccable.json",
+      "archived": "extraction-impeccable.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "original": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/report.json",
+      "archived": "extraction-browser/2026-10-18T09-54-02-887Z/report.json",
+      "bytes": 3973,
+      "sha256": "8be30b54ab5e2448266a6c134cdc4e53541cdb2cb6598df3bb113c01fa5e965c"
+    },
+    {
+      "original": "artifacts/browser-acceptance/2026-10-18T09-07-14-905Z/report.json",
+      "archived": "browser-acceptance/2026-10-18T09-07-14-905Z/report.json",
+      "bytes": 6399,
+      "sha256": "3fe6fe38946e1817c78d6ffc93f164c29d2759425d5bf3966c26261aa07e4b14"
+    },
+    {
+      "original": "artifacts/coderabbit/extraction-20261018/run-1.ndjson",
+      "archived": "coderabbit/extraction-20261018/run-1.ndjson",
+      "bytes": 4159,
+      "sha256": "ab80c5dde1eba5bd76c0c0d6c6f1b681526ca68d07661655476180142406880c"
+    },
+    {
+      "original": "artifacts/coderabbit/extraction-20261018/run-2.ndjson",
+      "archived": "coderabbit/extraction-20261018/run-2.ndjson",
+      "bytes": 2643,
+      "sha256": "646749f8536348af90ca0373ffae5ee35be7f89bcc8a9b53f2c8b9378c41ea87"
+    },
+    {
+      "original": "artifacts/coderabbit/extraction-20261018/run-3.ndjson",
+      "archived": "coderabbit/extraction-20261018/run-3.ndjson",
+      "bytes": 2551,
+      "sha256": "c2c6a471dc737701d5c6e2c7b74ea4fce70b1d293046c5fc1e613c0ae4e52f92"
+    },
+    {
+      "original": "artifacts/coderabbit/extraction-20261018/scope.json",
+      "archived": "coderabbit/extraction-20261018/scope.json",
+      "bytes": 5266,
+      "sha256": "0b86ad13c9034a3c9b2d4fdc16f22e3fc0ffe3b2497938a35e4e54677370457d"
+    },
+    {
+      "original": "artifacts/coderabbit/extraction-20261018/scope-2.json",
+      "archived": "coderabbit/extraction-20261018/scope-2.json",
+      "bytes": 1666,
+      "sha256": "2ce54d1b4c3fe0759278c0f4d2580805b633dad36739b4b943a610655ac148cb"
+    },
+    {
+      "original": "artifacts/coderabbit/extraction-20261018/scope-3.json",
+      "archived": "coderabbit/extraction-20261018/scope-3.json",
+      "bytes": 555,
+      "sha256": "6827f63e5c982afc8ed6b7d15bea5567ebef9c35c337f95b6b6a5491eedf0e7d"
+    },
+    {
+      "original": "output/mission-center-critique/QC-E7-extraction-review-03.json",
+      "archived": "output/mission-center-critique/QC-E7-extraction-review-03.json",
+      "bytes": 4056,
+      "sha256": "9f7a9d0f5fd63e343e4a927b2c7eb39db594b18f848f5e2d6c624ce5d20a4348"
+    }
+  ]
+}

@@ -30,6 +30,21 @@ npm run build
 
 你已於 2026-10-18 回報根目錄版本成功載入 Chrome；網站倒數後顯示最終免費下載頁，並由你按「繼續免費下載」啟動傳輸。QueueCat 的全自動交接驗收仍在進行。
 
+## 下載後自動解壓（可選）
+
+新增網址時勾選 **Auto-extract after download**，在下方 **Archive Password** 填這批檔案共用的密碼；無密碼壓縮檔可留白。不同密碼請分批加入。分卷請整組貼齊；所有已選卷的 Chrome 下載完成後，才會檢查並解壓到下載位置下的新資料夾，保留原壓縮檔、不覆蓋既有內容、不執行解出的程式。
+
+Windows x64 使用 Rust 小幫手，預設附官方 7-Zip 26.04 可攜引擎，朋友不必另外裝解壓軟體；也可在安裝小幫手時指定相容的既有 `7z.exe`。目前不直接呼叫 WinRAR。
+
+1. 取得或自行建置 `dist/QueueCat-Helper-0.1.0-windows-x64.zip`，解壓至固定位置；保留其中的 `engine` 與授權文件。
+2. 在 QueueCat **Preferences → Setup Guide** 複製 Extension ID，執行小幫手資料夾的 `Install-QueueCat.cmd` 並貼入 ID。此步只註冊目前 Windows 使用者，不需管理員、不改檔案關聯。
+3. 等目前佇列安全閒置後，重新載入外掛以取得新增的 `nativeMessaging` 權限，再按 **Check Helper**。本次自動測試不會替你重新載入日常外掛。
+4. 需要移除小幫手時，執行隨包的 `uninstall-native-helper.ps1`；不刪已下載或解壓的檔案。未設定小幫手仍可照常排隊下載。
+
+支援 ZIP、7z、RAR、現代 `.part01.rar`、傳統 `.rar/.r00` 及 `.7z.001/.zip.001` 分卷。若網址不含檔名，會等該批下載完成再依 Chrome 實際檔名分組。漏貼最後一卷、密碼錯誤、損壞或空間不足都會停止該組解壓；在詳情更換密碼再按 **Retry Extraction**，不會重新下載。移除等待／失敗組任一卷的紀錄會取消該組解壓，但保留其他下載與原檔；執行中的解壓紀錄不能移除。
+
+密碼不進 Chrome 佇列、事件或分享，僅由小幫手以 Windows DPAPI 保護落盤。成功及換密碼後會清理不再使用的密碼；失敗組密碼最多保留 7 天供重試；到期後下次小幫手呼叫會清理，重新解壓時可再輸入密碼。取消該組也會排程清理。解除安裝保留的加密資料可依原生說明手動移除，不會宣稱未執行的小幫手能定時刪檔。7-Zip 執行時密碼短暫出現在程序參數，可能被同帳號的程序檢視工具讀取；此功能有路徑與資源限制，但不是作業系統沙箱。詳見 [原生小幫手說明](native/README.md) 與 [本輪驗收紀錄](MissionCenter/extraction-20261018.md)。
+
 ## 使用方式
 
 熟手小技巧：貼好網址按 **Ctrl／⌘＋Enter** 加入；焦點在待下載項目時按 **Alt＋↑／↓** 調整順序；**Esc** 收起目前面板或詳情。加入後仍由你按「開始排隊」；排序成功會回報實際位置。設定裡也有「更順手的小技巧」可查。
@@ -44,7 +59,7 @@ npm run build
 - 已自行點「繼續免費下載」，但 QueueCat 留在待處理時，可按「核對已開始的下載」。候選限於加入項目後開始、同檔名且直接來自 Katfile 的下載；請核對網域、開始時間與容量，再按「確認這筆，接續追蹤」。不會自動認領或重送；原本 API 交接結果未知的項目仍走原有嚴格核對。
 - 清除完成紀錄只清 QueueCat 紀錄，不刪磁碟檔案。
 
-最新獨立驗收、修復與隔離測試見 [最終驗收紀錄](MissionCenter/final-review-20261018.md)。此倉庫交付本機測試版原始碼，完整實站驗收仍保留以下缺口。
+下載核心前輪的獨立驗收見 [驗收紀錄](MissionCenter/final-review-20261018.md)，本輪自動解壓見 [解壓驗收紀錄](MissionCenter/extraction-20261018.md)。此倉庫交付本機測試版原始碼，完整實站驗收仍保留以下缺口。
 
 ## 已驗證與實站限制
 
@@ -64,6 +79,8 @@ npm run check
 npm test
 npm run build
 npm run dev
+# Windows x64：需要 Rust 工具鏈，首次會下載固定版本官方引擎
+npm run build:helper
 ```
 
 開啟 `http://127.0.0.1:5173/entries/manager.html?preview=1` 或 `entries/popup.html?preview=1`。一般網頁環境會明確顯示離線預覽，選擇示意情境；**預覽不會啟動真實下載**。真實外掛只讀取 Chrome 本機佇列，不帶示意檔案。
@@ -82,18 +99,21 @@ npm run test:browser -- --playwright-module <Playwright/index.mjs> --browser-cac
 
 來源樣本需占用本機 `127.0.0.1:443`；若已被使用，測試直接停止，不關閉其他服務。下載、截圖與逐項報告位於 `artifacts/browser-acceptance/<執行ID>/`。測試會關閉自己建立的瀏覽器及 HTTPS 服務。模擬驗證通過不等於通過真人 CAPTCHA；以彈窗 HTML 頁面做互動與排版驗收，也不代表工具列原生彈窗已取得。
 
+自動解壓的隔離驗收另用 `npm run test:extraction-browser -- --helper-exe <小幫手.exe> --seven-zip <7z.exe> --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄>`。它在自己的 profile 下載本機產生的加密分卷，核對真正的 downloadId、解壓內容 hash 與背景重啟的冪等結果；只有 native host 註冊原先不存在時才暫時建立測試註冊，測完按所有權還原，不覆寫既有註冊。證據位於 `artifacts/extraction-browser/<執行ID>/`。
+
 ## 專案結構與資料
 
 - `src/background`：唯一狀態寫入者、Chrome 事件與佇列核心。
 - `src/content`：Katfile 可見 DOM 判讀與經背景核准的單步表單操作。
 - `src/ui`：共用彈窗／管理頁與離線預覽。
+- `native`：可選 Rust 解壓小幫手、Native Messaging 協定與 Windows 安全回歸測試。
 - `public/assets`：五張靜態透明 PNG、隨包字體與來源／提示詞紀錄。
 - `MissionCenter`：任務及驗收證據；未驗證項目保持 Review。
 
-佇列存在 `chrome.storage.local` 的 `queuecat.state.v1`，不使用雲端同步與遙測。外掛不讀取密碼、不要求 cookies 權限；Katfile 登入與驗證維持在網站原頁面。桌面通知受 Chrome 與作業系統通知設定影響。
+佇列存在 `chrome.storage.local` 的 `queuecat.state.v1`，不使用雲端同步與遙測。外掛不讀取 Katfile 登入密碼、不要求 cookies 權限；Katfile 登入與驗證維持在網站原頁面。只有你主動填入的壓縮檔密碼會傳給本機小幫手，儲存與限制見上方說明。桌面通知受 Chrome 與作業系統通知設定影響。
 
 角色依你提供的長髮睡衣貓娘三視圖，以 Codex 內建 ImageGen 製作五張透明靜態小房間切片：小床抱被數羊、書桌工作／招手、同張沙發上拿手機思考／伸懶腰。來源見 `public/assets/PROVENANCE.md`，完整提示詞鏈見 `design/reference/mascot-v3-prompts.json`，五圖總覽見 `design/room-v3-preview.html`。圖示為專案幾何 SVG；Nunito Sans 授權見 `public/assets/FONT-LICENSE.txt`。
 
 ## 原始碼授權狀態
 
-本專案目前未指定開源授權；公開倉庫不代表授予額外的重用、改作或散布權利。若需要這些用途，請先聯絡維護者確認授權。隨包第三方字體依上述獨立授權文件處理；角色參考圖與生成素材的來源亦保留於來源紀錄中。
+本專案目前未指定開源授權；公開倉庫不代表授予額外的重用、改作或散布權利。若需要這些用途，請先聯絡維護者確認授權。第三方字體、7-Zip 及 Rust 相依套件依各自授權處理；小幫手 ZIP 保留官方引擎授權、對應完整原始碼及相依套件 notices。角色參考圖與生成素材的來源亦保留於來源紀錄中。

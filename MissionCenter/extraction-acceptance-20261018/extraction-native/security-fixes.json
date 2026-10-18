@@ -1,0 +1,72 @@
+{
+  "review": "QueueCat native extraction security follow-up",
+  "sourceReport": "artifacts/extraction-security/report.json",
+  "scope": [
+    "EXTRACT-RESOURCE-001",
+    "EXTRACT-RESOURCE-002",
+    "EXTRACT-RECOVERY-001"
+  ],
+  "changes": {
+    "workerCapacity": {
+      "limit": 4,
+      "coordination": "Cross-process dispatch.lock is held from admission counting through queued-state persistence and worker PID commit.",
+      "fullBehavior": "A new job returns worker-capacity before writing its job JSON or spawning a process. Existing job IDs return their current state before the capacity check. Malformed job records conservatively consume a slot.",
+      "queueWaitLimitSeconds": 7200,
+      "queueTimeoutErrorCode": "queue-timeout"
+    },
+    "engineTimeout": {
+      "secondsPerListTestExtractProcess": 1800,
+      "errorCode": "engine-timeout",
+      "cleanup": "Process polling uses try_wait; timeout terminates and reaps the process. Windows children are assigned to a kill-on-close Job Object. Listing output is drained by a bounded reader thread while the parent polls process exit and deadline."
+    },
+    "installerRollback": {
+      "preflight": "Validates explicit extension/helper/engine inputs, owned manifest and config structure, and refuses a foreign native host registration before replacing files.",
+      "transaction": "Backs up manifest, config, and the prior registry default-value snapshot; stages writes; commits HKCU registration last; restores prior registry value and files on failure.",
+      "incompleteRollback": "Keeps the backup directory and reports its exact path.",
+      "productionInstallerExecuted": false,
+      "realRegistryTouched": false
+    }
+  },
+  "errorCodesForParentMapping": {
+    "worker-capacity": "Keep the existing job pending and poll/reissue start with the same job ID; the rejected ID has no persisted job JSON yet.",
+    "queue-timeout": "Generic failed extraction state; do not map to wrong-password.",
+    "engine-timeout": "Generic failed extraction state; do not map to wrong-password."
+  },
+  "verification": {
+    "commandsRun": [
+      {
+        "cwd": "D:/MyGame/QueueCat/native",
+        "command": "cargo fmt --all; cargo test",
+        "result": "passed: 10/10 unit tests, including worker-admission counting and Windows child timeout kill/reap"
+      },
+      {
+        "cwd": "D:/MyGame/QueueCat/native",
+        "command": "cargo build",
+        "result": "passed: debug helper build"
+      },
+      {
+        "cwd": "D:/MyGame/QueueCat/native",
+        "command": ".\\tests\\archive-integration.ps1 -HelperExePath .\\target\\debug\\queuecat-native-helper.exe -SevenZipPath ..\\artifacts\\extraction-engine\\unpacked\\7z.exe",
+        "result": "passed: encrypted archive, worker-capacity rejection without orphan job JSON, explicit-volume isolation, ZIP split extraction, recovery and state validation"
+      },
+      {
+        "cwd": "D:/MyGame/QueueCat/native",
+        "command": ".\\tests\\protocol-smoke.ps1 -HelperExePath .\\target\\debug\\queuecat-native-helper.exe",
+        "result": "passed: two framed native messaging pings"
+      },
+      {
+        "cwd": "D:/MyGame/QueueCat",
+        "command": "PowerShell Parser.ParseFile over scripts/install-native-helper.ps1, scripts/uninstall-native-helper.ps1, native/tests/archive-integration.ps1, and artifacts/extraction-native/installer-rollback-smoke.ps1; pwsh -NoLogo -NoProfile -File .\\artifacts\\extraction-native\\installer-rollback-smoke.ps1",
+        "result": "passed: scripts parse; failure injection restored previous files and mock registration, and failed first-install left no partial files"
+      }
+    ],
+    "evidenceFixtures": [
+      "D:/MyGame/QueueCat/artifacts/extraction-native/integration-fa599852c3014a20957e66c787c964ac",
+      "D:/MyGame/QueueCat/artifacts/extraction-native/smoke-state-7d59687523c341638e3e662a1886873a",
+      "D:/MyGame/QueueCat/artifacts/extraction-native/installer-rollback-9b46b9f145664ee99328e95875520f2d",
+      "D:/MyGame/QueueCat/artifacts/extraction-native/installer-rollback-aa34a4715b3e405b8c7e38b5188c23cd"
+    ],
+    "releaseBuild": "Not run by this agent; parent is building the final static CRT release bundle and will run its focused test against that exact bundled executable.",
+    "limits": "No 30-minute wall-clock timeout soak was run; the timeout/kill/reap path was tested with a 100 ms Windows child-process test. No production installer, registry, personal Chrome profile, or live downloads were touched."
+  }
+}

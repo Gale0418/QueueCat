@@ -1,0 +1,63 @@
+{
+  "auditId": "extraction-queue-review",
+  "snapshot": {
+    "manifest": "artifacts/extraction-review-01/manifest.json",
+    "manifestSha256": "c6a643d94db7039a758484b12a274adbeea53537c737b2c73726f59ba9744e04",
+    "verified": true,
+    "verifiedEntries": 19
+  },
+  "scope": "Read-only review of frozen extension background, extraction grouping, UI and version-1 state compatibility. Native archive parser/path safety and personal Chrome/live downloads were out of scope.",
+  "summary": {
+    "p0": 0,
+    "p1": 0,
+    "p2": 1,
+    "p3": 0,
+    "result": "No confirmed P0/P1 issue in reviewed scope. One recoverability/UI-state issue is confirmed for removing a constituent item from a failed multi-volume extraction group."
+  },
+  "findings": [
+    {
+      "id": "EQ-001",
+      "severity": "P2",
+      "title": "Removing a part from a failed volume group leaves an unrecoverable retry group",
+      "location": [
+        { "path": "src/background/engine.ts", "line": 535 },
+        { "path": "src/background/engine.ts", "line": 548 },
+        { "path": "src/background/engine.ts", "line": 670 },
+        { "path": "src/background/engine.ts", "line": 695 },
+        { "path": "src/ui/main.ts", "line": 210 }
+      ],
+      "trigger": "A split archive extraction has failed. The user removes one completed queue item belonging to the failed group, then selects another remaining part and presses Retry Extraction.",
+      "expected": "The UI should prevent removal while the group still references the item, or update/detach the group so its retry state accurately reflects the remaining source set.",
+      "actual": "The remove guard blocks only groups in queued/extracting states. For a failed group, removal deletes the QueueItem but leaves its ID in group.itemIds; it only changes groups whose status is waiting. Retry resets the group to waiting and syncExtractions calls extractionPaths for every saved ID. The missing item makes extractionPaths throw source_unavailable, so the group returns to failed and cannot be repaired from the remaining UI records.",
+      "impact": "The remaining archive parts keep displaying a retry action that can never succeed; there is no command/UI to edit the group membership or re-associate the deleted part. The user must retain or recreate queue records through a new batch to recover cleanly.",
+      "minimalRepro": [
+        "Add a complete two-part set (for example book.part1.rar and book.part2.rar) with auto-extraction enabled.",
+        "Cause extraction to fail so the group status is failed.",
+        "Remove one completed part using its row remove action; removal is allowed because the group is failed.",
+        "Open the other part and choose Retry Extraction; the group still requests the removed item ID and resolves to source_unavailable."
+      ],
+      "evidence": "Frozen snapshot code: remove() rejects only queued/extracting groups at engine.ts:540-545, deletes the item at :547, and only marks waiting groups failed at :548-552. The UI exposes remove for every non-active row at main.ts:210. retry-extraction resets failed groups to waiting at engine.ts:690-695; extractionPaths rejects absent IDs at :235-238 and syncExtractions maps that failure back to failed at :335-344."
+    }
+  ],
+  "verifiedBehavior": [
+    "Version 1 persisted state is spread-forward with settings defaults and item event normalization; optional extractions remains absent safely for older state.",
+    "Ordinary add without extraction does not call the native helper; enabling extraction intentionally requires helper ping/secret storage before adding the batch.",
+    "Extraction groups wait for every tracked item to complete; unresolved groups use Chrome download filenames when all selected items complete.",
+    "The saved native job ID is written before native status/start side effects and reused on subsequent synchronization; startup and alarms reconcile extraction state even while the download queue is paused.",
+    "Batch password is sent to native store-secret and only secret IDs are kept in extension queue state; UI clears the password field after a successful add."
+  ],
+  "verification": {
+    "performed": [
+      "Verified manifest SHA-256 and every listed snapshot file byte count/SHA-256 against the manifest.",
+      "Read-only source tracing of add, extraction resolution/status sync, pause, retry, remove, clear-complete, startup/alarm handling, volume grouping, UI actions and state loading."
+    ],
+    "notPerformed": [
+      "No tests were run in this review; the parent task reported the existing 107-test suite passing and is adding focused deferred-ID/busy/failed-retry tests.",
+      "No personal Chrome profile, registry, live downloads or native extraction operation was accessed."
+    ]
+  },
+  "unknowns": [
+    "This report is based on the pinned snapshot only. Behavior in files omitted from its manifest and any later working-tree edits was not used to reach findings.",
+    "Native compression/parser and path-safety behavior was not independently audited, per task scope."
+  ]
+}

@@ -3,8 +3,30 @@ import type { Request } from "../shared/types";
 import { currentLanguage, type LanguagePreference } from "../shared/language";
 import { translateMessage } from "../shared/messages";
 import { getLocale } from "../shared/locales";
+import type { NativeRequest, NativeReply } from "../shared/extraction";
 
 const ports = {
+  native: {
+    request(message: NativeRequest): Promise<NativeReply> {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(
+          () => reject(new Error("helper_unavailable")),
+          10_000,
+        );
+        // Only the trusted background engine constructs native requests.
+        chrome.runtime.sendNativeMessage(
+          "com.queuecat.helper",
+          message,
+          (reply: NativeReply) => {
+            clearTimeout(timeout);
+            if (chrome.runtime.lastError)
+              reject(new Error("helper_unavailable"));
+            else resolve(reply);
+          },
+        );
+      });
+    },
+  },
   storage: {
     async get(key: string) {
       const result = await chrome.storage.local.get(key);
@@ -65,6 +87,9 @@ const ports = {
     },
   },
   alarms: {
+    get(name: string) {
+      return chrome.alarms.get(name);
+    },
     create(name: string, info: { when?: number; periodInMinutes?: number }) {
       chrome.alarms.create(name, info);
     },

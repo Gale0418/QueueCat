@@ -1,0 +1,81 @@
+{
+  "auditId": "extraction-queue-review-closure",
+  "parentFinding": "EQ-001",
+  "snapshot": {
+    "manifest": "artifacts/extraction-review-02/manifest.json",
+    "manifestSha256": "bade351eb74d60964eee9b7cd012896f50e1df8ae60dc60ec7ee35fd2a75f3f3",
+    "parentSnapshot": "extraction-review-01",
+    "verified": true,
+    "verifiedEntries": 37,
+    "workingTreeMatchesSnapshot": true
+  },
+  "closure": {
+    "status": "closed",
+    "findingSeverity": "P2",
+    "findingSummary": "Removing a constituent queue item from a failed multi-volume extraction group left the failed group referencing the deleted item; retry then failed permanently with source_unavailable.",
+    "repairEvidence": [
+      {
+        "path": "src/background/engine.ts",
+        "lines": [610, 640],
+        "detail": "Removal still rejects queued/extracting groups. Removing an item now removes any non-complete extraction group that references it, queues its secret for cleanup, persists state, and attempts cleanup. Completed groups instead have only the removed item ID pruned; empty groups are dropped."
+      },
+      {
+        "path": "src/ui/main.ts",
+        "lines": [205, 214],
+        "detail": "Rows belonging to queued/extracting extraction jobs are treated as active, suppressing the remove action. Other linked rows expose the localized accessible label/title that says removal cancels extraction while preserving downloaded files."
+      },
+      {
+        "path": "src/shared/extraction-copy.ts",
+        "lines": [5, 10],
+        "detail": "The removal label explicitly says 'cancel extraction, keep files' in English, Traditional Chinese, and Japanese."
+      },
+      {
+        "path": "tests/extraction.test.ts",
+        "lines": [318, 338],
+        "detail": "The regression test removes one part from a failed two-volume group and asserts the remaining downloaded item is still complete, the extraction group is removed, the group secret is forgotten, and no extraction starts."
+      }
+    ],
+    "assessment": "The previously reported dangling-group retry path is closed in the pinned source. Removal cancels the whole non-terminal extraction group rather than leaving a partial, misleading retry group; native secret cleanup is attempted and persisted for later retry if unavailable. Completed groups are pruned without cancelling their completed result. No new finding was opened; this pass was limited to closure and directly affected synchronization/UI/password-cleanup behavior."
+  },
+  "personallyRun": [
+    {
+      "command": "npm test -- tests/extraction.test.ts -t \"busy native operation|terminal failed extraction|canceling one failed volume record|cleans completed passwords\"",
+      "result": "pass: 4 tests passed, 10 skipped"
+    },
+    {
+      "command": "npm test -- tests/engine.test.ts -t \"existing watchdog alarm\"",
+      "result": "pass: 1 test passed, 41 skipped"
+    },
+    {
+      "command": "npm test -- tests/extraction-ui.test.ts",
+      "result": "pass: 1 test passed"
+    },
+    {
+      "command": "npm test -- tests/background-adapter.test.ts",
+      "result": "pass: 6 tests passed"
+    }
+  ],
+  "snapshotEvidenceReviewedButNotRerun": [
+    {
+      "source": "artifacts/extraction-review-02/manifest.json verification.chairToolOutputs",
+      "reported": "113 TypeScript tests, 10 Rust tests, build, helper package and installer rollback checks passed"
+    },
+    {
+      "source": "artifacts/extraction-review-02/files/artifacts/extraction-browser/2026-10-18T09-07-00-548Z/report.json",
+      "reported": "Isolated browser/native fixture passed real Chrome downloads of two local encrypted 7z volumes, one output directory before/after worker restart, retained source volumes and matching output hash; no personal Chrome/live Katfile/downloads"
+    },
+    {
+      "source": "artifacts/extraction-review-02/files/artifacts/browser-acceptance/2026-10-18T09-07-14-905Z/report.json",
+      "reported": "Isolated synthetic-browser acceptance passed; report itself records lifecycle diagnostic coverage as unknown and explicitly does not infer a product failure"
+    }
+  ],
+  "scopeAndLimitations": {
+    "reviewMode": "read-only",
+    "personalChromeOrLiveDownloadsAccessed": false,
+    "sourceOrSnapshotModified": false,
+    "nativeParserOrPathSafetyReviewed": false,
+    "unknowns": [
+      "The removal-label behavior was verified by source tracing; the focused UI test file passed, but does not include a dedicated assertion for that label."
+    ]
+  }
+}

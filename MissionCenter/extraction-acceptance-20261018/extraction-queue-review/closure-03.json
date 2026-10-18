@@ -1,0 +1,137 @@
+{
+  "auditId": "extraction-queue-review-closure-03",
+  "parentFindings": ["EQ-001", "watchdog alarm postponed by repeated UI reads"],
+  "snapshot": {
+    "manifest": "artifacts/extraction-review-03/manifest.json",
+    "manifestSha256": "a59a7baf239a263646e73a9b015e7477ba94b8a376163265a78e015204f8581f",
+    "parentSnapshot": "extraction-review-02",
+    "verified": true,
+    "verifiedEntries": 42,
+    "workingTreeMatchesPinnedEntries": true,
+    "bundles": [
+      {
+        "path": "artifacts/extraction-review-03/bundles/QueueCat-0.1.0.zip",
+        "expectedSha256": "419bd5b90b91cf6df8a5df1a04dbdda05eb9049445742f0a2aa7834be88c8c4e",
+        "verified": true
+      },
+      {
+        "path": "artifacts/extraction-review-03/bundles/QueueCat-Helper-0.1.0-windows-x64.zip",
+        "expectedSha256": "7ede8bbd3e98bec4668cff0b19161f1eb6c1c43f3f0d6e37c58dcd8e49edba46",
+        "verified": true
+      },
+      {
+        "path": "artifacts/extraction-final-helper-06/queuecat-native-helper.exe",
+        "expectedSha256": "0316baf852b8d486c9bb88c9433957dec4622f2ea1c6b69ce4d0970f77e1558c",
+        "verified": true
+      }
+    ]
+  },
+  "closure": {
+    "status": "closed",
+    "newFindings": [],
+    "checks": [
+      {
+        "area": "EQ-001 dangling extraction group after queue-item removal",
+        "status": "closed",
+        "evidence": [
+          {
+            "path": "src/background/engine.ts",
+            "lines": [610, 640],
+            "detail": "Active queued/extracting groups still block removal. Removing an item now removes every non-complete extraction group that references it, cleans its secret, and leaves other QueueItems/downloads intact; complete groups only lose the removed item ID."
+          },
+          {
+            "path": "tests/extraction.test.ts",
+            "lines": [324, 344],
+            "detail": "The failed two-volume regression case asserts the other item remains complete, the extraction group is removed, the old secret is forgotten, and extraction is not started. The predicate also covers waiting groups; the focused test is for failed status."
+          },
+          {
+            "path": "src/ui/main.ts",
+            "lines": [205, 214],
+            "detail": "Rows belonging to queued/extracting groups suppress the remove button. Removable linked rows use the localized accessible action text indicating extraction cancellation while keeping downloaded files."
+          }
+        ]
+      },
+      {
+        "area": "Watchdog alarm postponed by repeated QC_GET/UI progress reads",
+        "status": "closed",
+        "evidence": [
+          {
+            "path": "src/background/engine.ts",
+            "lines": [178, 184],
+            "detail": "The QC_GET path asks arm() to preserve an existing alarm scheduled within the next 30 seconds; it returns without clearing/replacing that watchdog alarm."
+          },
+          {
+            "path": "tests/engine.test.ts",
+            "lines": [879, 890],
+            "detail": "Two repeated UI reads leave the already scheduled watchdog deadline unchanged."
+          }
+        ]
+      },
+      {
+        "area": "Expired-password retry and ambiguous native job handling",
+        "status": "bounded-check-passed",
+        "evidence": [
+          {
+            "path": "src/shared/extraction.ts",
+            "lines": [78, 81],
+            "detail": "Native secret-expired/secret-not-found errors map to password_expired."
+          },
+          {
+            "path": "src/ui/main.ts",
+            "lines": [654, 670],
+            "detail": "On password_expired, blank input is sent explicitly as password: \"\" so a fresh empty secret is stored for an unencrypted archive; ordinary blank input still omits the password and retains the existing secret."
+          },
+          {
+            "path": "src/background/engine.ts",
+            "lines": [360, 380],
+            "detail": "Busy/capacity errors leave the operation pending; ambiguous state/conflict/internal errors keep the same operation ID and expose unknown_job instead of marking terminal failure. Retry-extraction accepts only status failed."
+          },
+          {
+            "path": "native/src/main.rs",
+            "lines": [815, 845],
+            "detail": "Native start checks an existing job record and request identity before reading the secret; an existing result/state is returned, while malformed state is rejected rather than treated as a new ID."
+          }
+        ]
+      }
+    ]
+  },
+  "personallyRun": [
+    {
+      "command": "npm test -- tests/extraction.test.ts -t \"maps missing or expired|busy native operation|canceling one failed volume\"",
+      "result": "pass: 3 tests passed, 12 skipped"
+    },
+    {
+      "command": "npm test -- tests/extraction-ui.test.ts",
+      "result": "pass: 1 test passed"
+    },
+    {
+      "command": "npm test -- tests/engine.test.ts -t \"existing watchdog alarm\"",
+      "result": "pass: 1 test passed, 41 skipped"
+    }
+  ],
+  "snapshotEvidenceReviewedButNotRerun": [
+    {
+      "source": "artifacts/extraction-review-03/manifest.json verification.chairToolOutputs",
+      "reported": "114 TypeScript tests, type/build, helper package, installer rollback and 22 Rust tests passed. Rust 22 was run against the worker source; it was not rerun in this closure check."
+    },
+    {
+      "source": "artifacts/extraction-review-03/files/artifacts/extraction-browser/2026-10-18T09-54-02-887Z/report.json",
+      "reported": "Final helper06 plus packaged extension passed the isolated Chrome/native journey: two local encrypted split-7z downloads, one extracted output directory after worker restart, retained source volumes, and all listed profile/helper/fixture/registration cleanup flags true. This report was reviewed, not rerun here."
+    },
+    {
+      "source": "artifacts/extraction-review-03/files/artifacts/extraction-native/rar-acceptance.json",
+      "reported": "Final helper06 bundle extracted local encrypted single and four-volume RAR fixtures with payload hashes matching source and original archive/volume hashes unchanged; wrong password failed without recording the password. Reviewed, not rerun here."
+    }
+  ],
+  "unknowns": [
+    "The expired-secret-to-unencrypted-archive retry path is covered by source tracing and a UI test asserting password: \"\" is sent. No native/browser end-to-end test with an artificially expired DPAPI secret followed by an unencrypted archive was rerun or cited.",
+    "The production-core 23-check browser report is earlier same-core evidence, not a run by this reviewer; no live Katfile, personal Chrome profile, registry, or real downloads were accessed.",
+    "The seven-day encrypted-secret TTL is visible in the pinned native source and parent evidence, but was not broadly audited in this bounded closure pass."
+  ],
+  "scope": {
+    "mode": "read-only bounded closure",
+    "sourceOrSnapshotModified": false,
+    "personalChromeRegistryOrLiveDownloadsAccessed": false,
+    "nativeRarFinalBundleJourneyPersonallyRun": false
+  }
+}

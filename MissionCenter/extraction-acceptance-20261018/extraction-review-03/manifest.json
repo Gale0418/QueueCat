@@ -1,0 +1,258 @@
+{
+  "id": "extraction-review-03",
+  "parentSnapshot": "extraction-review-02",
+  "parentSha256": "bade351eb74d60964eee9b7cd012896f50e1df8ae60dc60ec7ee35fd2a75f3f3",
+  "createdAt": "2026-10-18T09:58:09.136Z",
+  "taskId": "QC-E7",
+  "scope": "Optional Windows x64 native extraction source + owned runtime, not full live Katfile release",
+  "authorization": "User task-priority override permits bounded final closure; soft6000 tokens/35tools/20min per seat, 3 independent critics + separate evidence arbiter. No personal Chrome or production helper install.",
+  "verification": {
+    "chairToolOutputs": {
+      "typescript": {
+        "files": 14,
+        "tests": 114,
+        "status": "pass",
+        "executor": "root npm test; later hint-only UI delta focused test + type/build pass"
+      },
+      "rust": {
+        "tests": 22,
+        "status": "pass",
+        "executor": "rust_extractor actual cargo test; final22 in rar-acceptance.json, prior21 in rabbit-repairs.json"
+      },
+      "typeBuild": "pass",
+      "helperPackage": "pass, static CRT/CRC/license source+13 notices",
+      "installerRollback": "pass, mocked registry; test unchanged"
+    },
+    "runtimeReport": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/report.json",
+    "binary": {
+      "path": "artifacts/extraction-final-helper-06/queuecat-native-helper.exe",
+      "sha256": "0316baf852b8d486c9bb88c9433957dec4622f2ea1c6b69ce4d0970f77e1558c"
+    }
+  },
+  "bundles": [
+    {
+      "source": "dist/QueueCat-0.1.0.zip",
+      "locator": "artifacts/extraction-review-03/bundles/QueueCat-0.1.0.zip",
+      "bytes": 7469653,
+      "sha256": "419bd5b90b91cf6df8a5df1a04dbdda05eb9049445742f0a2aa7834be88c8c4e"
+    },
+    {
+      "source": "dist/QueueCat-Helper-0.1.0-windows-x64.zip",
+      "locator": "artifacts/extraction-review-03/bundles/QueueCat-Helper-0.1.0-windows-x64.zip",
+      "bytes": 3108133,
+      "sha256": "7ede8bbd3e98bec4668cff0b19161f1eb6c1c43f3f0d6e37c58dcd8e49edba46"
+    }
+  ],
+  "entries": [
+    {
+      "path": ".gitignore",
+      "bytes": 235,
+      "sha256": "a9eea571214ea31450323aabb12a91489891c1bc4ced685e22fcbfc67b816fcc"
+    },
+    {
+      "path": "README.md",
+      "bytes": 12089,
+      "sha256": "2d713b2c00301a4c055408172be0c8d5b41101e34c5f0012d2ecaf809fabf867"
+    },
+    {
+      "path": "package.json",
+      "bytes": 888,
+      "sha256": "5063556f275a67c091119591698ae9a7db21926dc8bb089889e35817347eba3c"
+    },
+    {
+      "path": "public/manifest.json",
+      "bytes": 1303,
+      "sha256": "ac936901fced56af66e64cc8b3f25eb80a12ece1f913a2920e3b845d09ad469f"
+    },
+    {
+      "path": "scripts/package.mjs",
+      "bytes": 5517,
+      "sha256": "7933e9845439d2559642c0db38987cd71f42b38bab37a82659a0a20268fb8a40"
+    },
+    {
+      "path": "scripts/verify-dist.mjs",
+      "bytes": 2415,
+      "sha256": "e0ab695cec2e2bfd9f78ba1ee61edaa739cfb73c608431dd06603ee3b8a9edb7"
+    },
+    {
+      "path": "src/background/engine.ts",
+      "bytes": 58162,
+      "sha256": "2d8b53cf0370e34ce2e91648f8496ef6815cf065a25e2c1d28efa975eacd9f4a"
+    },
+    {
+      "path": "src/background/index.ts",
+      "bytes": 6559,
+      "sha256": "5c1d516f40c697a3f93b565b79020e5b7fcc06ad40c3a1b3b9cfef087ce88d37"
+    },
+    {
+      "path": "src/shared/types.ts",
+      "bytes": 3969,
+      "sha256": "c91d2339ee3870a34dc8b8b6460ef1b948ae76ca0a0080b19c3b44f668950a5e"
+    },
+    {
+      "path": "src/ui/main.ts",
+      "bytes": 47011,
+      "sha256": "90b5cf3011bde12eda530815abe09ff3aef58779377f71cfb99267fa561aa735"
+    },
+    {
+      "path": "src/ui/presentation.ts",
+      "bytes": 5725,
+      "sha256": "5cea0d3c2d3ad24179275f681e578ebc021bdee502fa03fecb845b5d0c15b042"
+    },
+    {
+      "path": "src/ui/style.css",
+      "bytes": 32525,
+      "sha256": "a3bba83f13b09c3d85e44cbaf40aa8ccb8147395701ef90509987462b298e4c5"
+    },
+    {
+      "path": "tests/background-adapter.test.ts",
+      "bytes": 5026,
+      "sha256": "3a559ba104f02394bbe73e0e37e9e7af1b7b37eb1ded95230fad43ae2ee36e08"
+    },
+    {
+      "path": "tests/engine.test.ts",
+      "bytes": 37017,
+      "sha256": "c7a3778c1b9768c5d209485c1fa3fde4dd44b3bf96a5ef4ce1be3c093a473ffd"
+    },
+    {
+      "path": "tests/publish.test.mjs",
+      "bytes": 6438,
+      "sha256": "d409c170aa6beb1f74528783d02395c85e675a6ca26cdb0b3fef81bceab1f540"
+    },
+    {
+      "path": "native/Cargo.lock",
+      "bytes": 3123,
+      "sha256": "c06fc59f45f628f5290d47b87aebe642a264523129484bf72083ef2db3446ad2"
+    },
+    {
+      "path": "native/Cargo.toml",
+      "bytes": 477,
+      "sha256": "a15c04ebc4d5759731332b6456e3543052459d4fbbce730c5da71da3c78061bb"
+    },
+    {
+      "path": "native/README.md",
+      "bytes": 7921,
+      "sha256": "c8b114fa6284c41e8170d2007fb74f55a073598b0ffbbcb6a23f21a93dc60c2a"
+    },
+    {
+      "path": "native/src/main.rs",
+      "bytes": 81900,
+      "sha256": "61084554333873893c45c90c59b05669ae63202b65018d81439c729cd9f99f2d"
+    },
+    {
+      "path": "native/tests/archive-integration.ps1",
+      "bytes": 20981,
+      "sha256": "6da6e6976949a32bd451ef684793ac077b2254d3a87e806cd626b9c537659ca3"
+    },
+    {
+      "path": "native/tests/installer-rollback.ps1",
+      "bytes": 3519,
+      "sha256": "ce300d5a204a674af221903c4d5e079ac647d70fe189461434f999252fd5c36a"
+    },
+    {
+      "path": "native/tests/protocol-smoke.ps1",
+      "bytes": 3251,
+      "sha256": "3d91df9eaa71fbc39cae8896819634c86159e9ce61df4238a6590520c3b8d4fb"
+    },
+    {
+      "path": "scripts/install-native-helper.ps1",
+      "bytes": 9718,
+      "sha256": "fd9aa6c8cb9833822396612efe9b3743cf8ef204fc300af5c93546797a484776"
+    },
+    {
+      "path": "scripts/package-native.mjs",
+      "bytes": 6743,
+      "sha256": "7bad2d73a836faa088de7551679aa8bde87d780d146e4cb4c2c562e90383b1a0"
+    },
+    {
+      "path": "scripts/uninstall-native-helper.ps1",
+      "bytes": 1305,
+      "sha256": "fa783ad43b30d918b961ed7ba53330a6dcc48e059862346eb51740f007315d4f"
+    },
+    {
+      "path": "src/shared/extraction-copy.ts",
+      "bytes": 6317,
+      "sha256": "eedbdc3cdf4bf47c14b009d742afe4a0ebe8be289e64a59a832fdb1261555b25"
+    },
+    {
+      "path": "src/shared/extraction.ts",
+      "bytes": 3161,
+      "sha256": "cf0e42eaf47f4e79e0cd2ea55104e14a531606ba399e6e0c9c67c7ec9eec19d6"
+    },
+    {
+      "path": "tests/browser/extraction.mjs",
+      "bytes": 28147,
+      "sha256": "c5f6a163a4c264d7c71dfa06d0fe266b936391c698404d031598a197b0bbcade"
+    },
+    {
+      "path": "tests/extraction-ui.test.ts",
+      "bytes": 7631,
+      "sha256": "ea9b0140aab47a01f467c395e769e59822b775f8f5e81406d169304c81bf0e43"
+    },
+    {
+      "path": "tests/extraction.test.ts",
+      "bytes": 12067,
+      "sha256": "ab568aa8b33dc6660b1b191777a1c379527766e6c439e2ca7edd2d2ab684052a"
+    },
+    {
+      "path": "artifacts/native-package-report.json",
+      "bytes": 279,
+      "sha256": "d5713c8771a475c349027985e7b39efb7685130c191a7c691c04cebac3b45a54"
+    },
+    {
+      "path": "artifacts/extraction-native/security-fixes.json",
+      "bytes": 4522,
+      "sha256": "4f78b19cedc087feb9af7d89c84b7f569873bc56bf71fc76edc3a57544f3c08d"
+    },
+    {
+      "path": "artifacts/extraction-native/rabbit-repairs.json",
+      "bytes": 5550,
+      "sha256": "5f6645b1a263685d13c3314e4926e2ad709fa4914d02564f863b455a75df7641"
+    },
+    {
+      "path": "artifacts/extraction-native/rar-acceptance.json",
+      "bytes": 6762,
+      "sha256": "dd8b35fd50ff581ff92044ee0fb16627d637d64f463aa307e8ff8ca6f3f89621"
+    },
+    {
+      "path": "artifacts/extraction-security/report.json",
+      "bytes": 9896,
+      "sha256": "d5fcaebc12ac81ac935dfe06fd56556d8376c388453bb706121a0e6be34db11e"
+    },
+    {
+      "path": "artifacts/extraction-queue-review/report.json",
+      "bytes": 5070,
+      "sha256": "dfb59effd3df24e8193b34fda1b968d7bb670fe0c1ee1c8b24cc0a91b4d34325"
+    },
+    {
+      "path": "artifacts/extraction-ux/report.json",
+      "bytes": 5559,
+      "sha256": "e43c6286e240c2ad6383bd99bcaf0caba222bcb05ca85deff7a57d5bac0f1e9c"
+    },
+    {
+      "path": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/report.json",
+      "bytes": 3973,
+      "sha256": "8be30b54ab5e2448266a6c134cdc4e53541cdb2cb6598df3bb113c01fa5e965c"
+    },
+    {
+      "path": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/manager-extraction-zh-TW.png",
+      "bytes": 135486,
+      "sha256": "d1f73c4c042f506021d75de89d0b7dd453e16ac86a13d9aaf8585d009dd6fed9"
+    },
+    {
+      "path": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/popup-extraction-queue.png",
+      "bytes": 77966,
+      "sha256": "76d34a72f41eeaa0bde560326098c52f4bac8a51adbcc2433b01f5cd56c635fe"
+    },
+    {
+      "path": "artifacts/browser-acceptance/2026-10-18T09-07-14-905Z/report.json",
+      "bytes": 6399,
+      "sha256": "3fe6fe38946e1817c78d6ffc93f164c29d2759425d5bf3966c26261aa07e4b14"
+    },
+    {
+      "path": "artifacts/extraction-impeccable.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    }
+  ]
+}

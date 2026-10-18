@@ -1,0 +1,56 @@
+{
+  "createdAt": "2026-10-18T09:21:20.947Z",
+  "files": 11,
+  "entries": [
+    {
+      "path": "native/src/main.rs",
+      "bytes": 62453,
+      "sha256": "196b67ec072ada7a40d3b9a0f84d5f1acfea75a2b9a52e3452e67ddc6a6c14ee"
+    },
+    {
+      "path": "native/README.md",
+      "bytes": 7331,
+      "sha256": "8aac13a647b2028c180ede2aa79fe3fc67d4c63067df74073d52d5eb47d7c9d5"
+    },
+    {
+      "path": "native/tests/archive-integration.ps1",
+      "bytes": 13589,
+      "sha256": "212c33427b09456c855328d6e5d806723cabd64756cc5189c65d3c74b54600c7"
+    },
+    {
+      "path": "native/tests/installer-rollback.ps1",
+      "bytes": 3519,
+      "sha256": "ce300d5a204a674af221903c4d5e079ac647d70fe189461434f999252fd5c36a"
+    },
+    {
+      "path": "README.md",
+      "bytes": 11178,
+      "sha256": "bfb9c820867693a27b9f0ea1d8d438ed6b4319f8c3f40d881b33b05cbd432d83"
+    },
+    {
+      "path": "src/ui/main.ts",
+      "bytes": 46946,
+      "sha256": "f1ee6e9a84741be5b608f945cc0b10127e9ba00ae69d42536fe659bbc07a4182"
+    },
+    {
+      "path": "src/shared/extraction.ts",
+      "bytes": 3161,
+      "sha256": "cf0e42eaf47f4e79e0cd2ea55104e14a531606ba399e6e0c9c67c7ec9eec19d6"
+    },
+    {
+      "path": "src/shared/extraction-copy.ts",
+      "bytes": 6042,
+      "sha256": "a5d3840d1ee29a0400f1daf31a3f9971facdc9bdba1928af98cc0ccab49baf41"
+    },
+    {
+      "path": "tests/extraction-ui.test.ts",
+      "bytes": 7497,
+      "sha256": "c8ab7d7ac6157d7c7e84cb6d12085a7c1da3a5e297a204d81c2b5009cdd354a6"
+    },
+    {
+      "path": "tests/extraction.test.ts",
+      "bytes": 12067,
+      "sha256": "ab568aa8b33dc6660b1b191777a1c379527766e6c439e2ca7edd2d2ab684052a"
+    }
+  ]
+}

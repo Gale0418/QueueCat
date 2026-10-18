@@ -1,0 +1,112 @@
+{
+  "review": "Bounded closure of extraction security findings",
+  "parentReport": "artifacts/extraction-security/report.json",
+  "snapshot": {
+    "manifest": "artifacts/extraction-review-02/manifest.json",
+    "manifestSha256": "bade351eb74d60964eee9b7cd012896f50e1df8ae60dc60ec7ee35fd2a75f3f3",
+    "parentSnapshot": "extraction-review-01",
+    "parentSha256": "c6a643d94db7039a758484b12a274adbeea53537c737b2c73726f59ba9744e04",
+    "verifiedEntries": 37,
+    "result": "all manifest file sizes and SHA-256 hashes matched"
+  },
+  "scope": "Only the four findings in the parent report were closed against the immutable review-02 snapshot. Source, snapshots, MC, personal Chrome, live downloads, and registry were not modified or accessed. No helper or test was run by this reviewer.",
+  "findings": [
+    {
+      "id": "EXTRACT-RESOURCE-001",
+      "status": "fixed",
+      "severity": "P2",
+      "summary": "Worker admission now has cross-process coordination and a hard cap of four live queued/extracting workers.",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [17, 18], "detail": "MAX_WORKERS is four; queue wait is capped at two hours." },
+        { "file": "native/src/main.rs", "lines": [252, 280], "detail": "active_worker_count counts live queued/extracting jobs; malformed job JSON conservatively consumes capacity and filesystem errors fail admission." },
+        { "file": "native/src/main.rs", "lines": [615, 663], "detail": "Existing job IDs return before admission; dispatch.lock serializes counting through the queued-state transition, and rejected new jobs return worker-capacity before writing job state." },
+        { "file": "src/background/engine.ts", "lines": [350, 374], "detail": "worker-capacity leaves the same job ID pending so synchronization can retry after capacity becomes available." },
+        { "file": "native/tests/archive-integration.ps1", "lines": [80, 91], "detail": "Isolated integration case fills admission slots and asserts rejection creates no orphan job JSON." },
+        { "file": "native/src/main.rs", "lines": [1608, 1641], "detail": "Unit coverage counts live waiters and fails closed when a job record is malformed." }
+      ],
+      "verification": {
+        "snapshotCodeReview": "verified",
+        "tests": "Parent-reported pass in artifacts/extraction-native/security-fixes.json; the reviewer read the report and source/test definitions but did not rerun them.",
+        "remaining": "Malformed records intentionally fail closed and can consume slots until repaired; this prevents cap bypass but may require manual state recovery if four records become corrupt."
+      },
+      "recommendation": "Keep the cap and stable-ID retry behavior. Consider a documented/manual recovery path for permanently malformed job records."
+    },
+    {
+      "id": "EXTRACT-RESOURCE-002",
+      "status": "fixed",
+      "severity": "P2",
+      "summary": "Listing, test, and extraction subprocesses now have deadlines; timeout terminates and reaps the child, with Windows Job Object cleanup for descendants.",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [18, 19], "detail": "Each engine operation has a 30-minute deadline." },
+        { "file": "native/src/main.rs", "lines": [1135, 1193], "detail": "Windows child processes are assigned to a kill-on-close Job Object; the non-Windows test implementation is a no-op." },
+        { "file": "native/src/main.rs", "lines": [1195, 1214], "detail": "wait_child polls to deadline, terminates the job and child, and waits to reap it." },
+        { "file": "native/src/main.rs", "lines": [1217, 1267], "detail": "Archive test and extraction route through the deadline-enforcing wait." },
+        { "file": "native/src/main.rs", "lines": [1269, 1371], "detail": "Listing uses a bounded reader thread while the parent polls the child exit/deadline, then joins/reaps on failure paths." },
+        { "file": "native/src/main.rs", "lines": [1642, 1654], "detail": "Windows unit test uses a 100 ms deadline and asserts timeout plus process reaping." }
+      ],
+      "verification": {
+        "snapshotCodeReview": "verified all three operation paths use timeout handling",
+        "tests": "Parent-reported 10/10 Rust tests and actual Windows timeout kill/reap test pass in artifacts/extraction-native/security-fixes.json; no 30-minute soak was run.",
+        "remaining": "The bound is per subprocess, so list + test + extract can take up to roughly 90 minutes, plus at most two hours queued. This is finite but intentionally generous for large archives."
+      },
+      "recommendation": "No blocking fix remains for the reported unbounded-child issue. Revisit the 30-minute limits if product latency requirements call for a shorter bound."
+    },
+    {
+      "id": "EXTRACT-SECRET-001",
+      "status": "remaining",
+      "severity": "P3",
+      "summary": "Completed and superseded secrets are cleaned durably, but a failed extraction retains its current DPAPI secret for explicit retry and uninstall intentionally leaves residual encrypted helper state.",
+      "evidence": [
+        { "file": "src/background/engine.ts", "lines": [260, 292], "detail": "Deletion IDs are persisted, deleted through forget-secret, and retried after a five-minute backoff if the helper is unavailable." },
+        { "file": "src/background/engine.ts", "lines": [391, 414], "detail": "Completed groups queue the secret for deletion after the status is durably saved, subject to remaining references." },
+        { "file": "src/background/engine.ts", "lines": [766, 790], "detail": "A new retry secret is saved in extension state before the superseded ID is queued for cleanup." },
+        { "file": "src/background/engine.ts", "lines": [623, 639], "detail": "Removing a waiting/failed group schedules its secret for cleanup while preserving downloaded files." },
+        { "file": "native/README.md", "lines": [7, 7], "detail": "Documentation says failed groups retain encrypted passwords for explicit retry, and uninstall retains residual encrypted state rather than deleting user data." },
+        { "file": "tests/extraction.test.ts", "lines": [318, 372], "detail": "Tests cover cancel cleanup, completed-secret deletion, durable pending deletion, and retry after helper recovery." }
+      ],
+      "verification": {
+        "snapshotCodeReview": "verified completion, superseded-retry, cancellation, and deferred-delete paths",
+        "tests": "Parent reports 113 TypeScript tests passing; focused assertions are present in the frozen test source. The reviewer did not rerun them.",
+        "fixedPortion": "Successful extraction, replaced retry secrets, and removed waiting/failed groups are eligible for cleanup; temporary helper failure preserves deletion intent without storing passwords in the pending-delete list.",
+        "remainingRisk": "A failed group that the user leaves in place retains its current encrypted password without an expiry. Uninstall also leaves such residual secret files. DPAPI remains at-rest protection, not a same-user isolation boundary."
+      },
+      "recommendation": "Either accept and clearly document indefinite retry retention, or add an explicit cleanup/expiry control for failed groups and residual secrets during uninstall. Do not remove a failed group's secret before its retry state is intentionally discarded."
+    },
+    {
+      "id": "EXTRACT-RECOVERY-001",
+      "status": "fixed",
+      "severity": "P3",
+      "summary": "Installer now snapshots owned manifest/config and the prior registration, stages writes, commits registration last, and restores prior state on caught failure.",
+      "evidence": [
+        { "file": "scripts/install-native-helper.ps1", "lines": [19, 40], "detail": "Installer validates ownership and refuses malformed or foreign manifest/config content." },
+        { "file": "scripts/install-native-helper.ps1", "lines": [42, 88], "detail": "The transaction backs up existing files and registry snapshot, stages new files, replaces files, and commits the registration last." },
+        { "file": "scripts/install-native-helper.ps1", "lines": [89, 120], "detail": "Caught failures roll back registration/files; incomplete rollback retains and reports the backup directory." },
+        { "file": "native/tests/installer-rollback.ps1", "lines": [13, 54], "detail": "Fault-injection test checks restoration of old files/mock registration and cleanup of partial files on failed first install without using the real registry." }
+      ],
+      "verification": {
+        "snapshotCodeReview": "verified",
+        "tests": "Parent-reported parser and fault-injection smoke pass in artifacts/extraction-native/security-fixes.json; no production installer or registry was used or rerun by this reviewer.",
+        "remaining": "Rollback handles caught script failures; abrupt process termination or power loss cannot execute the catch path and may leave the timestamped backup directory for manual recovery."
+      },
+      "recommendation": "No remaining issue for ordinary install/commit failures. If crash-consistency is a release requirement, add startup recovery or a single recoverable commit marker for abandoned .install-backup-* transactions."
+    }
+  ],
+  "verificationProvenance": {
+    "reviewerPerformed": [
+      "Verified review-02 manifest SHA-256 and all 37 listed file lengths and SHA-256 hashes.",
+      "Read the changed native admission, timeout, secret cleanup, installer transaction code, focused tests, README, and captured parent reports."
+    ],
+    "reviewerDidNotPerform": [
+      "Did not rerun TypeScript, Rust, package, installer, or browser tests.",
+      "Did not launch the native helper or inspect/touch a personal Chrome profile, live downloads, or the Windows registry."
+    ],
+    "parentReported": {
+      "typescript": "113 tests/type/build pass",
+      "rust": "10 tests pass",
+      "installerRollback": "fault injection pass with mock registration and isolated files",
+      "releasePackage": "static CRT helper bundle and CRC checks pass",
+      "isolatedChromeE2E": "artifacts/extraction-browser/2026-10-18T09-07-00-548Z/report.json pass",
+      "codeReview": "CodeRabbit review was still running; no pass claimed"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "QueueCat-Helper-0.1.0-windows-x64.zip",
+  "bytes": 3108133,
+  "sha256": "7ede8bbd3e98bec4668cff0b19161f1eb6c1c43f3f0d6e37c58dcd8e49edba46",
+  "engine": "7-Zip 26.04",
+  "systemInstalled": false,
+  "registered": false,
+  "staticCrt": true,
+  "dependencyNotices": 13
+}

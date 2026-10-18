@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "status": "final-bundle-rar-acceptance-passed",
+  "testedAtLocal": "2026-10-18",
+  "fixtureRoot": "D:\\MyGame\\QueueCat\\artifacts\\extraction-native\\integration-16062531b0e34c1c92da9914facacb95",
+  "testCommand": "pwsh -NoLogo -NoProfile -File native/tests/archive-integration.ps1 -HelperExePath native/target/debug/queuecat-native-helper.exe -SevenZipPath artifacts/extraction-engine/unpacked/7z.exe -RarExePath 'C:\\Program Files\\WinRAR\\Rar.exe'",
+  "components": {
+    "helper": {
+      "path": "native/target/debug/queuecat-native-helper.exe",
+      "sha256": "5995B52BCBDB7EA6E8AAC77C28988CFC1C380FBE3629DEF9207B6602F3076FFC"
+    },
+    "extractorEngine": {
+      "path": "artifacts/extraction-engine/unpacked/7z.exe",
+      "version": "7-Zip 26.04 x64",
+      "sha256": "95FFF19B73EFF77C87C0D7BD32822E43FB90DD2932459F962EB532D8DFB6BA53"
+    },
+    "fixtureCreatorOnly": {
+      "path": "C:\\Program Files\\WinRAR\\Rar.exe",
+      "version": "WinRAR 6.11 x64",
+      "sha256": "D06A4563934CC627C992A8352466209BFC02A77EAF8670F60A92F6267B7C2F6E",
+      "role": "Created local toy RAR fixtures only; the QueueCat helper extracted them with bundled 7-Zip."
+    }
+  },
+  "fixtureCreation": {
+    "commandsRedacted": [
+      "Rar.exe a -y -cfg- -ep -hp[redacted] -m0 encrypted-single.rar rar-source.bin",
+      "Rar.exe a -y -cfg- -ep -hp[redacted] -m0 -v1m split-rar.rar rar-source.bin"
+    ],
+    "payload": {
+      "name": "rar-source.bin",
+      "length": 3145728,
+      "sha256": "62077D2888A81F18BDAD8203B4F85D714F4111FB5888D9EEC88F201847549B40"
+    },
+    "singleArchive": {
+      "name": "encrypted-single.rar",
+      "length": 3146222,
+      "sha256": "9C688423DB4C5C87D22B5905469627220CB967E8A4E386AB04B63DD3D3FBEFA9"
+    },
+    "splitVolumes": [
+      { "name": "split-rar.part1.rar", "length": 1048576, "sha256": "684D977A84B6BF4F39317AA5E2054B5E345A19AF4B1945677EFDD528F34012FA" },
+      { "name": "split-rar.part2.rar", "length": 1048576, "sha256": "A3D66A48ACB0D0AEB0C9B31BCC4C2C7FF796ED84E25660D197BB0ABBCCDFFDDF" },
+      { "name": "split-rar.part3.rar", "length": 1048576, "sha256": "0EF11CB16D6C9265986462D1E7B7FAB203336D736800B0B5F605194C781B824D" },
+      { "name": "split-rar.part4.rar", "length": 1790, "sha256": "CDCBC773209F0A24B5A0FBDFB57F82AFFEE60DAE64C8308D8832C9837B317E9D" }
+    ]
+  },
+  "results": {
+    "encryptedSingleRar": {
+      "status": "complete",
+      "outputSha256MatchesSource": true,
+      "originalArchiveRetainedAndHashUnchanged": true
+    },
+    "wrongPassword": {
+      "status": "failed",
+      "errorCode": "archive-preflight-failed",
+      "passwordRecorded": false
+    },
+    "encryptedSplitRar": {
+      "status": "complete",
+      "volumeCount": 4,
+      "outputSha256MatchesSource": true,
+      "allOriginalVolumesRetainedAndHashesUnchanged": true
+    },
+    "helperBackend": "Bundled 7-Zip 26.04 was used for both listing and extraction; WinRAR was not used by the helper.",
+    "isolation": "QUEUECAT_HELPER_HOME was set to the fixture's isolated state directory. Only synthetic files under artifacts/extraction-native were used. No registry, personal Chrome profile, live downloads, or system installation was touched."
+  },
+  "codeFixes": [
+    "RAR5 -slt emits empty Symbolic Link and Hard Link fields for ordinary files. Link rejection now parses target values and rejects only non-empty targets; unit tests cover empty and non-empty values.",
+    "WinRAR 6.11 emits split volumes as .part1.rar, .part2.rar, etc. Native volume parsing now accepts one-or-more ASCII digits while still requiring a positive contiguous sequence; tests cover one-digit and zero-padded forms and reject zero/non-numeric split indexes."
+  ],
+  "validation": {
+    "cargoFmtCheck": "passed",
+    "cargoTest": { "passed": 22, "failed": 0 },
+    "cargoBuild": "passed",
+    "integration": "passed",
+    "productionBundleRetest": "passed using helper06 below"
+  },
+  "finalBundleRetest": {
+    "fixtureRoot": "D:\\MyGame\\QueueCat\\artifacts\\extraction-native\\integration-56421a14b2784ee7b2e70d3894330e5e",
+    "helper": {
+      "path": "artifacts/extraction-final-helper-06/queuecat-native-helper.exe",
+      "length": 790016,
+      "sha256": "0316BAF852B8D486C9BB88C9433957DEC4622F2EA1C6B69CE4D0970F77E1558C"
+    },
+    "engine": {
+      "path": "artifacts/extraction-final-helper-06/engine/7z.exe",
+      "length": 577536,
+      "sha256": "95FFF19B73EFF77C87C0D7BD32822E43FB90DD2932459F962EB532D8DFB6BA53"
+    },
+    "testCommand": "pwsh -NoLogo -NoProfile -File native/tests/archive-integration.ps1 -HelperExePath artifacts/extraction-final-helper-06/queuecat-native-helper.exe -SevenZipPath artifacts/extraction-final-helper-06/engine/7z.exe -RarExePath 'C:\\Program Files\\WinRAR\\Rar.exe'",
+    "payload": {
+      "name": "rar-source.bin",
+      "length": 3145728,
+      "sha256": "AF1FEBB1E206898B0D2C71A1A30954ED2E2933D70D690D286C2BBE80F41470BB"
+    },
+    "singleArchive": {
+      "name": "encrypted-single.rar",
+      "length": 3146222,
+      "sha256": "9A695095D902841D7FAA00326DB918BB7859004AC328C0948B3E7287A8B13398",
+      "status": "complete",
+      "outputSha256MatchesSource": true,
+      "originalArchiveRetainedAndHashUnchanged": true
+    },
+    "wrongPassword": {
+      "status": "failed",
+      "errorCode": "archive-preflight-failed",
+      "passwordRecorded": false
+    },
+    "splitVolumes": [
+      { "name": "split-rar.part1.rar", "length": 1048576, "sha256": "768232BFE1672771378ADDA726F5EB7FCB4547634DC7183CDD8B472C8D1ABE56" },
+      { "name": "split-rar.part2.rar", "length": 1048576, "sha256": "EF42A2A609FE699D069A320047F1AE03C5BFFE0D6B43025FBFFDA641A845660E" },
+      { "name": "split-rar.part3.rar", "length": 1048576, "sha256": "EE309F3BB78A4989A442B117929EEED2EF0575A0C9C4E7F3558846E4A87CD061" },
+      { "name": "split-rar.part4.rar", "length": 1790, "sha256": "7EF6108B6ADF149158ADC92A87815F66E0E74C55E6320BA919CEAC764E733AE8" }
+    ],
+    "splitExtraction": {
+      "status": "complete",
+      "volumeCount": 4,
+      "outputSha256MatchesSource": true,
+      "allOriginalVolumesRetainedAndHashesUnchanged": true
+    },
+    "helperBackend": "Bundled 7-Zip 26.04 from helper06 performed listing and extraction; WinRAR 6.11 was used only to create local toy fixtures.",
+    "isolation": "QUEUECAT_HELPER_HOME pointed to this integration fixture's isolated state directory."
+  },
+  "limitations": [
+    "RAR acceptance passed on both the debug helper and the final helper06 bundle. This does not itself verify browser installation/Chrome native messaging; that is covered by the parent agent's separate Chrome06 session.",
+    "WinRAR served only as the local fixture generator; no claim is made that WinRAR is a product dependency or extraction backend."
+  ]
+}

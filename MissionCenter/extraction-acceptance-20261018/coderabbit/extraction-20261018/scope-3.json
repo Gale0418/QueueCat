@@ -1,0 +1,21 @@
+{
+  "createdAt": "2026-10-18T09:31:52.248Z",
+  "files": 4,
+  "entries": [
+    {
+      "path": "native/src/main.rs",
+      "bytes": 75288,
+      "sha256": "a1453ee0a0edf59e02b5fbd3976cd02bccba2d17ead73f008a2955298c151fd1"
+    },
+    {
+      "path": "native/README.md",
+      "bytes": 7921,
+      "sha256": "c8b114fa6284c41e8170d2007fb74f55a073598b0ffbbcb6a23f21a93dc60c2a"
+    },
+    {
+      "path": "native/tests/archive-integration.ps1",
+      "bytes": 15805,
+      "sha256": "fe754e1a2cb7e5b9e228f6bd687f0fab9bb4a3c15664a6962cc3b3a3235c1bb0"
+    }
+  ]
+}

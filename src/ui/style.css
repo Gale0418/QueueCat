@@ -404,7 +404,11 @@ h4 {
   position: relative;
   z-index: 1;
   padding: 20px 24px;
-  background: color-mix(in srgb, var(--surface) var(--current-alpha), transparent);
+  background: color-mix(
+    in srgb,
+    var(--surface) var(--current-alpha),
+    transparent
+  );
   border: 1px solid var(--line);
   border-radius: var(--radius);
   margin-bottom: 32px;
@@ -1195,6 +1199,115 @@ progress:not([value]) {
   .list-caption {
     font-size: 9px;
   }
+}
+
+.extraction-options {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--ink);
+  font-size: 14px;
+}
+.extraction-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  color: var(--current-purple);
+  cursor: pointer;
+}
+.extraction-toggle input {
+  accent-color: var(--purple);
+}
+.batch-password,
+.retry-password {
+  display: grid;
+  gap: 5px;
+  max-width: 420px;
+  font-size: 13px;
+}
+.batch-password[hidden] {
+  display: none;
+}
+.batch-password input,
+.retry-password input {
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.batch-password small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.extraction-status {
+  margin-top: 7px;
+  color: var(--current-muted);
+  font-size: 13px;
+}
+.extraction-status.complete {
+  color: var(--green);
+}
+.extraction-status.failed {
+  color: var(--red);
+}
+.extraction-detail {
+  margin: 18px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--purple-soft) 46%, var(--surface));
+}
+.extraction-detail h4 {
+  margin: 0 0 4px;
+}
+.extraction-detail .reason,
+.extraction-output {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.extraction-detail .reason code {
+  color: var(--muted);
+  font-size: 11px;
+}
+.extraction-detail .secondary {
+  margin-top: 10px;
+}
+.extraction-output {
+  margin: 12px 0 0;
+}
+.helper-settings {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  font-size: 14px;
+}
+.helper-settings h3 {
+  margin: 0 0 5px;
+  font-size: 15px;
+}
+.helper-settings p {
+  margin: 7px 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.helper-settings button {
+  margin-top: 5px;
+}
+.extension-id-row {
+  display: grid;
+  gap: 3px;
+}
+.extension-id-row code {
+  user-select: all;
+  font-size: 12px;
+}
+.retry-password {
+  margin-top: 10px;
 }
 body.popup {
   width: 380px;

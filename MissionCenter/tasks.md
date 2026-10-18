@@ -24,3 +24,8 @@
 | QC-T8 | 不同領域盲審與隔離修復驗收 | Task | QC-E6 | P1 | Review | Codex | - | 四席閉合已核；97單測/23隔離通過；實站缺口維持Review | 不可變快照、重現、回歸、獨立仲裁 | - | verification | 保護個人 Chrome 與正在下載的檔案 |
 | QC-T9 | CodeRabbit 全範圍程式碼審查與結案 | Task | QC-E6 | P1 | Review | Codex | QC-T8 | 92檔3issues全fixed；6檔複審0issues（2次額度） | 原始 NDJSON、查證處置與必要聚焦複審 | - | verification | 使用者同意上傳程式碼；每小時至多3次、每次150檔 |
 | QC-T10 | 更新文件並將 main 推送 GitHub | Task | QC-E6 | P1 | Review | Codex | QC-T8,QC-T9 | main原始碼已推送3e26a1f且遠端SHA相符；保留產品Review | 本機／遠端 SHA 相同且僅 main | - | closeout | 既有空白 Gale0418/QueueCat；不建長留分支 |
+
+| QC-E7 | 密碼自動解壓與 Rust 小幫手 | Epic | - | P1 | Review | Codex | - | 本機功能驗收完成，仲裁與source交付對帳 | 114TS/22Rust、final helper06 Chrome與RAR實測、三席閉合 | - | verification,closeout | 實站release仍limited；日常Chrome/原下載未操作 |
+| QC-T11 | 原生解壓與安全工作狀態 | Task | QC-E7 | P1 | Review | Codex | - | 安全席03閉合，保留明示lazy expiry與非OS沙箱限制 | 22Rust；加密RAR單檔/4卷/錯密碼/hash；terminal鎖與原子寫入回歸 | - | verification | 未系統安裝7-Zip或修改檔案關聯 |
+| QC-T12 | 密碼輸入、分卷排隊與三語狀態 | Task | QC-E7 | P1 | Review | Codex | - | 佇列與UX席03閉合；實站整合保留Review | 114TS及修後定向；取消group/expiry空密碼/closest scope/watchdog | - | verification | Gemini三語文案；純下載不需小幫手 |
+| QC-T13 | 隔離瀏覽器、套件與文件 | Task | QC-E7 | P1 | Review | Codex | QC-T11,QC-T12 | source交付與main SHA最後對帳 | Chrome06 pass/cleanup全true；2ZIP/CRC/hash；Rabbit3輪7issues修補 | - | verification,closeout | 舊run3兩暫存目錄清理遭policy拒絕已如實保留 |

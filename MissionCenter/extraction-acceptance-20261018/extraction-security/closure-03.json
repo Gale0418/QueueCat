@@ -1,0 +1,151 @@
+{
+  "review": "Bounded security closure of known extraction findings",
+  "snapshot": {
+    "manifest": "artifacts/extraction-review-03/manifest.json",
+    "manifestSha256": "a59a7baf239a263646e73a9b015e7477ba94b8a376163265a78e015204f8581f",
+    "parentSnapshot": "extraction-review-02",
+    "parentSha256": "bade351eb74d60964eee9b7cd012896f50e1df8ae60dc60ec7ee35fd2a75f3f3",
+    "verifiedEntries": 42,
+    "verification": "Manifest SHA-256, each listed file length, and each listed file SHA-256 were independently checked against artifacts/extraction-review-03/files/."
+  },
+  "scope": "Bounded closure of the four findings in artifacts/extraction-security/closure.json plus explicitly assigned follow-up fixes. No broad P2 hunt. No source, MC, Chrome profile, registry, live download, or snapshot was modified or accessed. No tests or helper binaries were run by this reviewer.",
+  "findings": [
+    {
+      "id": "EXTRACT-RESOURCE-001",
+      "severity": "P2",
+      "status": "fixed",
+      "summary": "Admission now serializes cross-process worker counting and queued-state creation, caps live jobs at four, and rejects capacity before creating a new job record or spawning a worker.",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [17, 20], "detail": "MAX_WORKERS is 4 and queue lock wait is bounded at 2 hours." },
+        { "file": "native/src/main.rs", "lines": [875, 889], "detail": "dispatch.lock protects active-worker counting; capacity failure returns before job state is written or a worker is spawned." },
+        { "file": "native/src/main.rs", "lines": [813, 851], "detail": "Existing IDs are handled before secret retrieval and new-job admission; identity/fingerprint mismatch returns job-conflict, while a matching saved result is replayed." },
+        { "file": "src/background/engine.ts", "lines": [362, 362], "detail": "worker-capacity is treated as a retryable reply for the same pending ID." },
+        { "file": "native/README.md", "lines": [7, 7], "detail": "The helper's queued work and queue wait behavior are documented." }
+      ],
+      "verification": {
+        "reviewerStaticReview": "verified against frozen source",
+        "tests": "Parent reports 22 final Rust tests and final package acceptance pass in artifacts/extraction-native/rar-acceptance.json. I read the frozen report; I did not execute these tests.",
+        "remaining": "Malformed job records conservatively consume capacity; this can reduce availability but does not provide a cap bypass. No P0/P1 gap found in this bounded finding."
+      }
+    },
+    {
+      "id": "EXTRACT-RESOURCE-002",
+      "severity": "P2",
+      "status": "fixed",
+      "summary": "Queue wait and each engine child operation now have finite deadlines; Windows timeout cleanup kills the Job Object and reaps the child. Worker breakaway retries without breakaway only on AccessDenied.",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [17, 20], "detail": "Per-child operation timeout is 30 minutes; queue wait timeout is 2 hours." },
+        { "file": "native/src/main.rs", "lines": [1135, 1267], "detail": "Windows child processes use kill-on-close Job Object handling and deadline wait/termination/reap paths for test, extraction, and listing." },
+        { "file": "native/src/main.rs", "lines": [1269, 1371], "detail": "Listing output collection is bounded and its child is still polled against the deadline." },
+        { "file": "native/src/main.rs", "lines": [322, 334], "detail": "Breakaway fallback is limited to Windows ERROR_ACCESS_DENIED; other spawn errors are returned." },
+        { "file": "native/src/main.rs", "lines": [1630, 1654], "detail": "A Windows unit case exercises an actual short child timeout and checks termination/reaping." }
+      ],
+      "verification": {
+        "reviewerStaticReview": "verified source paths and control flow in frozen snapshot",
+        "tests": "Parent reports native 22/22, including actual Windows timeout coverage, in artifacts/extraction-native/rar-acceptance.json. I read that report and did not rerun it.",
+        "remaining": "The 30-minute deadline applies per subprocess, so multiple sequential operations can take longer in total; this is finite and matches the assigned fix. Breakaway fallback can inherit the caller's job lifetime; README documents this limitation."
+      }
+    },
+    {
+      "id": "EXTRACT-SECRET-001",
+      "severity": "P3",
+      "status": "closed-with-documented-lazy-expiry",
+      "summary": "Indefinite logical validity is closed: secret blobs expire after seven days, future mtimes are treated as expired, and expired secrets are rejected and removed on use. Cleanup is intentionally lazy, so seven days is not a guaranteed physical-deletion deadline while the helper is unused.",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [17, 18], "detail": "Secret TTL is seven days and a cleanup pass inspects at most 128 candidates." },
+        { "file": "native/src/main.rs", "lines": [216, 232], "detail": "Age at or beyond TTL and future modification times are expired; non-regular or reparse files are rejected." },
+        { "file": "native/src/main.rs", "lines": [235, 279], "detail": "Cleanup enumerates/sorts valid secret names, advances a persistent cursor, and inspects at most 128 candidates per pass for fair progress." },
+        { "file": "native/src/main.rs", "lines": [301, 320], "detail": "Read rejects and removes an expired secret; the blob read is size bounded." },
+        { "file": "native/src/main.rs", "lines": [780, 798], "detail": "Cleanup runs on StoreSecret and Status; Ping also invokes cleanup. There is no background timer." },
+        { "file": "README.md", "lines": [7, 7], "detail": "Documentation states failed-group retry retention, seven-day expiry, future-mtime handling, 128-item pass/cursor behavior, lazy request-driven cleanup, and residual encrypted data on uninstall." },
+        { "file": "src/background/engine.ts", "lines": [260, 292], "detail": "Pending secret deletion IDs are durable and retried with backoff when helper deletion is unavailable." }
+      ],
+      "verification": {
+        "reviewerStaticReview": "verified expiry, delete-on-read, cleanup triggers, and documentation against frozen source",
+        "tests": "Parent reports 114 TypeScript tests and 22 Rust tests pass; I read snapshot verification and source/test definitions but did not run tests.",
+        "residualCounterevidence": "If the helper receives no later Ping, StoreSecret, Status, or secret read, an expired ciphertext file may remain on disk beyond seven days. The TTL bounds helper-mediated use, not wall-clock physical erasure; DPAPI remains at-rest protection rather than same-user isolation. This is disclosed, not represented as guaranteed deletion."
+      }
+    },
+    {
+      "id": "EXTRACT-RECOVERY-001",
+      "severity": "P3",
+      "status": "fixed-for-caught-install-failures",
+      "summary": "Installer now snapshots owned manifest/config and prior registration, stages replacement files, commits registration last, and rolls back files and registration on caught failures. Incomplete rollback retains backups and reports their location.",
+      "evidence": [
+        { "file": "scripts/install-native-helper.ps1", "lines": [19, 40], "detail": "Ownership and existing manifest/config content are validated before replacement." },
+        { "file": "scripts/install-native-helper.ps1", "lines": [42, 120], "detail": "Prior files and registration are backed up; staged writes and registration commit are transactional with rollback and backup retention on incomplete rollback." },
+        { "file": "native/tests/installer-rollback.ps1", "lines": [10, 54], "detail": "Fault injection uses a fixture and mock registry state, not the real registry." }
+      ],
+      "verification": {
+        "reviewerStaticReview": "verified installer and test source",
+        "tests": "Snapshot manifest reports installer rollback pass with mocked registry. Parent specifically reports it was run without real registry; I did not run it.",
+        "remaining": "Abrupt process termination or power loss cannot run the catch-based rollback; preserved backup files require recovery. No issue remains for ordinary caught failures."
+      }
+    }
+  ],
+  "followUpFixes": [
+    {
+      "id": "EXTRACT-JOB-REPLAY-001",
+      "status": "fixed",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [681, 735], "detail": "Request/job path keys are normalized consistently, including UNC forms; replay validates secret ID and path/source fingerprints before returning a saved result." },
+        { "file": "native/src/main.rs", "lines": [813, 851], "detail": "Existing matching jobs return before reading an expired/forgotten secret, preserving idempotent retries without weakening identity checks." }
+      ],
+      "verification": "Reviewer confirmed source control flow. Parent reports focused TypeScript/browser acceptance; no independent runtime execution by this reviewer."
+    },
+    {
+      "id": "EXTRACT-STATE-COMMIT-001",
+      "status": "fixed",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [345, 378], "detail": "Atomic write removes temporary files after post-create write/sync/replace failures." },
+        { "file": "native/src/main.rs", "lines": [1114, 1149], "detail": "Initial extracting-state persistence failure is recorded as failed while the worker still owns the job lock, before engine execution continues." },
+        { "file": "native/src/main.rs", "lines": [1126, 1129], "detail": "Terminal commit takes the job lock with blocking wait, avoiding a dropped terminal result on transient lock contention." },
+        { "file": "native/src/main.rs", "lines": [2076, 2188], "detail": "Deterministic cross-process lock-holder test covers blocking terminal commit." },
+        { "file": "native/src/main.rs", "lines": [2253, 2305], "detail": "Fault injection covers temporary-file cleanup and subsequent retry after write/sync/replace failures." }
+      ],
+      "verification": "Reviewer inspected source and test definitions. Parent reports final 22 Rust tests pass; did not rerun."
+    },
+    {
+      "id": "EXTRACT-RAR-METADATA-001",
+      "status": "fixed",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [562, 643], "detail": "RAR volume parser accepts positive numeric part suffixes including part1/part01 and does not reject an ordinary filename merely for containing '.part'." },
+        { "file": "native/src/main.rs", "lines": [1686, 1694], "detail": "Archive listing rejects only non-empty Symbolic Link/Hard Link targets." },
+        { "file": "native/src/main.rs", "lines": [1800, 1815], "detail": "Unit test permits empty RAR5 link metadata while rejecting non-empty targets, including whitespace-padded values." }
+      ],
+      "verification": "Parent reports final helper06 acceptance of encrypted single RAR and four-volume RAR, wrong-password rejection, source/output hashes, and original archive retention in artifacts/extraction-native/rar-acceptance.json. Reviewer read report and source; did not run acceptance."
+    },
+    {
+      "id": "EXTRACT-BROWSER-ACCEPTANCE-001",
+      "status": "parent-reported-pass",
+      "evidence": [
+        { "file": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/report.json", "detail": "Frozen report status is pass; cleanup booleans for test profiles, server, registry fixture, helper worker, and isolated helper state are all true." },
+        { "file": "artifacts/extraction-review-03/manifest.json", "detail": "Runtime report and final helper SHA-256 0316baf852b8d486c9bb88c9433957dec4622f2ea1c6b69ce4d0970f77e1558c are bound into the snapshot." }
+      ],
+      "verification": "Read and hash-verified report as a snapshot entry; this reviewer did not run Chrome E2E or inspect a personal Chrome profile."
+    },
+    {
+      "id": "EXTRACT-PACKAGE-ROLLBACK-NOTICES-001",
+      "status": "confirmed-by-snapshot-report",
+      "evidence": [
+        { "file": "scripts/package.mjs", "lines": [54, 97], "detail": "Package publishing stages outputs and attempts rollback, retaining recovery backups and reporting incomplete rollback." },
+        { "file": "artifacts/native-package-report.json", "detail": "Frozen package report identifies the 7-Zip 26.04 helper bundle, static CRT, 13 dependency notices, and no system install/registration." },
+        { "file": "artifacts/extraction-native/rar-acceptance.json", "detail": "Final helper06 bundle is the tested artifact; its hash is recorded with bundled engine identity." }
+      ],
+      "verification": "Static files and frozen reports inspected; packaging command not rerun."
+    }
+  ],
+  "reviewProcess": {
+    "codeReview": "Parent reports three CodeRabbit rounds covering 33/11/4 files and seven issues fixed; the third-round hourly limit stopped another submission. This closure does not claim CodeRabbit reported zero remaining findings.",
+    "reviewerPerformed": [
+      "Verified review-03 manifest SHA-256 and all 42 entry sizes and SHA-256 hashes.",
+      "Compared assigned native admission, timeout, secret expiry, idempotent replay, atomic state, RAR metadata, installer rollback, tests, and reports against frozen snapshot source."
+    ],
+    "reviewerDidNotPerform": [
+      "Did not run Rust/TypeScript tests, package build, installer test, native helper, or Chrome E2E.",
+      "Did not access personal Chrome, real registry, live downloads, or system installation; no claim of general OS sandboxing or complete native security."
+    ],
+    "reopenedP0P1": [],
+    "boundedConclusion": "The four carried findings are closed as described, with lazy physical secret deletion and crash/power-loss recovery explicitly retained as limitations. No P0/P1 gap was found in this bounded closure."
+  }
+}

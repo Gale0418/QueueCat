@@ -40,6 +40,18 @@ export interface QueueItem {
   };
   events: QueueEvent[];
 }
+export type ExtractionStatus =
+  "waiting" | "queued" | "extracting" | "complete" | "failed";
+export interface ExtractionGroup {
+  id: string;
+  jobId?: string;
+  secretId?: string;
+  unresolved?: boolean;
+  itemIds: string[];
+  status: ExtractionStatus;
+  errorCode?: string;
+  outputDir?: string;
+}
 export interface Settings {
   notifications: boolean;
   theme: "system" | "light" | "dark";
@@ -57,9 +69,13 @@ export interface AppState {
   cycleNotifiedAt?: number;
   externalDownloadId?: number;
   externalWaitReason?: string;
+  extractions?: ExtractionGroup[];
+  nativeHelper?: { available: boolean; engineAvailable?: boolean };
+  pendingSecretDeletes?: string[];
+  nextSecretCleanupAt?: number;
 }
 export type Command =
-  | { kind: "add"; urls: string[] }
+  | { kind: "add"; urls: string[]; extraction?: { password: string } }
   | { kind: "start" }
   | { kind: "pause" }
   | { kind: "remove"; id: string }
@@ -73,7 +89,9 @@ export type Command =
   | { kind: "open-manager"; section?: "add" | "settings" | "reconcile" }
   | { kind: "open-downloads" }
   | { kind: "settings"; settings: Partial<Settings> }
-  | { kind: "test-notification" };
+  | { kind: "test-notification" }
+  | { kind: "check-helper" }
+  | { kind: "retry-extraction"; id: string; password?: string };
 export interface PageObservation {
   kind: "free" | "waiting" | "verification" | "ready" | "failed" | "unknown";
   pageUrl: string;

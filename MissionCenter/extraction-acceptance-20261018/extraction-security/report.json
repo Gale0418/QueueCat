@@ -1,0 +1,87 @@
+{
+  "review": "QueueCat native extraction security and recovery review",
+  "snapshot": {
+    "manifest": "artifacts/extraction-review-01/manifest.json",
+    "manifestSha256": "c6a643d94db7039a758484b12a274adbeea53537c737b2c73726f59ba9744e04",
+    "verifiedEntries": 20,
+    "result": "all manifest file sizes and SHA-256 hashes matched"
+  },
+  "scope": "Static review of frozen source snapshot only. No personal Chrome profile, registry, live downloads, native helper binary, or Chrome installation was accessed. No runtime reproduction was performed.",
+  "findings": [
+    {
+      "id": "EXTRACT-RESOURCE-001",
+      "severity": "P2",
+      "title": "Unique jobs can accumulate unbounded waiting worker processes",
+      "repro": "Submit many distinct valid start requests while one extraction holds worker.lock. Every accepted start persists queued state and spawns a detached helper process. Each worker waits up to 24 hours for worker.lock, so it remains alive and subsequent status checks continue to report queued. The extension can reach this path by completing many explicitly selected archives; its 100-group limit applies per add command, not to the lifetime queue.",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [628, 643], "detail": "Each newly accepted job spawns a detached worker and stores its PID." },
+        { "file": "native/src/main.rs", "lines": [134, 172], "detail": "Waiting locks use a 24-hour deadline and poll every 200 ms." },
+        { "file": "native/src/main.rs", "lines": [812, 816], "detail": "Workers acquire the global queue lock before doing the job; extra workers block while one extraction runs." },
+        { "file": "src/background/engine.ts", "lines": [289, 315], "detail": "syncExtractions walks all eligible groups and starts jobs without a global pending-job cap." },
+        { "file": "src/background/engine.ts", "lines": [443, 455], "detail": "The 100-group bound is per add operation." }
+      ],
+      "impact": "A large user-selected batch or repeated batches can create many helper processes and long-lived waiters. This can consume process-table, memory, and handle resources and leave queued jobs appearing active for hours after service-worker restarts.",
+      "confidence": "high; behavior follows directly from the lock and spawn flow, but no process-load reproduction was run",
+      "recommendation": "Use a single bounded worker/dispatcher that reads persisted queued jobs, or enforce a small global in-flight/waiting-worker limit before spawning. Give lock waits a short deadline and reconcile jobs whose worker did not begin."
+    },
+    {
+      "id": "EXTRACT-RESOURCE-002",
+      "severity": "P2",
+      "title": "7-Zip operations have no wall-clock or cancellation limit",
+      "repro": "Provide an archive whose list, test, or extraction operation takes an unusually long time. bounded_7z waits for the listing child to finish, and run_7z calls status() synchronously for test and extraction with no deadline. The active worker keeps the single global queue lock for the whole operation; all other worker processes then wait behind it.",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [874, 880], "detail": "Listing, space calculation, and archive test run before extraction." },
+        { "file": "native/src/main.rs", "lines": [1061, 1102], "detail": "7-Zip test/extract waits synchronously for process completion without a timeout or cancellation path." },
+        { "file": "native/src/main.rs", "lines": [1104, 1146], "detail": "Listing output is byte-bounded, but the child process has no time limit." },
+        { "file": "native/src/main.rs", "lines": [993, 995], "detail": "A single input set may be as large as 100 GiB." },
+        { "file": "native/src/main.rs", "lines": [812, 813], "detail": "The active worker holds the queue lock while extraction runs." }
+      ],
+      "impact": "A slow or pathological archive can monopolize the extraction queue indefinitely. The 100 GiB size ceiling limits reported unpacked data but does not bound CPU time or elapsed time; a listing output cap alone does not stop a child that continues running after filling its pipe cap.",
+      "confidence": "high for missing limits and queue serialization; exploit duration depends on archive and machine",
+      "recommendation": "Apply explicit deadlines and cancellation to listing, test, and extraction; enforce a configurable lower output quota and/or free-space reserve; ensure timeout kills and reaps the child and cleans staging before releasing the queue."
+    },
+    {
+      "id": "EXTRACT-SECRET-001",
+      "severity": "P3",
+      "title": "DPAPI-protected archive passwords are retained indefinitely",
+      "repro": "Store a password and complete an extraction. The extension retains only secretId in its local state, while the helper retains the corresponding DPAPI blob under secrets/. Success does not call forget-secret; replacing a password during retry stores a fresh ID without forgetting the old ID. The uninstaller intentionally leaves helper jobs and secrets behind.",
+      "evidence": [
+        { "file": "native/src/main.rs", "lines": [503, 519], "detail": "store-secret persists a DPAPI-protected blob in the helper data root." },
+        { "file": "native/src/main.rs", "lines": [833, 845], "detail": "Successful and failed job completion updates state but does not remove the referenced secret." },
+        { "file": "src/background/engine.ts", "lines": [681, 689], "detail": "Password retry stores a new secret ID and replaces group.secretId without forgetting the previous ID." },
+        { "file": "native/README.md", "lines": [19, 19], "detail": "Uninstall is documented to leave jobs and secrets untouched." }
+      ],
+      "impact": "Encrypted password blobs and stale retry secrets accumulate for the lifetime of the helper data directory, including after extraction and uninstall. DPAPI protects the blobs at rest, but code running as the same Windows user can use that user's DPAPI context; the retained files extend how long old archive passwords remain available to that account.",
+      "confidence": "high; lifecycle behavior is explicit in the call paths and documentation",
+      "recommendation": "Define a retention policy. Forget superseded IDs after retry state is durably saved, and remove secrets after successful completion if idempotent status does not require them. Offer a cleanup path for retained failed-job secrets and document any intentional retry retention."
+    },
+    {
+      "id": "EXTRACT-RECOVERY-001",
+      "severity": "P3",
+      "title": "Native-helper installer updates owned files without rollback",
+      "repro": "Run the installer over an already registered QueueCat helper, then induce a failure after the manifest move (for example, a config write or registry update failure). The existing registry value still points to the manifest path, whose contents may already reference the new helper, while config/registration work may be incomplete. Rerunning installation can recover, but the previous owned manifest/config are not restored automatically.",
+      "evidence": [
+        { "file": "scripts/install-native-helper.ps1", "lines": [31, 40], "detail": "The host manifest is overwritten before config and registry updates finish." },
+        { "file": "scripts/install-native-helper.ps1", "lines": [42, 54], "detail": "Config replacement/removal and registry update occur afterward with no backup or rollback handler." },
+        { "file": "scripts/package.mjs", "lines": [54, 97], "detail": "Release publishing has explicit backup/rollback handling, which the installer does not share." }
+      ],
+      "impact": "An interrupted update can leave the registered helper in a partially updated state and temporarily disable extraction until installation is rerun or repaired manually. No evidence indicates that it deletes user downloads or unrelated registrations.",
+      "confidence": "high; static control-flow finding, failure injection not performed",
+      "recommendation": "Stage manifest and config together, retain prior owned files until all steps succeed, then commit and restore them on failure. Keep the existing foreign-registration refusal behavior."
+    }
+  ],
+  "reviewed_controls": [
+    "Frozen snapshot path and all 20 source file size/hash pairs were verified before review.",
+    "Archive source paths are canonicalized, final-component symlinks/reparse points are rejected, and Windows ADS syntax in listed member paths is rejected.",
+    "Only explicitly selected split volumes are staged in an isolated sibling directory, which prevents 7-Zip from discovering unstaged neighboring volumes in the original download directory.",
+    "Archive listing checks traversal, ADS, Windows device names, links, entry count, and a reported unpacked-size ceiling; extraction uses a fresh staging directory and a no-replace final rename while retaining the source archive.",
+    "Native request frames are length-bounded, serde rejects unknown request fields, IDs are constrained, and the installer allows one validated Chrome extension origin.",
+    "The native README explicitly discloses that 7-Zip receives the password on its command line and that the helper is not an OS sandbox; this review did not treat that disclosed behavior as a vulnerability by itself.",
+    "Package-native pins upstream 7-Zip release hashes, includes the upstream license and source archive, and collects dependency notices. Release publishing retains backups if rollback is incomplete."
+  ],
+  "verification": {
+    "runtimeTestsRunByReviewer": false,
+    "testsReportedByParentAgent": "The parent reports TypeScript tests/build and native worker tests plus isolated archive cases passed; not independently rerun or verified by this reviewer.",
+    "chromeE2e": "in progress elsewhere; not counted as passed"
+  }
+}

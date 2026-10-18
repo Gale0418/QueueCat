@@ -1,0 +1,58 @@
+{
+  "reviews": [
+    "artifacts/coderabbit/extraction-20261018/run-2.ndjson",
+    "artifacts/coderabbit/extraction-20261018/run-3.ndjson"
+  ],
+  "changes": [
+    {
+      "finding": "Matching existing job IDs must return the persisted result without requiring the secret to still exist, while conflicting request identity and extant source fingerprints remain enforced.",
+      "implementation": "start locks and loads the job before new-job source validation or secret reads. Existing requests compare secret ID and normalized path set; existing source metadata fingerprints are rechecked when source files remain present. Missing source files do not hide the recorded result. New jobs still run full archive validation, compute fingerprints, and require a readable secret.",
+      "coverage": "Rust unit test checks same request, different secret, different path, changed source metadata, and replay after source removal. Archive integration checks completed and failed job replay after forget-secret, and confirms conflicting paths/secret IDs still return job-conflict."
+    },
+    {
+      "finding": "Bounded secret cleanup must advance across fresh and ineligible entries rather than repeatedly inspecting the first batch.",
+      "implementation": "Under a cross-process cleanup lock, each pass enumerates eligible ASCII-ID .bin filenames, sorts them, resumes after a persistent filename cursor, wraps around, and checks metadata for at most 128 selected secrets. Invalid cursor content safely resets to the beginning. Cursor is committed atomically before deletions so a failed cursor write cannot cause repeated deletion batches.",
+      "coverage": "Rust unit test creates 129 fresh secrets, 128 ineligible filenames, a tail expired secret, a corrupt cursor, then removes/adds files between passes and verifies the tail expires on a later bounded pass."
+    },
+    {
+      "finding": "A worker could silently drop its terminal state when a concurrent status/start request briefly held the job lock; extracting-state write errors were also ignored.",
+      "implementation": "Initial extracting-state persistence is now checked and failure returns before run_extraction. Terminal persistence uses a blocking job-lock acquisition and returns I/O errors; the worker reports a generic error without secret material and exits nonzero if persistence fails, leaving reconciliation to surface worker-lost if storage remains unavailable.",
+      "coverage": "Deterministic Windows unit regression starts a separate test process that holds the actual job lock, proves terminal persistence remains blocked, releases the lock, then verifies the complete state and output directory are persisted with no worker-lost state."
+    },
+    {
+      "finding": "Extended UNC and ordinary UNC request path keys differed when canonicalization could not access a share.",
+      "implementation": "Path-key normalization now reuses user_path before slash normalization and lowercase conversion, consistently removing both extended drive and extended UNC prefixes.",
+      "coverage": "Pure string unit cases compare extended UNC to ordinary UNC and extended drive syntax to ordinary drive syntax without contacting a network share."
+    },
+    {
+      "finding": "Atomic file write failures could leave PID-named temporary files; the worker's failed extracting-state write released its lock before a best-effort failure save.",
+      "implementation": "atomic_json and atomic_bytes share an atomic-write helper that drops the file handle and removes the temp after write, sync, or replace errors. The extracting-state failure path records job-state-failed and retries persistence while retaining the job lock; engine work does not begin.",
+      "coverage": "Fault-injection tests cover write, sync, and replace failures plus a real directory-target replacement failure, assert temp cleanup, and verify a same-process subsequent write succeeds. An injected extracting-state failure verifies a failed-state retry and prevents worker continuation."
+    }
+  ],
+  "validation": {
+    "working_directory": "D:/MyGame/QueueCat/native",
+    "commands": [
+      {
+        "command": "cargo fmt --all -- --check",
+        "result": "passed"
+      },
+      {
+        "command": "cargo test",
+        "result": "passed: 21 passed, 0 failed"
+      },
+      {
+        "command": "cargo build",
+        "result": "passed: dev profile"
+      },
+      {
+        "command": "pwsh -NoLogo -NoProfile -File tests/archive-integration.ps1 -HelperExePath .\\target\\debug\\queuecat-native-helper.exe -SevenZipPath ..\\artifacts\\extraction-engine\\unpacked\\7z.exe",
+        "result": "passed: Encrypted archive and explicit split-volume isolation passed",
+        "evidence_fixture": "D:/MyGame/QueueCat/artifacts/extraction-native/integration-601869a10f344775b27e43b8a48568b2"
+      }
+    ],
+    "integration_retry_history": "An earlier isolated integration invocation marked encrypted-single worker-lost after extraction output appeared. Code inspection identified the terminal-state nonblocking lock attempt as the reachable cause. The terminal commit now waits for the lock, and a deterministic separate-process lock regression plus the final end-to-end integration both pass.",
+    "release_bundle": "Not rebuilt; parent agent owns final release build and focused browser verification.",
+    "side_effects": "No production installer, registry, personal Chrome profile, or user downloads were touched. Tests used isolated state and fixtures under artifacts/extraction-native."
+  }
+}

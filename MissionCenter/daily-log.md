@@ -28,3 +28,9 @@
 2026-10-18 QC-E6/T8/T9：四席最終有界閉合sealed，139/139快照hash相符；四項確認問題皆fixed，無未解P0/P1或其他確認問題。source handoff passed；整產品live release limited並保持Review。正式報告已複製到MissionCenter；缺少critic_contract.py不宣稱通過。下一步直接commit/push main並核對GitHub，不建PR或支線。
 
 2026-10-18 QC-T10：README與MissionCenter先更新後，已將source commit 3e26a1f95aadd987bfb6b09f2b528f48726b32bf推送https://github.com/Gale0418/QueueCat.git main；git ls-remote核對完全相同且remote只有main。原始碼交付完成，後續僅提交此交付回執；整產品實站Review不改成Done。
+
+2026-10-18 QC-E7：使用者核准Rust小幫手密碼自動解壓（分卷到齊、下載位置子資料夾、保留原檔、不覆蓋、不執行），並要求最通用、別人不用先裝解壓軟體。未裝7Zip，找到既有WinRAR6.11但不更動；採隨helper附官方7Zip26.04可攜引擎、可選相容7z路徑，未跑系統installer/不改關聯。原始碼/工作狀態與UI並行實作，密碼僅nativeDPAPI落盤。三語copy沿同一Gemini對話改Flash取得，未派另一writer；不把原Argon配額錯誤說成登入失效。107TS tests、8Rust tests已通過；ChromeE2E與獨立安全/流程盲審進行中，不能先宣稱整合通過。
+
+## 2026-10-18 自動解壓最終本機驗收
+
+114 TS／22 Rust、type/build、helper06 隔離 Chrome 與加密 RAR 單檔／四卷／錯密碼通過。三輪 CodeRabbit 33/11/4 檔、3/2/2 issues 共 7 項修完，三席閉合與獨立仲裁核對快照03通過可選 Windows x64 source handoff。保留實站 Review；未操作個人 Chrome／現有下載。兩個舊測試暫存目錄刪除遭 blocked by policy，已保留且未繞過。README、公開證據索引及任務狀態已更新，main 推送與 SHA 對帳接續保存回執。

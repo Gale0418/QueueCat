@@ -1,0 +1,67 @@
+{
+  "review": "extraction-ux",
+  "snapshot": "extraction-review-02",
+  "scope": "Read-only UX, EN/zh-TW/ja copy coverage, and extraction error/retry operability review. Excludes native helper implementation and live website flow.",
+  "reviewedAt": "2026-10-18",
+  "manifest": {
+    "path": "artifacts/extraction-review-02/manifest.json",
+    "expectedSha256": "bade351eb74d60964eee9b7cd012896f50e1df8ae60dc60ec7ee35fd2a75f3f3",
+    "observedSha256": "bade351eb74d60964eee9b7cd012896f50e1df8ae60dc60ec7ee35fd2a75f3f3",
+    "verified": true
+  },
+  "outcome": "pass_with_followup",
+  "findings": [
+    {
+      "id": "UX-02-01",
+      "severity": "P2",
+      "status": "present_in_snapshot_02",
+      "title": "Narrow layout renders duplicate extraction details and duplicate input IDs",
+      "evidence": [
+        "artifacts/extraction-review-02/files/src/ui/main.ts: render() appends inline-details for the selected row when narrow.matches, then also renders detailsHtml() into #details and hides that element.",
+        "detailsHtml() repeats retry-extraction-password and retry-password-hint IDs. The retry handler queries #retry-extraction-password globally rather than resolving it from the clicked extraction detail.",
+        "The supplied extraction-ui test covers a failed extraction retry and secret omission, but does not cover narrow-layout duplicate details or per-detail input resolution."
+      ],
+      "impact": "Hidden duplicate detail markup makes IDs non-unique and leaves retry password selection coupled to document order. The visible inline detail currently precedes the hidden sidebar detail, but that is a brittle assumption for DOM changes and UI tests.",
+      "minimalFollowup": "Do not render the hidden sidebar detail body while narrow.matches, and resolve the retry password input from the clicked button's closest .extraction-detail.",
+      "notes": "This report is limited to snapshot 02; no later working-tree delta was reviewed in this pass."
+    }
+  ],
+  "visualInspection": {
+    "managerScreenshot": {
+      "path": "artifacts/extraction-browser/2026-10-18T09-07-00-548Z/manager-extraction-zh-TW.png",
+      "sha256": "a39401a47db025b6662a2f1ecc5520953b4b85f406e2b08b8b17ddac319a16b4",
+      "observation": "Traditional Chinese add-download panel is spacious, clearly separated, and readable. Checkbox, password field, hint, and disabled submit action have distinct labels and hierarchy."
+    },
+    "popupScreenshot": {
+      "path": "artifacts/extraction-browser/2026-10-18T09-07-00-548Z/popup-extraction-queue.png",
+      "sha256": "76d34a72f41eeaa0bde560326098c52f4bac8a51adbcc2433b01f5cd56c635fe",
+      "observation": "The large cat illustration overlaps the headline and queue summary in the small popup. Foreground dark text remains legible against the predominantly pale illustration, and the primary button remains distinct. Keep the intended translucent-card/mascot treatment; this screenshot alone does not justify a redesign or a readability finding."
+    }
+  },
+  "languageAndRetryReview": {
+    "copySource": "artifacts/extraction-review-02/files/src/shared/extraction-copy.ts",
+    "copySha256": "6b592a01993f2dab81ae46d23e7928f6c56ff1418cc35978aecb1374bca412d4",
+    "observed": "Extraction controls, statuses, helper states, common error messages, retry labels, and password hints provide en, zh-TW, and ja entries; the source type requires all SupportedLanguage entries.",
+    "retryTestSource": "artifacts/extraction-review-02/files/tests/extraction-ui.test.ts",
+    "retryTestSha256": "8f185b9e65125aca82e66fbbb7f011fd7f6d0461a6e8d02f00903810b1924d5d",
+    "observed": "Test source exercises helper-unavailable copy, failed extraction detail rendering, retry with a replacement password, and secret exclusion from serialized state. The test was inspected but not run independently in this review."
+  },
+  "e2eEvidence": {
+    "path": "artifacts/extraction-browser/2026-10-18T09-07-00-548Z/report.json",
+    "sha256": "4c2a0217f4f7b6388f77304610ee86e317db91cc8c6be70eb00bf9777fff6e3e",
+    "classification": "Existing author-generated harness report; read-only review, not independently reproduced by this reviewer.",
+    "reportedRelevantChecks": "Manager extraction controls across en/zh-TW/ja without horizontal overflow and a focusable password field; report status pass.",
+    "independentReviewerWork": "Verified snapshot hashes, inspected specified source/test/report content, and visually inspected both specified screenshots. No browser, personal Chrome, registry, downloads, or website interaction was performed."
+  },
+  "unknowns": [
+    "No independent live UI run or screenshot was made in en or ja; language completeness was checked statically and harness coverage is recorded as author evidence.",
+    "The supplied popup screenshot does not show a failed-extraction retry state at popup dimensions.",
+    "No live Katfile behavior or native helper implementation was evaluated in this UX-only review."
+  ],
+  "inspectedSnapshotFileHashes": {
+    "artifacts/extraction-review-02/files/src/ui/main.ts": "31d547241a2944cd37495ffa1a6fc5cab23a24449df7395c536c874f76e57e87",
+    "artifacts/extraction-review-02/files/src/ui/style.css": "a3bba83f13b09c3d85e44cbaf40aa8ccb8147395701ef90509987462b298e4c5",
+    "artifacts/extraction-review-02/files/src/shared/extraction-copy.ts": "6b592a01993f2dab81ae46d23e7928f6c56ff1418cc35978aecb1374bca412d4",
+    "artifacts/extraction-review-02/files/tests/extraction-ui.test.ts": "8f185b9e65125aca82e66fbbb7f011fd7f6d0461a6e8d02f00903810b1924d5d"
+  }
+}

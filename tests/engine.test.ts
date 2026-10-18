@@ -88,6 +88,11 @@ function fixture(seed?: AppState) {
       async show() {},
     },
     alarms: {
+      async get() {
+        return activeAlarm === undefined
+          ? undefined
+          : { scheduledTime: activeAlarm };
+      },
       create(_name, info) {
         activeAlarm = info.when;
         alarms.push(info.when || 0);
@@ -869,6 +874,19 @@ describe("QueueEngine", () => {
     await f.engine.onAlarm();
     expect(f.state!.items[0].status).toBe("waiting");
     expect(f.actions).toHaveLength(before);
+  });
+
+  it("does not postpone the existing watchdog alarm on repeated UI progress reads", async () => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1] });
+    await f.engine.command({ kind: "start" });
+    const deadline = f.activeAlarm;
+    f.setNow(f.ports.now() + 1_000);
+    await f.engine.handleRequest({ type: "QC_GET" });
+    expect(f.activeAlarm).toBe(deadline);
+    f.setNow(f.ports.now() + 1_000);
+    await f.engine.handleRequest({ type: "QC_GET" });
+    expect(f.activeAlarm).toBe(deadline);
   });
 
   it.each(["future", "expired", "missing"] as const)(

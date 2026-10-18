@@ -1,0 +1,107 @@
+{
+  "id": "extraction-review-01",
+  "createdAt": "2026-10-18T08:51:25.870Z",
+  "scope": "Windows x64 local native extraction only; no personal Chrome or live downloads",
+  "entries": [
+    {
+      "path": "src/background/engine.ts",
+      "bytes": 54832,
+      "sha256": "087b1e67ce6a29ba7ae6676e2ff31418a470a6b79aa6de12407fb4e56651763f"
+    },
+    {
+      "path": "src/background/index.ts",
+      "bytes": 6490,
+      "sha256": "0314639113f5e805dfb6ba399eb32e89db5aeec379fe633c6352f6cd41e9e94b"
+    },
+    {
+      "path": "src/shared/types.ts",
+      "bytes": 3902,
+      "sha256": "a9f54baeb29fab6fe72549357c900b57675ff8068f85fc7214f6ebf16d0e8f6b"
+    },
+    {
+      "path": "src/shared/extraction.ts",
+      "bytes": 3066,
+      "sha256": "28143ea4f4301164b8d32ac7e1730fe8f1e62bdb7b52d4b49bbcf5a33b7c1c7d"
+    },
+    {
+      "path": "src/shared/extraction-copy.ts",
+      "bytes": 5405,
+      "sha256": "c260958bf460c0b81067d2573e86ffaa977420024abbde882a3e2bb646fd88e5"
+    },
+    {
+      "path": "src/ui/main.ts",
+      "bytes": 46292,
+      "sha256": "66f25b85dac488dea6a4f48234650887c55c5691db787c074dcee3c08387f154"
+    },
+    {
+      "path": "src/ui/presentation.ts",
+      "bytes": 5725,
+      "sha256": "5cea0d3c2d3ad24179275f681e578ebc021bdee502fa03fecb845b5d0c15b042"
+    },
+    {
+      "path": "src/ui/style.css",
+      "bytes": 32525,
+      "sha256": "a3bba83f13b09c3d85e44cbaf40aa8ccb8147395701ef90509987462b298e4c5"
+    },
+    {
+      "path": "public/manifest.json",
+      "bytes": 1303,
+      "sha256": "ac936901fced56af66e64cc8b3f25eb80a12ece1f913a2920e3b845d09ad469f"
+    },
+    {
+      "path": "native/Cargo.toml",
+      "bytes": 432,
+      "sha256": "5ccb74b32760e142d2c514814b93766c825a4f2181923bfd3304cea767862e07"
+    },
+    {
+      "path": "native/README.md",
+      "bytes": 3654,
+      "sha256": "17c3808fe3c7b6ff6acff5eb565940229056d1759123afb2d9297f99a91e8697"
+    },
+    {
+      "path": "scripts/install-native-helper.ps1",
+      "bytes": 2241,
+      "sha256": "24a9a22e2342621c517ebf2d16f84311c83ac9abe847b970637956eb2fd2f9ab"
+    },
+    {
+      "path": "scripts/uninstall-native-helper.ps1",
+      "bytes": 1305,
+      "sha256": "fa783ad43b30d918b961ed7ba53330a6dcc48e059862346eb51740f007315d4f"
+    },
+    {
+      "path": "scripts/package-native.mjs",
+      "bytes": 6743,
+      "sha256": "7bad2d73a836faa088de7551679aa8bde87d780d146e4cb4c2c562e90383b1a0"
+    },
+    {
+      "path": "scripts/package.mjs",
+      "bytes": 5517,
+      "sha256": "7933e9845439d2559642c0db38987cd71f42b38bab37a82659a0a20268fb8a40"
+    },
+    {
+      "path": "tests/extraction.test.ts",
+      "bytes": 6945,
+      "sha256": "e723a36b71c629318f400a61102875ab62b79460499a144ee6ef13f8a1a3b299"
+    },
+    {
+      "path": "tests/extraction-ui.test.ts",
+      "bytes": 6172,
+      "sha256": "8f185b9e65125aca82e66fbbb7f011fd7f6d0461a6e8d02f00903810b1924d5d"
+    },
+    {
+      "path": "native/src/main.rs",
+      "bytes": 44907,
+      "sha256": "c79470458e22edc36f3a0cedecb1e6a5ec52fb8b578c1ef1e855089cb76af538"
+    },
+    {
+      "path": "native/tests/archive-integration.ps1",
+      "bytes": 10240,
+      "sha256": "19a0f26e8e7ec3fa63aabf07f6a94b87cc7080b51dfe56465c022bfbdbeec860"
+    },
+    {
+      "path": "native/tests/protocol-smoke.ps1",
+      "bytes": 3251,
+      "sha256": "3d91df9eaa71fbc39cae8896819634c86159e9ce61df4238a6590520c3b8d4fb"
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "decision": "optional_windows_x64_rust_source_handoff_passed",
+  "productRelease": "limited_review",
+  "scope": "Optional Windows x64 Rust native extraction source handoff and packaged helper evidence; not whole live Katfile product release",
+  "snapshot": {
+    "path": "artifacts/extraction-review-03/manifest.json",
+    "sha256": "a59a7baf239a263646e73a9b015e7477ba94b8a376163265a78e015204f8581f",
+    "entries": 42,
+    "verifiedEntries": 42,
+    "workingTreeEntries": 42,
+    "workingTreeChangedEntries": 0,
+    "parent": "extraction-review-02",
+    "parentSha256": "bade351eb74d60964eee9b7cd012896f50e1df8ae60dc60ec7ee35fd2a75f3f3",
+    "bundles": [
+      {
+        "verified": true,
+        "bytes": 7469653,
+        "sha256": "419bd5b90b91cf6df8a5df1a04dbdda05eb9049445742f0a2aa7834be88c8c4e",
+        "path": "artifacts/extraction-review-03/bundles/QueueCat-0.1.0.zip"
+      },
+      {
+        "verified": true,
+        "bytes": 3108133,
+        "sha256": "7ede8bbd3e98bec4668cff0b19161f1eb6c1c43f3f0d6e37c58dcd8e49edba46",
+        "path": "artifacts/extraction-review-03/bundles/QueueCat-Helper-0.1.0-windows-x64.zip"
+      }
+    ],
+    "finalHelper": {
+      "path": "artifacts/extraction-final-helper-06/queuecat-native-helper.exe",
+      "sha256": "0316baf852b8d486c9bb88c9433957dec4622f2ea1c6b69ce4d0970f77e1558c",
+      "matchesManifestAndFinalRarReport": true
+    }
+  },
+  "evidence": {
+    "security": {
+      "path": "artifacts/extraction-security/closure-03.json",
+      "kind": "bounded static source review",
+      "outcome": "four known findings closed with explicit limits; followups source-inspected",
+      "reviewerRanTests": false,
+      "limitations": [
+        "7-day secret TTL is logical expiry; physical cleanup is lazy and may occur after 7 days if helper is unused",
+        "caught installer failures roll back; process/power loss still requires retained-backup recovery",
+        "30-minute timeout is per engine child operation; sequential work may take longer"
+      ]
+    },
+    "queue": {
+      "path": "artifacts/extraction-queue-review/closure-03.json",
+      "kind": "bounded read-only queue/control-flow closure",
+      "newFindings": 0,
+      "reviewerRanTests": true,
+      "sourceOrSnapshotModified": false,
+      "reviewerPersonallyRanFinalNativeRarJourney": false,
+      "testsList": [
+        "3 focused extraction tests covering queue, retry, and removal/group lifecycle",
+        "1 focused extraction UI test",
+        "1 watchdog alarm preservation test"
+      ],
+      "testCount": 5,
+      "nativeRarJourneyPersonallyRun": false
+    },
+    "ux": {
+      "path": "artifacts/extraction-ux/closure-03.json",
+      "kind": "bounded UX closure",
+      "focusedUiTest": "independently run: 1 test passed",
+      "root114AndBuild": "referenced from snapshot/root evidence, not run by UX reviewer",
+      "viewportLimit": "No viewportWidth in Chrome report, so 620px is not proven by report alone",
+      "chromeVisuals": "reviewer inspected both final PNGs"
+    },
+    "chrome": {
+      "path": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/report.json",
+      "sha256": "8be30b54ab5e2448266a6c134cdc4e53541cdb2cb6598df3bb113c01fa5e965c",
+      "authorship": "root-run isolated Chrome harness",
+      "status": "pass",
+      "checks": 5,
+      "cleanupFlagsAllTrue": true,
+      "personalChromeAttached": false,
+      "network": "loopback fixture only",
+      "katfile": false,
+      "personalDownloads": false,
+      "coverage": [
+        "native messaging availability under test-only HKCU registration",
+        "download filename preservation",
+        "en/zh-TW/ja controls and overflow",
+        "multi-volume queue wait",
+        "worker restart idempotence and one output folder"
+      ]
+    },
+    "rar": {
+      "path": "artifacts/extraction-native/rar-acceptance.json",
+      "kind": "Luna worker-executed exact final helper06 + bundled 7-Zip acceptance; parent dispatched and inspected report",
+      "status": "passed",
+      "cargoTests": "22/22 as reported",
+      "cases": [
+        "encrypted single RAR success and source/output SHA match",
+        "wrong password rejected without password persistence",
+        "encrypted four-volume .part1.rar split RAR success, source files retained with hashes unchanged"
+      ],
+      "winrarRole": "local toy fixture creator only, not helper backend",
+      "exactHelperSha": "0316baf852b8d486c9bb88c9433957dec4622f2ea1c6b69ce4d0970f77e1558c",
+      "executor": "Luna worker / rust_extractor",
+      "parentRole": "Dispatched worker and inspected final evidence"
+    },
+    "rootVerification": {
+      "typescript": "14 files / 114 tests pass; root-reported once, with hint-only UI change followed by focused UI/type/build recheck; not a second 114-test run",
+      "typeBuild": "root-reported pass, including focused post-hint UI/type/build",
+      "installerRollback": "mocked registry fixture pass, no real registry",
+      "coderabbit": {
+        "path": "artifacts/extraction-rabbit-dispositions.json",
+        "runs": [
+          {
+            "issues": 3,
+            "files": 33,
+            "run": 1
+          },
+          {
+            "issues": 2,
+            "files": 11,
+            "run": 2
+          },
+          {
+            "issues": 2,
+            "files": 4,
+            "run": 3
+          }
+        ],
+        "issuesFixed": 7,
+        "claim": "All seven reported issues repaired; no claim of zero CodeRabbit issues or post-run3 CodeRabbit clearance"
+      }
+    }
+  },
+  "unresolvedOrBounded": [
+    "Whole live Katfile flow/release was not tested; decision remains limited/review.",
+    "Chrome06 used an owned temporary HKCU native-host registration and removed it (cleanup=true). The production installer was not run; installer rollback used mocked registry state; no pre-existing personal Chrome/native-host registration was overwritten, and no live downloads were used.",
+    "Security review was static and bounded, not a fresh broad audit; queue review closed assigned findings by source tracing.",
+    "UX evidence does not establish 620px width from the report; harness source and screenshots are supporting trace, not a recorded viewport field.",
+    "Historical run-3 temporary directories were blocked from deletion by automatic safety review; processes and registrations were reclaimed. Final browser run cleanup=true applies only to that run, not every historical artifact.",
+    "MissionCenter critic_contract.py was unavailable; no formal schema-validator pass is claimed. JSON parsing and evidence/hash checks only."
+  ],
+  "validation": {
+    "manifestSha256": "computed and matched",
+    "manifestEntries": "42/42 byte and SHA checks passed against pinned files",
+    "workingTree": "all 42 present entries matched snapshot",
+    "bundleCopies": "both ZIP copies matched size and SHA",
+    "finalHelper": "SHA matched",
+    "browserReport": "SHA matched"
+  },
+  "createdAt": "2026-10-18T10:04:26Z"
+}

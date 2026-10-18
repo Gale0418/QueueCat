@@ -1,0 +1,90 @@
+{
+  "review": "extraction-ux-closure-03",
+  "snapshot": "extraction-review-03",
+  "parentSnapshot": "extraction-review-02",
+  "manifest": {
+    "path": "artifacts/extraction-review-03/manifest.json",
+    "expectedSha256": "a59a7baf239a263646e73a9b015e7477ba94b8a376163265a78e015204f8581f",
+    "observedSha256": "a59a7baf239a263646e73a9b015e7477ba94b8a376163265a78e015204f8581f",
+    "entryCount": 42,
+    "parentSha256MatchesReview02": true
+  },
+  "outcome": "closed",
+  "closure": {
+    "finding": "UX-02-01",
+    "status": "closed_in_snapshot_03",
+    "evidence": [
+      "When narrow.matches, #details receives an empty string before it is hidden; the selected row renders one inline detail, so it no longer duplicates retry input/hint IDs.",
+      "Retry handler resolves the password input under the clicked button's closest .extraction-detail.",
+      "The focused UI test injects an unrelated password input with the same ID before the app and confirms retry submits the scoped replacement password, leaving the unrelated value untouched."
+    ]
+  },
+  "passwordExpiryReview": {
+    "copyKeys": ["passwordExpired", "expiredPasswordHint", "passwordLabel"],
+    "languages": ["en", "zh-TW", "ja"],
+    "observed": "Expiry message communicates the seven-day retention limit and asks for re-entry without re-download. The expired field uses the translated Archive Password label and an expired-specific cleared-password hint.",
+    "expiredBlankRetry": "Explicit empty password is sent for password_expired, preventing fallback to the expired saved password.",
+    "ordinaryBlankRetry": "For other failures, an empty field yields undefined and the request omits password, preserving the existing saved-password behavior.",
+    "testCoverage": "Focused UI test asserts the expired hint and explicit password: empty-string request; source inspection confirms ordinary blank behavior."
+  },
+  "files": {
+    "src/ui/main.ts": {
+      "manifestSha256": "90b5cf3011bde12eda530815abe09ff3aef58779377f71cfb99267fa561aa735",
+      "snapshotSha256": "90b5cf3011bde12eda530815abe09ff3aef58779377f71cfb99267fa561aa735",
+      "workingTreeMatchesSnapshot": true
+    },
+    "src/ui/style.css": {
+      "manifestSha256": "a3bba83f13b09c3d85e44cbaf40aa8ccb8147395701ef90509987462b298e4c5",
+      "snapshotSha256": "a3bba83f13b09c3d85e44cbaf40aa8ccb8147395701ef90509987462b298e4c5",
+      "workingTreeMatchesSnapshot": true
+    },
+    "src/shared/extraction-copy.ts": {
+      "manifestSha256": "eedbdc3cdf4bf47c14b009d742afe4a0ebe8be289e64a59a832fdb1261555b25",
+      "snapshotSha256": "eedbdc3cdf4bf47c14b009d742afe4a0ebe8be289e64a59a832fdb1261555b25",
+      "workingTreeMatchesSnapshot": true
+    },
+    "tests/extraction-ui.test.ts": {
+      "manifestSha256": "ea9b0140aab47a01f467c395e769e59822b775f8f5e81406d169304c81bf0e43",
+      "snapshotSha256": "ea9b0140aab47a01f467c395e769e59822b775f8f5e81406d169304c81bf0e43",
+      "workingTreeMatchesSnapshot": true
+    }
+  },
+  "verification": {
+    "independentlyRun": {
+      "command": "npm test -- tests/extraction-ui.test.ts",
+      "result": "pass",
+      "testFiles": 1,
+      "tests": 1,
+      "durationSeconds": 24.37
+    },
+    "referencedFromSnapshotManifestOnly": {
+      "typescript": "14 files / 114 tests pass; root run",
+      "focusedUiTypeBuild": "pass; root run after hint-only delta",
+      "rust": "22 tests pass; other reviewer/run, outside this UX closure"
+    }
+  },
+  "rootHarnessEvidence": {
+    "path": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/report.json",
+    "sha256": "8be30b54ab5e2448266a6c134cdc4e53541cdb2cb6598df3bb113c01fa5e965c",
+    "authorship": "Root-run real Chrome harness; not independently authored or executed by this reviewer.",
+    "reported": "Pass; en, zh-TW, and ja controls usable with no horizontal overflow; password field focusable; pageErrors empty; all recorded cleanup flags true; isolated profile with personalChromeAttached=false, loopback-only fixture, and no personal downloads.",
+    "viewportLimit": "The report records horizontalOverflow=false for all three languages but does not include a viewportWidth field, so 620px is not independently evidenced by this report."
+  },
+  "visualInspection": {
+    "manager": {
+      "path": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/manager-extraction-zh-TW.png",
+      "sha256": "d1f73c4c042f506021d75de89d0b7dd453e16ac86a13d9aaf8585d009dd6fed9",
+      "observation": "Password control and adjacent helper text are visibly readable in the manager screenshot."
+    },
+    "popup": {
+      "path": "artifacts/extraction-browser/2026-10-18T09-54-02-887Z/popup-extraction-queue.png",
+      "sha256": "76d34a72f41eeaa0bde560326098c52f4bac8a51adbcc2433b01f5cd56c635fe",
+      "observation": "Large cat illustration overlaps foreground text as before; the dark text remains legible on the pale art and the primary action is distinct. Preserve the established translucent-card and mascot treatment; no new visual issue found in this bounded check."
+    }
+  },
+  "scopeLimits": [
+    "Reviewed only snapshot 03 source and evidence needed to close UX-02-01, expiry copy/retry semantics, and the specified screenshots/report.",
+    "No native implementation, broad minor-issue search, personal Chrome, registry, or downloads were examined or changed.",
+    "No source, MissionCenter, or existing evidence files were modified; only this closure report was added."
+  ]
+}

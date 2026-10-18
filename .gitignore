@@ -12,3 +12,5 @@ artifacts/
 /output/
 /releases/
 /MissionCenter/antigravity-runtime-review.json
+/native/target/
+/native/engine/

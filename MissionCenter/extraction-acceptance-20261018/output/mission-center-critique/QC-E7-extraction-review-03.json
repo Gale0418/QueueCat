@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0",
+  "taskId": "QC-E7",
+  "snapshotId": "extraction-review-03",
+  "snapshotManifest": "artifacts/extraction-review-03/manifest.json",
+  "snapshotSha256": "a59a7baf239a263646e73a9b015e7477ba94b8a376163265a78e015204f8581f",
+  "route": "critic_full",
+  "reviewMode": "converge",
+  "stopCondition": "all_findings_resolved",
+  "outcome": "limited",
+  "sourceHandoff": "passed",
+  "wholeProductRelease": "limited_review",
+  "authorization": "User authorized multiple domain critics and task-priority budget override; per-seat soft6k tokens/35tools/20min. No new broad minor-hunt after P0/P1 clear.",
+  "lanes": [
+    {
+      "id": "native_security",
+      "seatId": "extraction_security",
+      "required": true,
+      "coverageStatus": "covered"
+    },
+    {
+      "id": "queue_flow",
+      "seatId": "extraction_queue_review",
+      "required": true,
+      "coverageStatus": "covered"
+    },
+    {
+      "id": "ux_i18n",
+      "seatId": "extraction_ux_acceptance",
+      "required": true,
+      "coverageStatus": "covered"
+    },
+    {
+      "id": "live_katfile_product_release",
+      "seatId": "chair",
+      "required": true,
+      "coverageStatus": "unknown",
+      "reason": "Protect personal Chrome/current downloads; no real Katfile full automated/CAPTCHA/two-completion/restart acceptance."
+    }
+  ],
+  "reports": [
+    {
+      "path": "artifacts/extraction-security/closure-03.json",
+      "sha256": "a17cdabfb941878d2374bc895b735d334b7fffbdc91573923ebf0265335df3ce"
+    },
+    {
+      "path": "artifacts/extraction-queue-review/closure-03.json",
+      "sha256": "a9530005ec69757d202f214e5f61cd8b3df24f00af98c9393fa19c32dbce5a24"
+    },
+    {
+      "path": "artifacts/extraction-ux/closure-03.json",
+      "sha256": "70682d6c771d569ba7c8722500f43ebe86d2b47260f183b4d585c5e6835646cc"
+    },
+    {
+      "path": "artifacts/extraction-arbiter/final.json",
+      "sha256": "3f5e51cd9d36a29b9fbabd4bc078c6d34cc43a1dc920bf6f26bec68ae1f49882"
+    }
+  ],
+  "knownFindings": {
+    "unresolvedP0P1": 0,
+    "verifiedInScopeP2P3Remaining": 0,
+    "chairFinal": "fixed or closed after concrete repairs; no human risk waivers/accepted findings",
+    "nativeSecurity": "All four carried findings closed; 7-day validity expiry with documented lazy physical cleanup.",
+    "queue": "EQ-001 cancellation/dangling group closed; UI reads preserve watchdog.",
+    "ux": "UX-02-01 / CR-E-002 duplicate hidden details and password scope closed.",
+    "codeRabbit": "3 runs:33/11/4 files, 3/2/2 issues. Seven reported issues repaired; final repairs independently closed, no fourth run or zero-issue claim.",
+    "runtimeRepairs": [
+      "terminal commit waits for job lock; deterministic cross-process contention test",
+      "RAR5 empty link fields allowed while nonempty link targets remain denied",
+      "RAR part1 and part01 compatible",
+      "expired-password hint no longer promises saved-password reuse"
+    ]
+  },
+  "verificationProvenance": {
+    "root": "114 TS tests once; later hint-only focused UI/type/build; static helper packaging; exact helper06 Chrome native E2E; mock-registry installer rollback",
+    "rustExtractor": "22 Rust tests and final helper06 RAR single/four-volume/wrong-password/hash retention",
+    "independentCritics": "Security source review only; queue5 focused tests; UX1 focused test+images; arbiter hashes and evidence audit. Referenced tests are not relabeled independent execution."
+  },
+  "limitations": [
+    "No production helper installation or personal extension reload",
+    "Native extraction is not an OS sandbox; 7-Zip password briefly in process args",
+    "Expiry physical cleanup only during helper use; uninstall retains residual encrypted state",
+    "Historical run3 profile/helper-state retained after automatic blocked-by-policy cleanup rejection; later run cleanup true is scoped to that run",
+    "critic_contract.py unavailable in installed plugin; no formal schema-validator success claimed"
+  ],
+  "validation": {
+    "jsonParse": "passed",
+    "criticContract": "unavailable"
+  }
+}
