@@ -28,4 +28,4 @@
 | QC-E7 | 密碼自動解壓與 Rust 小幫手 | Epic | - | P1 | Review | Codex | - | 本機功能與獨立仲裁通過；main 9af93cd 遠端SHA相符 | 114TS/22Rust、final helper06 Chrome與RAR實測、三席閉合 | - | verification,closeout | 實站release仍limited；日常Chrome/原下載未操作 |
 | QC-T11 | 原生解壓與安全工作狀態 | Task | QC-E7 | P1 | Review | Codex | - | 安全席03閉合，保留明示lazy expiry與非OS沙箱限制 | 22Rust；加密RAR單檔/4卷/錯密碼/hash；terminal鎖與原子寫入回歸 | - | verification | 未系統安裝7-Zip或修改檔案關聯 |
 | QC-T12 | 密碼輸入、分卷排隊與三語狀態 | Task | QC-E7 | P1 | Review | Codex | - | 佇列與UX席03閉合；實站整合保留Review | 114TS及修後定向；取消group/expiry空密碼/closest scope/watchdog | - | verification | Gemini三語文案；純下載不需小幫手 |
-| QC-T13 | 隔離瀏覽器、套件與文件 | Task | QC-E7 | P1 | Review | Codex | QC-T11,QC-T12 | main 9af93cd 已推送且遠端SHA相符；保留實站Review | Chrome06 pass/cleanup全true；2ZIP/CRC/hash；Rabbit3輪7issues修補 | - | verification,closeout | 舊run3兩暫存目錄清理遭policy拒絕已如實保留 |
+| QC-T13 | 隔離瀏覽器、套件與文件 | Task | QC-E7 | P1 | Review | Codex | QC-T11,QC-T12 | 10/21正式helper已註冊；本人重載後確認就緒；保留實站Review | Chrome06 pass/cleanup全true；2ZIP/CRC/hash；Rabbit3輪7issues修補 | - | verification,closeout | 舊run3兩暫存目錄清理遭policy拒絕已如實保留 |

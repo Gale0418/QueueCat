@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-21T01:33:32.571Z",
+  "status": "installed-and-native-protocol-verified",
+  "manifestPath": "C:\\Users\\USER\\AppData\\Local\\QueueCatHelper\\native-host.json",
+  "helperPath": "C:\\Users\\USER\\AppData\\Local\\QueueCatHelper\\app\\0.1.0\\queuecat-native-helper.exe",
+  "helperSha256": "0316baf852b8d486c9bb88c9433957dec4622f2ea1c6b69ce4d0970f77e1558c",
+  "allowedOrigins": [
+    "chrome-extension://mnpcmpcfebnpjhlhpfccglgafhonmhnb/"
+  ],
+  "registryMatched": true,
+  "ping": {
+    "ok": true,
+    "version": "0.1.0",
+    "sevenZipAvailable": true
+  },
+  "personalChromeCheck": "user-confirmed ready/engine available, then reloaded extension and confirmed again",
+  "systemSevenZipInstalled": false,
+  "fileAssociationsChanged": false,
+  "userConfirmationRecordedAt": "2026-10-21T01:35:49.105Z"
+}

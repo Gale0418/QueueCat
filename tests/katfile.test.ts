@@ -26,6 +26,21 @@ function freeForm(extra = ""): string {
 }
 
 describe("Katfile DOM 轉接層", () => {
+  it.each(["archive.7z.001", "archive.zip.002", "archive.r00"])(
+    "支援分卷最終下載連結 %s",
+    (filename) => {
+      const url = `https://cdn.katfile.biz/download/${filename}`;
+      const dom = page(`<a href="${url}">Continue free download</a>`);
+      expect(inspectPage(dom.window.document, PAGE_URL)).toMatchObject({
+        kind: "ready",
+        finalUrl: url,
+      });
+    },
+  );
+  it("不因任意數字副檔名就放寬最終下載連結辨識", () => {
+    const dom = page('<a href="https://cdn.katfile.biz/download/unknown.001">Continue free download</a>');
+    expect(inspectPage(dom.window.document, PAGE_URL).kind).toBe("unknown");
+  });
   it("實站限速推銷頁的「繼續免費下載」是最終下載網址，不是驗證或錯誤", () => {
     const html = readFileSync(
       fileURLToPath(new URL("./fixtures/katfile-final.html", import.meta.url)),

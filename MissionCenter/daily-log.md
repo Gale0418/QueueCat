@@ -8,7 +8,7 @@
 
 - 使用者將角色升級為同一間小房間的生活片段；完成 v3 家具／筆電／手機版。桌椅與沙發採配對局部編輯；獨立 Luna 看六張圖確認 PASS，無必要修正。五圖總覽與380px彈窗確認，build、alpha/提示詞與ZIP結構檢查通過。詳見 design/reference/room-v3-review.md。
 
-- Last organized: 2026-10-18
+- Last organized: 2026-10-21
 
 - 根目錄直接載入／dist只放ZIP已完成，使用者已確認載入。新增安全根目錄發布與ZIP腳本，HTML原始入口在entries。
 - 實站等待原文重複廣告，已修正摘要與字級（說明/按鈕14px、檔名16px、倒數20px）。
@@ -36,3 +36,7 @@
 114 TS／22 Rust、type/build、helper06 隔離 Chrome 與加密 RAR 單檔／四卷／錯密碼通過。三輪 CodeRabbit 33/11/4 檔、3/2/2 issues 共 7 項修完，三席閉合與獨立仲裁核對快照03通過可選 Windows x64 source handoff。保留實站 Review；未操作個人 Chrome／現有下載。兩個舊測試暫存目錄刪除遭 blocked by policy，已保留且未繞過。README、公開證據索引及任務狀態已更新，main 推送與 SHA 對帳接續保存回執。
 
 原始碼 main 已推送 9af93cdcb90d0812927230cb2ef2a731c12263c2，本機／遠端 SHA 相符且只有 main。交付回執另存 extraction-delivery-20261018.md；產品實站維持 Review。
+
+## 2026-10-21 正式小幫手設定
+
+使用者兩次確認無下載；因 browser policy 禁止 chrome://downloads，未繞過，採本人確認。固定位置註冊 Rust helper，原生 ping／7z 通過；使用者於日常 Chrome 檢查、重載後再檢查均就緒。新增無 state seeding 的正式 UI→兩卷下載→自動解壓測試通過，原卷與既有資料夾保留；補上 split final URL 辨識缺口，118 項測試與build通過。證據 helper-setup-20261021.md。hitomi 僅查可行性，未新增站點支援。

@@ -1,0 +1,161 @@
+{
+  "startedAt": "2026-10-21T01:31:27.020Z",
+  "status": "pass",
+  "checks": [
+    {
+      "name": "native helper check succeeds using the test-only HKCU registration",
+      "status": "pass",
+      "ms": 537,
+      "result": {
+        "available": true,
+        "engineAvailable": true,
+        "registrationOwned": true
+      }
+    },
+    {
+      "name": "manager translations keep extraction controls usable without horizontal overflow",
+      "status": "pass",
+      "ms": 547,
+      "result": {
+        "languages": [
+          "en",
+          "zh-TW",
+          "ja"
+        ],
+        "horizontalOverflow": false,
+        "passwordFieldFocusable": true
+      }
+    },
+    {
+      "name": "one completed Chrome volume remains queued until every selected volume completes",
+      "status": "pass",
+      "ms": 45414,
+      "result": {
+        "downloadIds": [
+          1,
+          2
+        ],
+        "completedVolumes": 1,
+        "inProgressVolumes": 1,
+        "status": "waiting",
+        "extractionStarted": false
+      }
+    },
+    {
+      "name": "worker restart preserves the completed job and does not extract twice",
+      "status": "pass",
+      "ms": 43,
+      "result": {
+        "status": "complete",
+        "outputDir": "fixture.7z (extracted)",
+        "extractedFolderCount": 1,
+        "passwordPersisted": false
+      }
+    }
+  ],
+  "pageErrors": [],
+  "fixtureDownloads": [
+    {
+      "id": 1,
+      "filename": "fixture.7z.001",
+      "state": "complete",
+      "bytes": 1048576,
+      "byExtensionId": "bbcnbombflpgnpalniidbihhpigmjaia"
+    },
+    {
+      "id": 2,
+      "filename": "fixture.7z.002",
+      "state": "complete",
+      "bytes": 301762,
+      "byExtensionId": "bbcnbombflpgnpalniidbihhpigmjaia"
+    }
+  ],
+  "nativeJob": {
+    "status": "complete",
+    "sourceCount": 2,
+    "sourceNames": [
+      "fixture.7z.001",
+      "fixture.7z.002"
+    ],
+    "outputFolder": "fixture.7z (extracted)"
+  },
+  "queueGrouping": {
+    "itemCount": 2,
+    "extractionCount": 1,
+    "unresolved": 2,
+    "sourceNames": [
+      "fixture.7z.001",
+      "fixture.7z.002"
+    ],
+    "status": "waiting"
+  },
+  "stateSeeding": {
+    "used": false,
+    "mechanism": "no storage writes in this runner"
+  },
+  "cleanup": {
+    "registryWasAbsentBeforeCreate": true,
+    "profileClosed": true,
+    "siteServerClosed": true,
+    "downloadServerClosed": true,
+    "registryRemoved": true,
+    "profileRemoved": true,
+    "helperWorkerExited": true,
+    "helperStateRemoved": true
+  },
+  "helperSha256": "0316baf852b8d486c9bb88c9433957dec4622f2ea1c6b69ce4d0970f77e1558c",
+  "testedContentSha256": "297b0713d81289900d9541cc15d4c6d88a07944a0c664779008b1401e329fa83",
+  "isolation": {
+    "profile": "D:\\MyGame\\QueueCat\\artifacts\\extraction-browser\\2026-10-21T01-31-27-012Z\\profile",
+    "extension": "D:\\MyGame\\QueueCat\\artifacts\\extraction-browser\\2026-10-21T01-31-27-012Z\\extension",
+    "downloadsDir": "D:\\MyGame\\QueueCat\\artifacts\\extraction-browser\\2026-10-21T01-31-27-012Z\\test-downloads",
+    "helperHome": "D:\\MyGame\\QueueCat\\artifacts\\extraction-browser\\2026-10-21T01-31-27-012Z\\helper-state",
+    "personalChromeAttached": false,
+    "network": "local HTTPS Katfile and CDN fixtures only; all browser hosts resolve to loopback",
+    "katfile": "synthetic page served over isolated loopback HTTPS",
+    "personalDownloads": false,
+    "credentialsCopied": false
+  },
+  "extensionId": "bbcnbombflpgnpalniidbihhpigmjaia",
+  "browserVersion": "151.0.7922.34",
+  "currentCheck": "worker restart preserves the completed job and does not extract twice",
+  "idempotency": {
+    "predicateFixture": [
+      "fixture.7z (extracted)",
+      "fixture.7z (extracted) (1)"
+    ],
+    "outputFolderName": "fixture.7z (extracted)",
+    "matchingDirectoriesBeforeRestart": [
+      "fixture.7z (extracted)"
+    ],
+    "matchingDirectoriesAfterRestart": [
+      "fixture.7z (extracted)"
+    ]
+  },
+  "fixture": {
+    "archive": "encrypted split 7z generated locally",
+    "volumeCount": 2,
+    "volumeBytes": [
+      1048576,
+      301762
+    ],
+    "payloadBytes": 1350000,
+    "payloadSha256": "db687044dcf29cf06e3015d1143025e1de283f48f6dd4975edbfc0938c6cd343",
+    "extractedPayloadSha256": "db687044dcf29cf06e3015d1143025e1de283f48f6dd4975edbfc0938c6cd343",
+    "downloadIds": [
+      1,
+      2
+    ],
+    "outputFolder": "fixture.7z (extracted)",
+    "sourcesRetained": true,
+    "existingOutputPreserved": true,
+    "downloadsStartedBy": "production QueueCat service worker and content script after manager UI start",
+    "formPostsPerVolume": [
+      2,
+      2
+    ],
+    "stateSeeding": false,
+    "extractionStatus": "complete"
+  },
+  "finishedAt": "2026-10-21T01:32:36.994Z"
+}

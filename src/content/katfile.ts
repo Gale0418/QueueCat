@@ -3,7 +3,7 @@ import { isKatfileHost } from "../shared/urls";
 
 const FILE_ID = /^[a-z0-9]{12}$/i;
 const DOWNLOAD_EXT =
-  /\.(?:rar|zip|7z|tar|gz|bz2|xz|iso|mp4|mkv|mp3|pdf|exe|apk)$/i;
+  /\.(?:(?:rar|zip|7z|tar|gz|bz2|xz|iso|mp4|mkv|mp3|pdf|exe|apk)|(?:7z|zip)\.\d{3}|r\d{2})$/i;
 const PREMIUM_OR_LOGIN =
   /(?:premium|payment|login|sign.?in|registration|signup)/i;
 

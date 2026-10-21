@@ -1,0 +1,17 @@
+{
+  "createdAt": "2026-10-21T01:35:49.110Z",
+  "entries": [
+    {
+      "source": "artifacts/extraction-browser/2026-10-21T01-31-27-012Z/report.json",
+      "file": "flow-report.json",
+      "bytes": 4721,
+      "sha256": "60a1e093ba3b89ebbe0ebc4c459d35b39975e9982d977d49d2cb3ad51af2326d"
+    },
+    {
+      "source": "artifacts/helper-setup-20261021/install-report.json",
+      "file": "install-report.json",
+      "bytes": 822,
+      "sha256": "e48211ae56c2d2754626611c6c782e243282496dbc5499f13fd54df0841e37f8"
+    }
+  ]
+}

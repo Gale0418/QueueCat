@@ -37,7 +37,7 @@ npm run build
 Windows x64 使用 Rust 小幫手，預設附官方 7-Zip 26.04 可攜引擎，朋友不必另外裝解壓軟體；也可在安裝小幫手時指定相容的既有 `7z.exe`。目前不直接呼叫 WinRAR。
 
 1. 取得或自行建置 `dist/QueueCat-Helper-0.1.0-windows-x64.zip`，解壓至固定位置；保留其中的 `engine` 與授權文件。
-2. 在 QueueCat **Preferences → Setup Guide** 複製 Extension ID，執行小幫手資料夾的 `Install-QueueCat.cmd` 並貼入 ID。此步只註冊目前 Windows 使用者，不需管理員、不改檔案關聯。
+2. 在 QueueCat **偏好設定 → 安裝說明** 找到「外掛 ID」（英文介面為 **Preferences → Setup Guide → Extension ID**），執行小幫手資料夾的 `Install-QueueCat.cmd` 並貼入 ID。此步只註冊目前 Windows 使用者，不需管理員、不改檔案關聯。
 3. 等目前佇列安全閒置後，重新載入外掛以取得新增的 `nativeMessaging` 權限，再按 **Check Helper**。本次自動測試不會替你重新載入日常外掛。
 4. 需要移除小幫手時，執行隨包的 `uninstall-native-helper.ps1`；不刪已下載或解壓的檔案。未設定小幫手仍可照常排隊下載。
 
@@ -100,6 +100,8 @@ npm run test:browser -- --playwright-module <Playwright/index.mjs> --browser-cac
 來源樣本需占用本機 `127.0.0.1:443`；若已被使用，測試直接停止，不關閉其他服務。下載、截圖與逐項報告位於 `artifacts/browser-acceptance/<執行ID>/`。測試會關閉自己建立的瀏覽器及 HTTPS 服務。模擬驗證通過不等於通過真人 CAPTCHA；以彈窗 HTML 頁面做互動與排版驗收，也不代表工具列原生彈窗已取得。
 
 自動解壓的隔離驗收另用 `npm run test:extraction-browser -- --helper-exe <小幫手.exe> --seven-zip <7z.exe> --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄>`。它在自己的 profile 下載本機產生的加密分卷，核對真正的 downloadId、解壓內容 hash 與背景重啟的冪等結果；只有 native host 註冊原先不存在時才暫時建立測試註冊，測完按所有權還原，不覆寫既有註冊。證據位於 `artifacts/extraction-browser/<執行ID>/`。
+
+完整的「填密碼 → 開始佇列 → 正式網頁表單 → 分卷下載 → 自動解壓」測試使用 `node tests/browser/extraction-flow.mjs`，沿用上述四個必要參數，另可用 `--openssl <openssl.exe>` 指定本機測試憑證工具。它不直接寫入佇列狀態，會讓第二卷保留最後一個 byte，確認兩卷完成才解壓；只使用隔離 Chromium、loopback HTTPS 與臨時原生註冊，不改系統憑證。此開發測試需要原生 host 尚未註冊，若已安裝正式小幫手就安全停止，不會覆寫；已完成的報告見 [2026-10-21 驗收紀錄](MissionCenter/helper-setup-20261021.md)。
 
 ## 專案結構與資料
 
