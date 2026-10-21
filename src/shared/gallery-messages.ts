@@ -21,6 +21,9 @@ const reasonKeys: Record<string, Parameters<typeof galleryCopy>[0]> = {
   invalid_gallery_metadata: "invalidMetadata",
   invalid_metadata: "invalidMetadata",
   gallery_request_failed: "requestFailed",
+  gallery_archive_failed: "requestFailed",
+  gallery_archive_missing: "stagingMissing",
+  gallery_archive_limit: "zipLimit",
   request_failed: "requestFailed",
   圖庫不存在或已失效: "unavailable",
   無效或不支援的圖庫連結: "invalidGallery",
@@ -41,6 +44,20 @@ export function translateGalleryMessage(
     return translateGalleryMessage(raw.slice(4), language);
   const direct = reasonKeys[raw];
   if (direct) return galleryCopy(direct, language);
+  if (raw.startsWith("ZIP 圖庫暫存"))
+    return galleryCopy("stagingMissing", language);
+  if (
+    raw.startsWith("ZIP 圖庫交接") ||
+    raw.startsWith("Chrome 圖庫 ZIP 交接") ||
+    raw.startsWith("圖庫 ZIP Chrome 交接") ||
+    raw.startsWith("找到多筆可能的圖庫 ZIP")
+  )
+    return galleryCopy("handoffUncertain", language);
+  if (raw === "已保存整本 ZIP 交接，交由 Chrome 下載")
+    return galleryCopy("zipReady", language);
+  if (raw.startsWith("Chrome 已接手圖庫 ZIP 下載 #"))
+    return galleryCopy("zipSaving", language);
+  if (raw === "圖庫 ZIP 下載完成") return galleryCopy("zipComplete", language);
   if (raw.startsWith("Hitomi 圖庫識別碼無效"))
     return galleryCopy("invalidGallery", language);
   if (raw.startsWith("Hitomi 圖庫下載服務尚未就緒"))

@@ -32,6 +32,16 @@ export interface GalleryProgress {
   total?: number;
   completed: number;
   lastDownloadId?: number;
+  output?: "zip" | "pages";
+  archive?: {
+    key: string;
+    fingerprint: string;
+    staged: number;
+    bytes: number;
+    phase: "collecting" | "packing" | "ready";
+    zipBytes?: number;
+    filename?: string;
+  };
 }
 export interface QueueItem {
   id: string;
@@ -57,6 +67,7 @@ export interface QueueItem {
     step?: "download1" | "download2";
     expectedUrl?: string;
     sourceImageUrl?: string;
+    archiveFingerprint?: string;
   };
   events: QueueEvent[];
 }

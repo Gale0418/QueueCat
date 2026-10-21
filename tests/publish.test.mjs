@@ -208,6 +208,10 @@ describe("publishExtension", () => {
       .png()
       .toBuffer();
     await mkdir(resolve(staging, "assets"), { recursive: true });
+    await writeFile(
+      resolve(staging, "assets/zip-license.txt"),
+      "BSD-3-Clause test license",
+    );
     await mkdir(resolve(staging, "icons"), { recursive: true });
     for (const state of ["sleep", "work", "verify", "confused", "happy"]) {
       await writeFile(resolve(staging, `assets/cat-${state}-v3.png`), png);

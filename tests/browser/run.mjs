@@ -838,6 +838,7 @@ try {
         const page = context
           .pages()
           .find((p) => p.url().includes("bbbbbbbbbbbb"));
+        await page.bringToFront();
         await page.locator("#manual-verify").click();
         await expectStatus("downloading", 1);
         gates.set("two.zip", true);

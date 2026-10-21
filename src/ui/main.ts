@@ -93,7 +93,7 @@ const btn = (name: string, label: string, action: string, extra = "") =>
 app.innerHTML = `${preview ? `<div class="preview-bar">離線介面預覽 · 不會開始下載 <label>情境 <select id="scenario"><option value="empty">空佇列</option><option value="downloading">下載中</option><option value="waiting">網站等待</option><option value="verification">需要驗證</option><option value="blocked">交接不明</option><option value="unknown-size">大小未知</option><option value="long-name">長檔名</option><option value="complete">全部完成</option></select></label></div>` : ""}
 <div class="app-shell">
 <aside class="sidebar"><a class="brand" href="manager.html">${icon("cat")}<span>QueueCat<span class="brand-dot">.</span></span></a><p class="brand-note">等待有人顧，時間留給你。</p><nav aria-label="主要導覽"><button data-filter="queue" class="nav-button selected">${icon("list")}下載佇列 <span id="nav-count"></span></button><button data-filter="attention" class="nav-button">${icon("alert")}待處理 <span id="attention-count"></span></button><button data-filter="complete" class="nav-button">${icon("check")}已完成 <span id="complete-count"></span></button></nav><div class="sidebar-bottom">${btn("folder", "Chrome 下載紀錄", "downloads")}${btn("settings", "偏好設定", "settings")}<div class="local-note"><span class="small-dot"></span>網址與紀錄，只留在這台電腦</div></div></aside>
-<main class="main"><header class="topbar"><div class="popup-brand brand">${icon("cat")}QueueCat<span class="brand-dot">.</span></div><div class="breadcrumb">我的下載空間 <span>/</span> Katfile · ${e(gc("siteLabel"))}</div><div class="top-actions">${popup ? `<span class="host-chip">${e(gc("siteLabel"))} · Katfile</span>` + btn("settings", "設定", "settings", "icon-button") : `<span class="host-chip">${e(gc("siteLabel"))} · Katfile</span>` + btn("settings", "設定", "settings", "icon-button top-settings")}</div></header>
+<main class="main"><header class="topbar"><div class="popup-brand brand">${icon("cat")}QueueCat<span class="brand-dot">.</span></div><div class="breadcrumb">我的下載空間 <span>/</span> <span id="provider-breadcrumb" data-raw>Katfile</span></div><div class="top-actions">${popup ? `<span class="host-chip" id="provider-chip" data-raw>Katfile</span>` + btn("settings", "設定", "settings", "icon-button") : `<span class="host-chip" id="provider-chip" data-raw>Katfile</span>` + btn("settings", "設定", "settings", "icon-button top-settings")}</div></header>
 <div id="status-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 <section class="companion" aria-labelledby="status-title"><div class="companion-text"><div class="status-indicator"><span class="small-dot"></span><span id="run-label">正在休息</span></div><h1 id="status-title">把等待，交給貓貓。</h1><p id="status-subtitle">${e(gc("addHint"))}</p><div class="companion-actions" id="hero-actions"></div></div><img id="mascot" class="mascot" src="/assets/cat-sleep-v3.png" width="220" height="220" alt="熟睡的貓娘小管家"></section>
 <ul id="first-promise" class="first-promise" aria-label="QueueCat 幫你做的事" hidden><li><strong>整串貼上</strong><span>多個網址，依序處理</span></li><li><strong>放心去忙</strong><span>網站倒數交給貓貓</span></li><li><strong>需要你再回來</strong><span>驗證或狀態不明時接手</span></li></ul><section id="current" class="current" aria-label="目前下載"></section>
@@ -263,15 +263,12 @@ function detailsHtml(item?: QueueItem) {
   const sourceHref = galleryId
     ? `https://hitomi.la/galleries/${galleryId}.html`
     : item.sourceUrl;
+  const outputName =
+    item.gallery?.output === "zip"
+      ? item.gallery.archive?.filename
+      : item.gallery?.folder;
   const galleryDetails = item.gallery
-    ? `<section class="gallery-detail"><p><strong>${e(
-        gc("progress")
-          .replace("{done}", String(item.gallery.completed))
-          .replace(
-            "{total}",
-            String(item.gallery.total ?? item.gallery.images?.length ?? "?"),
-          ),
-      )}</strong>${galleryPercent(item) === undefined ? "" : ` · ${galleryPercent(item)!.toFixed(1)}%`}</p>${item.gallery.folder ? `<p>${e(gc("folder"))}：<span data-raw title="${e(item.gallery.folder)}">${e(item.gallery.folder)}</span></p>` : ""}<p>${e(gc("imageFormat"))}</p><p>${e(gc("retryTip"))}</p></section>`
+    ? `<section class="gallery-detail"><p><strong>${e(galleryPageProgress(item))}</strong>${galleryPercent(item) === undefined ? "" : ` · ${galleryPercent(item)!.toFixed(1)}%`}</p>${outputName ? `<p>${e(gc(item.gallery.output === "zip" ? "folder" : "album"))}：<span data-raw title="${e(outputName)}">${e(outputName)}</span></p>` : ""}<p>${e(gc(item.gallery.output === "zip" ? "imageFormat" : "legacyFormat"))}</p>${item.gallery.output === "zip" ? `<p>${e(gc("retryTip"))}</p>` : ""}</section>`
     : "";
   return `<div class="detail-heading"><h3>檔案詳情</h3><button data-action="close-detail" class="icon-button" aria-label="收起詳情">${icon("close")}</button></div><strong class="detail-filename" data-raw>${e(displayTitle)}</strong><span class="status-tag ${item.status}">${labels[item.status]}</span><h4>${item.gallery ? e(gc("gallerySource")) : "來源網址"}</h4>${item.gallery ? `<a class="text-button" href="${e(sourceHref)}" target="_blank" rel="noopener noreferrer">${icon("arrow")}${e(gc("gallerySource"))}</a><span data-raw title="${e(item.sourceUrl)}">${e(item.sourceUrl)}</span>` : `<a data-raw href="${e(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${e(item.sourceUrl)}</a>`}${item.reason ? `<p class="reason" ${item.gallery ? "data-raw" : ""}>${e(item.gallery ? galleryMessage(item) : item.reason)}</p>` : ""}${galleryDetails}${group ? `<section class="extraction-detail"><h4>${e(xc("enable"))}</h4><p class="extraction-status ${group.status}">${e(extractionStatus(group))}</p>${group.status === "failed" ? `<p class="reason">${e(extractionError(group.errorCode))}${group.errorCode && !(group.errorCode in extractionErrorKeys) ? ` <code data-raw>${e(group.errorCode)}</code>` : ""}</p><label class="retry-password" for="retry-extraction-password">${e(xc(group.errorCode === "password_expired" ? "passwordLabel" : "retryPassword"))}<input id="retry-extraction-password" type="password" autocomplete="new-password" aria-describedby="retry-password-hint" data-group="${e(group.id)}"><small id="retry-password-hint">${e(xc(group.errorCode === "password_expired" ? "expiredPasswordHint" : "retryPasswordHint"))}</small></label><button class="secondary" data-action="retry-extraction" data-group="${e(group.id)}">${e(xc("retry"))}</button>` : ""}${group.outputDir ? `<p class="extraction-output"><span>${e(xc("output"))}:</span> <span data-raw title="${e(group.outputDir)}">${e(group.outputDir)}</span></p>` : ""}</section>` : ""}${!item.gallery && ["verification", "blocked", "waiting", "preparing"].includes(item.status) ? `<div class="detail-actions"><button data-action="focus" data-item="${item.id}">${icon("arrow")}前往工作分頁</button>${item.status === "blocked" ? `<button data-action="recheck" data-item="${item.id}">${icon("retry")}重新檢查</button>` : ""}</div>` : item.gallery && item.status === "blocked" && item.action?.kind === "download" && item.downloadId === undefined ? `<div class="detail-actions"><button data-action="downloads" data-item="${item.id}">${icon("arrow")}${e(t("核對下載狀態"))}</button></div>` : ""}<h4>處理紀錄</h4><ol class="event-list">${
     item.events.length
@@ -312,6 +309,11 @@ function render() {
   const info = summary(state),
     active = state.items.find((i) => i.id === state.activeId);
   // 只公告離散狀態或目前檔案切換；每秒取樣與倒數不重複打斷讀屏。
+  const provider = state.items.some((item) => item.gallery)
+    ? gc("siteLabel")
+    : "Katfile";
+  document.querySelector("#provider-breadcrumb")!.textContent = provider;
+  document.querySelector("#provider-chip")!.textContent = provider;
   const announcementKey = JSON.stringify([
     messageLanguage(),
     state.running,
@@ -319,6 +321,8 @@ function render() {
     active?.status,
     info.title,
     active?.gallery?.completed,
+    active?.gallery?.archive?.staged,
+    active?.gallery?.archive?.phase,
   ]);
   if (announcementKey !== lastAnnouncedStatus) {
     lastAnnouncedStatus = announcementKey;

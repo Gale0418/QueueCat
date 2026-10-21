@@ -3,7 +3,7 @@
 
 - Project: MissionCenter
 - Objective: MissionCenter workspace
-- Current status: 0/16 tasks
+- Current status: 0/17 tasks
 - Milestone: Next slice
 - Progress bar: [----------] 0%
 - Active tasks:

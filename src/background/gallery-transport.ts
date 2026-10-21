@@ -1,6 +1,9 @@
 const MESSAGE_TYPE = "QC_GALLERY_TRANSPORT" as const;
+const ARCHIVE_MESSAGE_TYPE = "QC_GALLERY_ARCHIVE" as const;
 const REQUEST_TIMEOUT_MS = 65_000;
 const CLEANUP_TIMEOUT_MS = 5_000;
+const ARCHIVE_STAGE_TIMEOUT_MS = 65_000;
+const ARCHIVE_PACK_TIMEOUT_MS = 300_000;
 export const GALLERY_FETCH_TIMEOUT_MS = 60_000;
 const REFERER_RULE_ID = 42_017;
 
@@ -204,6 +207,23 @@ type OffscreenReply =
 export interface GalleryTransport {
   prepare(url: string): Promise<string>;
   release(blobUrl: string): Promise<void>;
+  archive: {
+    stagePage(input: {
+      key: string;
+      fingerprint: string;
+      total: number;
+      index: number;
+      hash: string;
+      url: string;
+    }): Promise<{ staged: number; bytes: number }>;
+    pack(input: {
+      key: string;
+      fingerprint: string;
+      total: number;
+      hashes: string[];
+    }): Promise<{ url: string; bytes: number }>;
+    cleanup(key: string): Promise<void>;
+  };
 }
 
 export function createGalleryTransport(
@@ -249,7 +269,12 @@ export function createGalleryTransport(
   }
 
   async function messageOffscreen(
-    message: PrepareMessage | ReleaseMessage | CancelMessage | StatusMessage,
+    message:
+      | PrepareMessage
+      | ReleaseMessage
+      | CancelMessage
+      | StatusMessage
+      | Record<string, unknown>,
     timeoutMs = requestTimeoutMs,
   ): Promise<OffscreenReply> {
     let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -326,6 +351,65 @@ export function createGalleryTransport(
     );
     if (!result.ok) throw new Error(result.error || "gallery_cancel_failed");
     if (result.idle) await chrome.offscreen.closeDocument();
+  }
+
+  async function archiveMessage<T>(
+    action: "stagePage" | "pack" | "cleanup",
+    data: Record<string, unknown>,
+    timeoutMs: number,
+  ): Promise<T> {
+    await ensureDocument();
+    // createDocument may resolve before a larger offscreen bundle registers
+    // its listener. Probe with a side-effect-free status request; never retry
+    // a staging/packing request merely because its response was ambiguous.
+    const deadline = Date.now() + cleanupTimeoutMs;
+    for (;;) {
+      try {
+        const ready = await messageOffscreen(
+          {
+            type: MESSAGE_TYPE,
+            action: "status",
+            requestId: crypto.randomUUID(),
+          },
+          cleanupTimeoutMs,
+        );
+        if (!ready?.ok) throw new Error("gallery_offscreen_not_ready");
+        break;
+      } catch (error) {
+        if (Date.now() >= deadline) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
+    const result = await messageOffscreen(
+      { type: ARCHIVE_MESSAGE_TYPE, action, ...data },
+      timeoutMs,
+    );
+    if (!result.ok) throw new Error(result.error || "gallery_archive_failed");
+    return result as T;
+  }
+
+  async function withArchiveSource<T>(
+    url: string,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    if (!isSafeGalleryImageUrl(url)) throw new Error("gallery_archive_failed");
+    let result: T | undefined;
+    let operationError: unknown;
+    try {
+      await updateRefererRule(url, true);
+      result = await operation();
+    } catch (error) {
+      operationError = error;
+    }
+    let cleanupError: unknown;
+    try {
+      await clearRefererRule(url);
+    } catch (error) {
+      cleanupError = error;
+    }
+    if (operationError) throw operationError;
+    if (cleanupError) throw cleanupError;
+    return result!;
   }
 
   chrome.runtime.onMessage.addListener((message, sender) => {
@@ -425,6 +509,25 @@ export function createGalleryTransport(
           throw new Error(result.error || "gallery_release_failed");
         if (result.idle) await chrome.offscreen.closeDocument();
       });
+    },
+    archive: {
+      stagePage(input): Promise<{ staged: number; bytes: number }> {
+        return runExclusive(() =>
+          withArchiveSource(input.url, () =>
+            archiveMessage("stagePage", { input }, ARCHIVE_STAGE_TIMEOUT_MS),
+          ),
+        );
+      },
+      pack(input): Promise<{ url: string; bytes: number }> {
+        return runExclusive(() =>
+          archiveMessage("pack", { input }, ARCHIVE_PACK_TIMEOUT_MS),
+        );
+      },
+      cleanup(key): Promise<void> {
+        return runExclusive(async () => {
+          await archiveMessage("cleanup", { key }, cleanupTimeoutMs);
+        });
+      },
     },
   };
 }

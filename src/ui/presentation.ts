@@ -1,7 +1,8 @@
 import type { AppState, ItemStatus, Mascot, QueueItem } from "../shared/types";
 import { extractionCopy } from "../shared/extraction-copy";
 import { galleryCopy } from "../shared/gallery-copy";
-import { galleryMessage } from "./gallery";
+import { galleryMessage, galleryPageProgress } from "./gallery";
+import { getLocale } from "../shared/locales";
 export const labels: Record<ItemStatus, string> = {
   queued: "排隊中",
   preparing: "準備頁面",
@@ -25,7 +26,10 @@ export function summary(state: AppState): {
     if (active.status === "complete")
       return {
         mascot: "happy",
-        title: galleryCopy("complete"),
+        title:
+          active.gallery.output === "zip"
+            ? galleryCopy("zipComplete")
+            : galleryCopy("complete"),
         subtitle: galleryCopy("progress")
           .replace("{done}", String(active.gallery.completed))
           .replace(
@@ -48,23 +52,22 @@ export function summary(state: AppState): {
       return {
         mascot: "sleep",
         title:
-          active.status === "downloading" ? "排隊暫停，下載繼續" : "排隊已暫停",
+          active.status === "downloading"
+            ? "排隊暫停，下載繼續"
+            : getLocale(messageLanguage()).notifyQueuePausedTitle,
         subtitle: galleryCopy("retryTip"),
       };
     return {
       mascot: "work",
       title:
-        active.status === "downloading"
-          ? "正在下載，貓貓顧著"
-          : active.status === "preparing"
-            ? galleryCopy("reading")
-            : galleryCopy("resolving"),
-      subtitle: galleryCopy("progress")
-        .replace("{done}", String(active.gallery.completed))
-        .replace(
-          "{total}",
-          String(active.gallery.total ?? active.gallery.images?.length ?? "?"),
-        ),
+        active.gallery.output === "zip"
+          ? galleryMessage(active) || galleryCopy("collecting")
+          : active.status === "downloading"
+            ? "正在下載，貓貓顧著"
+            : active.status === "preparing"
+              ? galleryCopy("reading")
+              : galleryCopy("resolving"),
+      subtitle: galleryPageProgress(active),
     };
   }
   if (!active) {
@@ -207,4 +210,4 @@ export const escape = (value: unknown): string =>
         c
       ]!,
   );
-import { translateMessage as t } from "../shared/messages";
+import { messageLanguage, translateMessage as t } from "../shared/messages";

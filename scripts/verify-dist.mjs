@@ -21,7 +21,9 @@ assert.deepEqual(manifest.host_permissions, [
   "https://www.katfile.com/*",
   "https://www.katfile.biz/*",
   "https://hitomi.la/*",
-  "https://*.gold-usergeneratedcontent.net/*",
+  "https://ltn.gold-usergeneratedcontent.net/*",
+  "https://w1.gold-usergeneratedcontent.net/*",
+  "https://w2.gold-usergeneratedcontent.net/*",
 ]);
 const files = [
   "popup.html",
@@ -30,6 +32,7 @@ const files = [
   "content.js",
   "gallery-offscreen.html",
   "gallery-offscreen.js",
+  "assets/zip-license.txt",
   ...Object.values(manifest.icons),
 ];
 for (const file of files)
@@ -56,7 +59,7 @@ assert.ok(
 );
 const entries = {};
 for (const file of (await readdir(output, { recursive: true })).filter((f) =>
-  /\.(?:js|css|html|json|png|woff2)$/.test(f),
+  /\.(?:js|css|html|json|png|woff2|txt)$/.test(f),
 )) {
   const bytes = await readFile(`${output}/${file}`);
   assert.deepEqual(

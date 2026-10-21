@@ -4,6 +4,7 @@ import { initialState, STORAGE_KEY } from "../src/shared/types";
 import type { AppState, QueueItem } from "../src/shared/types";
 import { setMessageLanguage } from "../src/shared/messages";
 import { translateGalleryMessage } from "../src/shared/gallery-messages";
+import { getLocale } from "../src/shared/locales";
 import {
   galleryPageProgress,
   galleryPercent,
@@ -48,6 +49,38 @@ it("formats gallery page progress without inventing a percentage", () => {
     expect(
       translateGalleryMessage("Hitomi 圖庫圖片清單遺失，請重新核對", language),
     ).not.toContain("遺失");
+  }
+});
+
+it("distinguishes ZIP staging, packaging, and Chrome completion", () => {
+  setMessageLanguage("en");
+  const item = galleryItem("zip-ui", "Book", 0, 4);
+  item.gallery!.output = "zip";
+  item.gallery!.archive = {
+    key: item.id,
+    fingerprint: "a".repeat(64),
+    staged: 4,
+    bytes: 1024,
+    phase: "packing",
+  };
+  item.status = "preparing";
+  expect(galleryPageProgress(item)).toContain("4 / 4");
+  expect(galleryPercent(item)).toBeUndefined();
+  expect(galleryMessage(item)).toContain("ZIP");
+  item.status = "downloading";
+  item.totalBytes = 200;
+  item.bytesReceived = 50;
+  expect(galleryPercent(item)).toBe(25);
+  item.status = "complete";
+  item.gallery!.completed = 4;
+  expect(galleryPercent(item)).toBe(100);
+  for (const language of ["en", "ja"] as const) {
+    expect(
+      translateGalleryMessage("圖庫 ZIP 下載完成", language),
+    ).not.toContain("下載完成");
+    expect(
+      translateGalleryMessage("ZIP 圖庫暫存進度與快照不一致", language),
+    ).not.toContain("暫存");
   }
 });
 
@@ -165,6 +198,34 @@ it("renders escaped gallery titles and progress, and disables extraction for a g
     kind: "download",
     at: Date.now(),
   };
+  changed!({ [STORAGE_KEY]: { newValue: uncertain } }, "local");
+  for (const language of ["en", "ja"] as const) {
+    uncertain.settings.language = language;
+    changed!(
+      { [STORAGE_KEY]: { newValue: structuredClone(uncertain) } },
+      "local",
+    );
+    expect(document.querySelector("#status-title")?.textContent).toBe(
+      getLocale(language).summaryBlockedTitle,
+    );
+    const paused = structuredClone(uncertain);
+    paused.running = false;
+    paused.activeId = undefined;
+    paused.items[0].status = "queued";
+    paused.items[0].action = undefined;
+    paused.items[0].reason = undefined;
+    changed!({ [STORAGE_KEY]: { newValue: paused } }, "local");
+    expect(document.querySelector("#status-title")?.textContent).toBe(
+      getLocale(language).summaryReadyToGoTitle,
+    );
+    paused.activeId = paused.items[0].id;
+    paused.items[0].status = "preparing";
+    changed!({ [STORAGE_KEY]: { newValue: paused } }, "local");
+    expect(document.querySelector("#status-title")?.textContent).toBe(
+      getLocale(language).notifyQueuePausedTitle,
+    );
+  }
+  uncertain.settings.language = "en";
   changed!({ [STORAGE_KEY]: { newValue: uncertain } }, "local");
   const row = document.querySelector(`.queue-row[data-id="${item.id}"]`)!;
   expect(document.querySelector("#status-title")?.textContent).not.toContain(

@@ -82,6 +82,23 @@ export interface EnginePorts {
     imageUrl(image: GalleryImage): Promise<string>;
     prepare?(url: string): Promise<string>;
     release?(blobUrl: string): Promise<void>;
+    archive?: {
+      stagePage(input: {
+        key: string;
+        fingerprint: string;
+        total: number;
+        index: number;
+        hash: string;
+        url: string;
+      }): Promise<{ staged: number; bytes: number }>;
+      pack(input: {
+        key: string;
+        fingerprint: string;
+        total: number;
+        hashes: string[];
+      }): Promise<{ url: string; bytes: number }>;
+      cleanup(key: string): Promise<void>;
+    };
   };
   alarms: {
     get?(name: string): Promise<{ scheduledTime: number } | undefined>;
@@ -125,6 +142,8 @@ const HITOMI_IMAGE_HOSTS = new Set([
 export class QueueEngine {
   private tail: Promise<unknown> = Promise.resolve();
   private pauseEpoch = 0;
+  private galleryControlRequested = 0;
+  private galleryControlApplied = 0;
   private galleryPreparations = new Set<string>();
   private state?: AppState;
   private lastSample?: { at: number; bytes: number; id: number };
@@ -266,6 +285,77 @@ export class QueueEngine {
       )
     );
   }
+  private async validGalleryArchiveHandoff(item: QueueItem): Promise<boolean> {
+    const action = item.action;
+    const gallery = item.gallery;
+    const archive = gallery?.archive;
+    const fingerprint = archive?.fingerprint;
+    const prefix = `blob:chrome-extension://${this.p.extensionId}/`;
+    if (
+      action?.kind === "download" &&
+      action.archiveFingerprint &&
+      action.archiveFingerprint === fingerprint &&
+      action.expectedUrl?.startsWith(prefix) &&
+      /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(
+        action.expectedUrl.slice(prefix.length),
+      )
+    ) {
+      if (
+        !gallery?.images ||
+        gallery.images.length !== (gallery.total || gallery.images.length) ||
+        !gallery.title ||
+        !gallery.id
+      )
+        return false;
+      return (
+        (await this.galleryFingerprint(
+          gallery.id,
+          gallery.title,
+          gallery.images,
+        )) === fingerprint
+      );
+    }
+    return false;
+  }
+  private async galleryFingerprint(
+    id: string,
+    title: string,
+    images: GalleryImage[],
+  ): Promise<string> {
+    const snapshot = images.map(({ hash, name }) => ({ hash, name }));
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({ id, title, images: snapshot }),
+    );
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+  }
+  private galleryArchiveFailureCode(error: unknown): string {
+    const code =
+      error !== null && typeof error === "object" && "code" in error
+        ? error.code
+        : undefined;
+    const message =
+      error instanceof Error ? error.message : String(error || "");
+    const details =
+      `${typeof code === "string" ? code : ""} ${message}`.toLowerCase();
+    if (
+      /gallery_archive_(?:stage_missing|receipt_mismatch|receipt_invalid)/.test(
+        details,
+      )
+    )
+      return "gallery_archive_missing";
+    if (/gallery_archive_quota|quota/.test(details))
+      return "gallery_archive_limit";
+    if (details.includes("gallery_archive_limit"))
+      return "gallery_archive_limit";
+    if (details.includes("gallery_archive_failed"))
+      return "gallery_archive_failed";
+    if (details.includes("gallery_archive_missing"))
+      return "gallery_archive_missing";
+    return "gallery_request_failed";
+  }
   private async releaseGalleryBlob(item: QueueItem): Promise<void> {
     const url = item.action?.expectedUrl;
     if (item.action?.sourceImageUrl && url && this.p.gallery?.release) {
@@ -389,6 +479,7 @@ export class QueueEngine {
     s: AppState,
     item: QueueItem,
     reason: string,
+    continueQueue = true,
   ): Promise<void> {
     if (isTerminal(item.status)) return;
     await this.releaseGalleryBlob(item);
@@ -397,7 +488,17 @@ export class QueueEngine {
     this.event(item, `圖庫下載失敗：${reason}`);
     if (s.activeId === item.id) s.activeId = undefined;
     await this.save(s);
-    if (s.running) await this.pump(s);
+    if (continueQueue && s.running) await this.pump(s);
+  }
+  private async failGalleryArchive(
+    s: AppState,
+    item: QueueItem,
+    reason: string,
+  ): Promise<void> {
+    const canContinue = this.galleryArchiveControlCurrent(s);
+    await this.failGallery(s, item, reason, false);
+    if (canContinue && this.galleryArchiveControlCurrent(s))
+      await this.pump(s);
   }
   private async startGalleryPage(
     s: AppState,
@@ -428,6 +529,17 @@ export class QueueEngine {
     const images = gallery.images;
     if (!images) {
       await this.block(s, item, "Hitomi 圖庫圖片清單遺失，請重新核對");
+      return;
+    }
+    if (gallery.output === "zip") {
+      if (this.pauseEpoch !== pauseEpoch || !s.running) {
+        s.running = false;
+        s.activeId = undefined;
+        item.status = "queued";
+        await this.save(s);
+        return;
+      }
+      await this.startGalleryArchive(s, item, images, pauseEpoch);
       return;
     }
     if (gallery.completed >= (gallery.total || images.length)) {
@@ -534,6 +646,343 @@ export class QueueEngine {
     }
     await this.handoffGalleryImage(s, item, image, url, url);
   }
+  private safeGalleryTitle(title: string): string {
+    return (
+      Array.from(
+        title
+          .normalize("NFC")
+          .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+          .replace(/[. ]+$/g, "")
+          .replace(/^\.+/g, "")
+          .trim(),
+      )
+        .slice(0, 80)
+        .join("")
+        .replace(/[. ]+$/g, "") || "Gallery"
+    );
+  }
+  private galleryPauseRequested(s: AppState, pauseEpoch: number): boolean {
+    return !s.running || this.pauseEpoch !== pauseEpoch;
+  }
+  private galleryArchiveControlCurrent(s: AppState): boolean {
+    return s.running && this.galleryControlRequested === this.galleryControlApplied;
+  }
+  private async suspendGalleryArchive(
+    s: AppState,
+    item: QueueItem,
+    clearAction = false,
+  ): Promise<void> {
+    if (s.activeId === item.id) s.activeId = undefined;
+    item.status = "queued";
+    if (clearAction) item.action = undefined;
+    await this.save(s);
+    await this.arm(s);
+  }
+  private async startGalleryArchive(
+    s: AppState,
+    item: QueueItem,
+    images: GalleryImage[],
+    pauseEpoch: number,
+  ): Promise<void> {
+    const archivePort = this.p.gallery?.archive;
+    const gallery = item.gallery!;
+    if (!archivePort) {
+      await this.failGalleryArchive(
+        s,
+        item,
+        "gallery_archive_missing",
+      );
+      return;
+    }
+    const fingerprint = await this.galleryFingerprint(
+      gallery.id,
+      gallery.title || item.title,
+      images,
+    );
+    if (this.galleryPauseRequested(s, pauseEpoch)) {
+      await this.suspendGalleryArchive(s, item);
+      return;
+    }
+    const total = gallery.total || images.length;
+    if (
+      gallery.archive &&
+      (gallery.archive.key !== item.id ||
+        gallery.archive.fingerprint !== fingerprint ||
+        !Number.isSafeInteger(gallery.archive.staged) ||
+        gallery.archive.staged < 0 ||
+        gallery.archive.staged > total ||
+        !Number.isSafeInteger(gallery.archive.bytes) ||
+        gallery.archive.bytes < 0 ||
+        !["collecting", "packing", "ready"].includes(gallery.archive.phase))
+    ) {
+      await this.block(s, item, "ZIP 圖庫暫存與目前快照不符，請人工核對");
+      return;
+    }
+    gallery.archive ??= {
+      key: item.id,
+      fingerprint,
+      staged: 0,
+      bytes: 0,
+      phase: "collecting",
+    };
+    s.activeId = item.id;
+    if (gallery.archive.staged === total) {
+      gallery.archive.phase = "packing";
+      item.status = "preparing";
+      await this.save(s);
+      if (this.galleryPauseRequested(s, pauseEpoch)) {
+        await this.suspendGalleryArchive(s, item);
+        return;
+      }
+      this.galleryPreparations.add(item.id);
+      void this.packGalleryArchive(item.id, fingerprint, images);
+      return;
+    }
+    const index = gallery.archive.staged;
+    const image = images[index];
+    if (!image) {
+      await this.block(s, item, "ZIP 圖庫暫存進度與快照不一致");
+      return;
+    }
+    item.status = "preparing";
+    await this.save(s);
+    if (this.galleryPauseRequested(s, pauseEpoch)) {
+      await this.suspendGalleryArchive(s, item);
+      return;
+    }
+    this.galleryPreparations.add(item.id);
+    void this.stageGalleryArchivePage(
+      item.id,
+      fingerprint,
+      total,
+      index,
+      image,
+    );
+  }
+  private async stageGalleryArchivePage(
+    itemId: string,
+    fingerprint: string,
+    total: number,
+    index: number,
+    image: GalleryImage,
+  ): Promise<void> {
+    let receipt: { staged: number; bytes: number } | undefined;
+    let error: unknown;
+    try {
+      const url = await this.p.gallery!.imageUrl(image);
+      if (!this.validGalleryImageUrl(url, image))
+        throw Object.assign(new Error("invalid source image url"), {
+          code: "gallery_archive_failed",
+        });
+      receipt = await this.p.gallery!.archive!.stagePage({
+        key: itemId,
+        fingerprint,
+        total,
+        index,
+        hash: image.hash,
+        url,
+      });
+    } catch (caught) {
+      error = caught;
+    }
+    await this.serial(async () => {
+      this.galleryPreparations.delete(itemId);
+      const current = await this.load();
+      const target = current.items.find((candidate) => candidate.id === itemId);
+      const archive = target?.gallery?.archive;
+      if (
+        !target ||
+        !archive ||
+        archive.fingerprint !== fingerprint ||
+        current.activeId !== itemId ||
+        target.status !== "preparing" ||
+        target.gallery?.images?.[index]?.hash !== image.hash ||
+        !target.gallery?.title ||
+        (await this.galleryFingerprint(
+          target.gallery.id,
+          target.gallery.title,
+          target.gallery.images || [],
+        )) !== fingerprint
+      )
+        return;
+      if (error !== undefined) {
+        await this.failGalleryArchive(
+          current,
+          target,
+          this.galleryArchiveFailureCode(error),
+        );
+        return;
+      }
+      if (
+        !receipt ||
+        !Number.isSafeInteger(receipt.staged) ||
+        receipt.staged <= archive.staged ||
+        receipt.staged > Math.min(total, index + 1) ||
+        !Number.isSafeInteger(receipt.bytes) ||
+        receipt.bytes < archive.bytes
+      ) {
+        await this.failGalleryArchive(
+          current,
+          target,
+          "gallery_archive_failed",
+        );
+        return;
+      }
+      archive.staged = receipt.staged;
+      archive.bytes = receipt.bytes;
+      archive.phase = "collecting";
+      target.status = "queued";
+      await this.save(current);
+      if (!this.galleryArchiveControlCurrent(current)) {
+        await this.suspendGalleryArchive(current, target);
+        return;
+      }
+      await this.startGalleryPage(current, target, false);
+    }).catch((caught) =>
+      console.error("QueueCat gallery archive stage callback", caught),
+    );
+  }
+  private async packGalleryArchive(
+    itemId: string,
+    fingerprint: string,
+    images: GalleryImage[],
+  ): Promise<void> {
+    let result: { url: string; bytes: number } | undefined;
+    let error: unknown;
+    try {
+      result = await this.p.gallery!.archive!.pack({
+        key: itemId,
+        fingerprint,
+        total: images.length,
+        hashes: images.map((image) => image.hash),
+      });
+    } catch (caught) {
+      error = caught;
+    }
+    await this.serial(async () => {
+      this.galleryPreparations.delete(itemId);
+      const current = await this.load();
+      const target = current.items.find((candidate) => candidate.id === itemId);
+      const archive = target?.gallery?.archive;
+      if (
+        !target ||
+        !archive ||
+        archive.fingerprint !== fingerprint ||
+        archive.phase !== "packing" ||
+        current.activeId !== itemId ||
+        target.status !== "preparing" ||
+        !target.gallery?.title ||
+        (await this.galleryFingerprint(
+          target.gallery.id,
+          target.gallery.title,
+          target.gallery.images || [],
+        )) !== fingerprint
+      )
+        return;
+      if (error !== undefined) {
+        await this.failGalleryArchive(
+          current,
+          target,
+          this.galleryArchiveFailureCode(error),
+        );
+        return;
+      }
+      const prefix = `blob:chrome-extension://${this.p.extensionId}/`;
+      if (
+        !result ||
+        !result.url.startsWith(prefix) ||
+        !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(
+          result.url.slice(prefix.length),
+        ) ||
+        !Number.isSafeInteger(result.bytes) ||
+        result.bytes < 0
+      ) {
+        await this.failGalleryArchive(
+          current,
+          target,
+          "gallery_archive_failed",
+        );
+        return;
+      }
+      archive.phase = "ready";
+      archive.zipBytes = result.bytes;
+      archive.filename = `QueueCat/${target.gallery!.id}-${this.safeGalleryTitle(
+        target.gallery!.title || target.title,
+      )}.zip`;
+      await this.save(current);
+      if (
+        !this.galleryArchiveControlCurrent(current) ||
+        current.activeId !== itemId
+      ) {
+        await this.suspendGalleryArchive(current, target);
+        return;
+      }
+      await this.handoffGalleryArchive(current, target, result.url);
+    }).catch((caught) =>
+      console.error("QueueCat gallery archive pack callback", caught),
+    );
+  }
+  private async handoffGalleryArchive(
+    s: AppState,
+    item: QueueItem,
+    preparedUrl?: string,
+  ): Promise<void> {
+    const gallery = item.gallery!;
+    const archive = gallery.archive!;
+    const expectedUrl = preparedUrl || item.action?.expectedUrl;
+    if (!expectedUrl) {
+      // A ready URL is kept in the handoff intent; never repack to guess it.
+      await this.block(s, item, "ZIP 圖庫交接網址遺失，請人工核對");
+      return;
+    }
+    if (!this.galleryArchiveControlCurrent(s)) {
+      await this.suspendGalleryArchive(s, item);
+      return;
+    }
+    item.reason = undefined;
+    item.status = "handoff";
+    item.action = {
+      id: crypto.randomUUID(),
+      kind: "download",
+      at: this.p.now(),
+      expectedUrl,
+      archiveFingerprint: archive.fingerprint,
+    };
+    const valid = await this.validGalleryArchiveHandoff(item);
+    if (!this.galleryArchiveControlCurrent(s)) {
+      await this.suspendGalleryArchive(s, item, true);
+      return;
+    }
+    if (!valid) {
+      await this.block(s, item, "ZIP 圖庫交接記錄不完整，請人工核對");
+      return;
+    }
+    this.event(item, "已保存整本 ZIP 交接，交由 Chrome 下載");
+    await this.save(s);
+    if (!this.galleryArchiveControlCurrent(s)) {
+      await this.suspendGalleryArchive(s, item, true);
+      return;
+    }
+    try {
+      const id = await this.p.downloads.download({
+        url: expectedUrl,
+        filename: archive.filename,
+        conflictAction: "uniquify",
+      });
+      item.downloadId = id;
+      item.status = "downloading";
+      this.event(item, `Chrome 已接手圖庫 ZIP 下載 #${id}`);
+      await this.save(s);
+      await this.syncGalleryDownload(s, item);
+    } catch (error) {
+      await this.block(
+        s,
+        item,
+        `Chrome 圖庫 ZIP 交接結果不明：${this.message(error)}；不會自動重送`,
+      );
+    }
+    await this.arm(await this.load());
+  }
   private async handoffGalleryImage(
     s: AppState,
     item: QueueItem,
@@ -588,13 +1037,21 @@ export class QueueEngine {
   ): Promise<void> {
     const action = item.action;
     const image = item.gallery?.images?.[item.gallery.completed];
+    const zip = item.gallery?.output === "zip";
     if (
       !action?.expectedUrl ||
-      !image ||
-      !this.validGalleryHandoff(item, image) ||
+      (zip
+        ? !(await this.validGalleryArchiveHandoff(item))
+        : !image || !this.validGalleryHandoff(item, image)) ||
       !Number.isFinite(action.at)
     ) {
-      await this.block(s, item, "圖庫圖片交接記錄不完整，請人工核對");
+      await this.block(
+        s,
+        item,
+        zip
+          ? "ZIP 圖庫交接記錄不完整，請人工核對"
+          : "圖庫圖片交接記錄不完整，請人工核對",
+      );
       return;
     }
     const candidates = (
@@ -614,8 +1071,8 @@ export class QueueEngine {
         s,
         item,
         candidates.length
-          ? "找到多筆可能的圖庫圖片下載，請人工核對"
-          : "圖庫圖片 Chrome 交接結果未知，為避免重複下載已暫停",
+          ? `找到多筆可能的圖庫${zip ? " ZIP" : "圖片"}下載，請人工核對`
+          : `圖庫${zip ? " ZIP" : "圖片"} Chrome 交接結果未知，為避免重複下載已暫停`,
       );
       return;
     }
@@ -644,11 +1101,13 @@ export class QueueEngine {
       );
       return;
     }
+    const zip = item.gallery.output === "zip";
     const expectedImage = item.gallery.images?.[item.gallery.completed];
     if (
-      !expectedImage ||
       !item.action?.expectedUrl ||
-      !this.validGalleryHandoff(item, expectedImage) ||
+      (zip
+        ? !(await this.validGalleryArchiveHandoff(item))
+        : !expectedImage || !this.validGalleryHandoff(item, expectedImage)) ||
       download.url !== item.action.expectedUrl ||
       download.byExtensionId !== this.p.extensionId
     ) {
@@ -680,6 +1139,30 @@ export class QueueEngine {
       return;
     }
     if (download.state === "complete") {
+      if (zip) {
+        const gallery = item.gallery;
+        gallery.lastDownloadId = download.id;
+        gallery.completed = gallery.total || gallery.images?.length || 0;
+        item.downloadId = undefined;
+        item.action = undefined;
+        item.bytesReceived = undefined;
+        item.totalBytes = undefined;
+        item.speed = undefined;
+        item.downloadPaused = undefined;
+        item.canResume = undefined;
+        item.reason = undefined;
+        item.status = "complete";
+        gallery.images = undefined;
+        s.activeId = undefined;
+        this.event(item, "圖庫 ZIP 下載完成");
+        await this.save(s);
+        await this.p.gallery?.archive
+          ?.cleanup(gallery.archive?.key || item.id)
+          .catch(() => undefined);
+        if (this.galleryArchiveControlCurrent(s)) await this.pump(s);
+        else await this.arm(s);
+        return;
+      }
       await this.releaseGalleryBlob(item);
       const gallery = item.gallery;
       gallery.lastDownloadId = download.id;
@@ -974,6 +1457,15 @@ export class QueueEngine {
   }
 
   handleRequest(request: Request, senderTabId?: number): Promise<Response> {
+    if (request.type === "QC_COMMAND")
+      return this.command(request.command).then(
+        (state) => ({ ok: true, state: structuredClone(state) }),
+        async (error) => ({
+          ok: false,
+          state: structuredClone(await this.load().catch(() => initialState())),
+          error: error instanceof Error ? error.message : "背景處理失敗",
+        }),
+      );
     return this.serial(async () => {
       try {
         if (request.type === "QC_GET") {
@@ -992,11 +1484,6 @@ export class QueueEngine {
           const item = this.manualDownloadItem(s, request.id);
           return { ok: true, downloads: await this.manualDownloads(s, item) };
         }
-        if (request.type === "QC_COMMAND")
-          return {
-            ok: true,
-            state: structuredClone(await this.doCommand(request.command)),
-          };
         return {
           ok: true,
           state: await this.observe(request.observation, senderTabId),
@@ -1011,8 +1498,15 @@ export class QueueEngine {
     });
   }
   command(command: Command): Promise<AppState> {
+    const galleryControl = command.kind === "pause" || command.kind === "start";
     if (command.kind === "pause") this.pauseEpoch++;
-    return this.serial(() => this.doCommand(command));
+    const controlGeneration = galleryControl
+      ? ++this.galleryControlRequested
+      : this.galleryControlRequested;
+    return this.serial(() => {
+      if (galleryControl) this.galleryControlApplied = controlGeneration;
+      return this.doCommand(command);
+    });
   }
   private async doCommand(c: Command): Promise<AppState> {
     let s = await this.load();
@@ -1044,7 +1538,13 @@ export class QueueEngine {
             title: url,
             status: "queued",
             ...(hitomiGalleryId(url)
-              ? { gallery: { id: hitomiGalleryId(url)!, completed: 0 } }
+              ? {
+                  gallery: {
+                    id: hitomiGalleryId(url)!,
+                    completed: 0,
+                    output: this.p.gallery?.archive ? "zip" : "pages",
+                  },
+                }
               : {}),
             createdAt: at,
             updatedAt: at,
@@ -1207,6 +1707,13 @@ export class QueueEngine {
         // or starts the following item. The user must inspect Chrome first.
         if (forgetUncertain) s.running = false;
         if (item.gallery) await this.releaseGalleryBlob(item);
+        const archiveKey = item.gallery?.archive?.key || item.id;
+        const cleanupArchive =
+          item.gallery?.output === "zip" && !forgetUncertain
+            ? this.p.gallery?.archive
+                ?.cleanup(archiveKey)
+                .catch(() => undefined)
+            : undefined;
         s.items = s.items.filter((x) => x.id !== c.id);
         const canceled = (s.extractions || []).filter(
           (g) => g.itemIds.includes(c.id) && g.status !== "complete",
@@ -1223,6 +1730,7 @@ export class QueueEngine {
           canceled.map((g) => g.secretId || g.id),
         );
         await this.save(s);
+        await cleanupArchive;
         await this.cleanSecrets(s);
         if (removedActiveGallery && s.running) await this.pump(s);
         else await this.arm(s);
@@ -1269,6 +1777,18 @@ export class QueueEngine {
             throw new Error(
               "Chrome 仍保留可續傳下載；請先在 Chrome 取消舊下載，或恢復並等它完成，再重新核對",
             );
+        }
+        if (
+          item.gallery?.output === "zip" &&
+          item.reason === "gallery_archive_missing" &&
+          item.downloadId === undefined &&
+          item.action?.kind !== "download" &&
+          item.gallery.archive
+        ) {
+          await this.p.gallery?.archive
+            ?.cleanup(item.gallery.archive.key)
+            .catch(() => undefined);
+          item.gallery.archive = undefined;
         }
         if (s.activeId === item.id) s.activeId = undefined;
         item.status = "queued";

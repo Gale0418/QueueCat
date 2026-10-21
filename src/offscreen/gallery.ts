@@ -3,8 +3,10 @@ import {
   isExtensionBlobUrl,
   isSafeGalleryImageUrl,
 } from "../background/gallery-transport";
+import { createArchiveManager, createOpfsArchiveStorage } from "./archive";
 
 const MESSAGE_TYPE = "QC_GALLERY_TRANSPORT";
+const ARCHIVE_MESSAGE_TYPE = "QC_GALLERY_ARCHIVE";
 const MAX_BLOBS = 2;
 const owned = new Set<string>();
 const blobBySource = new Map<string, string>();
@@ -38,10 +40,14 @@ type TransportMessage =
   PrepareMessage | ReleaseMessage | CancelMessage | StatusMessage;
 const claimsBySource = new Map<string, Set<string>>();
 const sourceByRequestId = new Map<string, string>();
+const archive = createArchiveManager(createOpfsArchiveStorage());
 
 function isIdle(): boolean {
   return (
-    owned.size === 0 && inFlightBySource.size === 0 && claimsBySource.size === 0
+    owned.size === 0 &&
+    inFlightBySource.size === 0 &&
+    claimsBySource.size === 0 &&
+    archive.idle
   );
 }
 
@@ -105,14 +111,83 @@ async function fetchImage(url: string, signal: AbortSignal): Promise<Blob> {
 
 chrome.runtime.onMessage.addListener(
   (message: unknown, sender, sendResponse) => {
-    if (
-      !message ||
-      typeof message !== "object" ||
-      (message as { type?: unknown }).type !== MESSAGE_TYPE
-    )
+    if (!message || typeof message !== "object") return false;
+    const messageType = (message as { type?: unknown }).type;
+    if (messageType !== MESSAGE_TYPE && messageType !== ARCHIVE_MESSAGE_TYPE)
       return false;
     if (!trustedBackground(sender)) {
       sendResponse({ ok: false, error: "gallery_untrusted_sender" });
+      return false;
+    }
+
+    if (messageType === ARCHIVE_MESSAGE_TYPE) {
+      const request = message as {
+        action?: unknown;
+        input?: unknown;
+        key?: unknown;
+      };
+      if (
+        request.action === "stagePage" &&
+        request.input &&
+        typeof request.input === "object"
+      ) {
+        void archive
+          .stagePage(request.input as Parameters<typeof archive.stagePage>[0])
+          .then(
+            (value) => sendResponse({ ok: true, ...value }),
+            (error: unknown) => {
+              console.error("QueueCat archive staging failed", error);
+              sendResponse({
+                ok: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "gallery_archive_failed",
+              });
+            },
+          )
+          .finally(notifyBackgroundIfIdle);
+        return true;
+      }
+      if (
+        request.action === "pack" &&
+        request.input &&
+        typeof request.input === "object"
+      ) {
+        void archive
+          .pack(request.input as Parameters<typeof archive.pack>[0])
+          .then(
+            (value) => sendResponse({ ok: true, ...value }),
+            (error: unknown) =>
+              sendResponse({
+                ok: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "gallery_archive_failed",
+              }),
+          )
+          .finally(notifyBackgroundIfIdle);
+        return true;
+      }
+      if (request.action === "cleanup" && typeof request.key === "string") {
+        void archive.cleanup(request.key).then(
+          () => {
+            sendResponse({ ok: true, idle: isIdle() });
+            notifyBackgroundIfIdle();
+          },
+          (error: unknown) =>
+            sendResponse({
+              ok: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "gallery_archive_failed",
+            }),
+        );
+        return true;
+      }
+      sendResponse({ ok: false, error: "gallery_archive_failed" });
       return false;
     }
 

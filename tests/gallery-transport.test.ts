@@ -121,6 +121,226 @@ describe("圖庫 Blob 傳輸輸入驗證", () => {
 });
 
 describe("圖庫傳輸取消與錯誤收尾", () => {
+  it("archive stage 用受限 GET 規則，pack/cleanup 走獨立訊息", async () => {
+    const extensionId = "queuecat-test";
+    const extensionUrl = `chrome-extension://${extensionId}/`;
+    const sent: Array<Record<string, unknown>> = [];
+    const rules: Array<Record<string, unknown>> = [];
+    vi.stubGlobal("chrome", {
+      runtime: {
+        id: extensionId,
+        getURL: (path: string) => `${extensionUrl}${path}`,
+        getContexts: vi.fn(async () => [{}]),
+        onMessage: { addListener: vi.fn() },
+        sendMessage: vi.fn(async (message: Record<string, unknown>) => {
+          sent.push(message);
+          return {
+            ok: true,
+            staged: 1,
+            bytes: 12,
+            url: "blob:archive",
+            idle: false,
+          };
+        }),
+      },
+      offscreen: { createDocument: vi.fn(), closeDocument: vi.fn() },
+      declarativeNetRequest: {
+        updateSessionRules: vi.fn(async (value) => {
+          rules.push(value);
+        }),
+      },
+    });
+    try {
+      const transport = createGalleryTransport({
+        requestMs: 50,
+        cleanupMs: 50,
+      });
+      await expect(
+        transport.archive.stagePage({
+          key: "11111111-1111-4111-8111-111111111111",
+          fingerprint: "f".repeat(64),
+          total: 1,
+          index: 0,
+          hash: "a".repeat(64),
+          url: validImageUrl,
+        }),
+      ).resolves.toMatchObject({ staged: 1, bytes: 12 });
+      await transport.archive.pack({
+        key: "11111111-1111-4111-8111-111111111111",
+        fingerprint: "f".repeat(64),
+        total: 1,
+        hashes: ["a".repeat(64)],
+      });
+      await transport.archive.cleanup("11111111-1111-4111-8111-111111111111");
+      expect(
+        sent
+          .filter(({ type }) => type === "QC_GALLERY_ARCHIVE")
+          .map(({ action }) => action),
+      ).toEqual(["stagePage", "pack", "cleanup"]);
+      expect(sent.filter(({ action }) => action === "status")).toHaveLength(3);
+      expect(rules[0]).toMatchObject({
+        addRules: [
+          {
+            condition: {
+              initiatorDomains: [extensionId],
+              requestMethods: ["get"],
+              resourceTypes: ["xmlhttprequest"],
+            },
+          },
+        ],
+      });
+      expect(rules.at(-1)).toMatchObject({ removeRuleIds: [42_017] });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("status 首次沒有接收端、之後 ready 時只送一次 stage", async () => {
+    const extensionId = "queuecat-test";
+    const extensionUrl = `chrome-extension://${extensionId}/`;
+    const messages: Array<Record<string, unknown>> = [];
+    let statusCalls = 0;
+    vi.stubGlobal("chrome", {
+      runtime: {
+        id: extensionId,
+        getURL: (path: string) => `${extensionUrl}${path}`,
+        getContexts: vi.fn(async () => [{}]),
+        onMessage: { addListener: vi.fn() },
+        sendMessage: vi.fn(async (message: Record<string, unknown>) => {
+          messages.push(message);
+          if (message.action === "status" && statusCalls++ === 0)
+            throw new Error(
+              "Could not establish connection. Receiving end does not exist.",
+            );
+          if (message.action === "status") return { ok: true, idle: true };
+          if (message.action === "stagePage")
+            return { ok: true, staged: 1, bytes: 12 };
+          throw new Error(`unexpected action: ${String(message.action)}`);
+        }),
+      },
+      offscreen: { createDocument: vi.fn(), closeDocument: vi.fn() },
+      declarativeNetRequest: {
+        updateSessionRules: vi.fn(async () => undefined),
+      },
+    });
+    try {
+      const transport = createGalleryTransport({ cleanupMs: 200 });
+      await expect(
+        transport.archive.stagePage({
+          key: "11111111-1111-4111-8111-111111111111",
+          fingerprint: "f".repeat(64),
+          total: 1,
+          index: 0,
+          hash: "a".repeat(64),
+          url: validImageUrl,
+        }),
+      ).resolves.toMatchObject({ staged: 1, bytes: 12 });
+      expect(messages.filter(({ action }) => action === "status")).toHaveLength(
+        2,
+      );
+      expect(
+        messages.filter(
+          ({ type, action }) =>
+            type === "QC_GALLERY_ARCHIVE" && action === "stagePage",
+        ),
+      ).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("status 持續未就緒時逾時失敗且不送 stage", async () => {
+    const extensionId = "queuecat-test";
+    const extensionUrl = `chrome-extension://${extensionId}/`;
+    const messages: Array<Record<string, unknown>> = [];
+    vi.stubGlobal("chrome", {
+      runtime: {
+        id: extensionId,
+        getURL: (path: string) => `${extensionUrl}${path}`,
+        getContexts: vi.fn(async () => [{}]),
+        onMessage: { addListener: vi.fn() },
+        sendMessage: vi.fn(async (message: Record<string, unknown>) => {
+          messages.push(message);
+          throw new Error("offscreen listener is not ready");
+        }),
+      },
+      offscreen: { createDocument: vi.fn(), closeDocument: vi.fn() },
+      declarativeNetRequest: {
+        updateSessionRules: vi.fn(async () => undefined),
+      },
+    });
+    try {
+      const transport = createGalleryTransport({ cleanupMs: 120 });
+      await expect(
+        transport.archive.stagePage({
+          key: "11111111-1111-4111-8111-111111111111",
+          fingerprint: "f".repeat(64),
+          total: 1,
+          index: 0,
+          hash: "a".repeat(64),
+          url: validImageUrl,
+        }),
+      ).rejects.toThrow("offscreen listener is not ready");
+      expect(messages.length).toBeGreaterThan(0);
+      expect(
+        messages.every(
+          ({ type, action }) =>
+            type === "QC_GALLERY_TRANSPORT" && action === "status",
+        ),
+      ).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("stage 回覆傳輸錯誤時不重送可能已提交的 stage", async () => {
+    const extensionId = "queuecat-test";
+    const extensionUrl = `chrome-extension://${extensionId}/`;
+    const messages: Array<Record<string, unknown>> = [];
+    vi.stubGlobal("chrome", {
+      runtime: {
+        id: extensionId,
+        getURL: (path: string) => `${extensionUrl}${path}`,
+        getContexts: vi.fn(async () => [{}]),
+        onMessage: { addListener: vi.fn() },
+        sendMessage: vi.fn(async (message: Record<string, unknown>) => {
+          messages.push(message);
+          if (message.action === "status") return { ok: true, idle: true };
+          if (message.action === "stagePage")
+            throw new Error(
+              "Could not establish connection. Receiving end does not exist.",
+            );
+          throw new Error(`unexpected action: ${String(message.action)}`);
+        }),
+      },
+      offscreen: { createDocument: vi.fn(), closeDocument: vi.fn() },
+      declarativeNetRequest: {
+        updateSessionRules: vi.fn(async () => undefined),
+      },
+    });
+    try {
+      const transport = createGalleryTransport({ cleanupMs: 200 });
+      await expect(
+        transport.archive.stagePage({
+          key: "11111111-1111-4111-8111-111111111111",
+          fingerprint: "f".repeat(64),
+          total: 1,
+          index: 0,
+          hash: "a".repeat(64),
+          url: validImageUrl,
+        }),
+      ).rejects.toThrow("Could not establish connection");
+      expect(
+        messages.filter(
+          ({ type, action }) =>
+            type === "QC_GALLERY_ARCHIVE" && action === "stagePage",
+        ),
+      ).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("清除 session rule 失敗時保留錯誤並取消已回覆的 Blob", async () => {
     const extensionId = "queuecat-test";
     const extensionUrl = `chrome-extension://${extensionId}/`;

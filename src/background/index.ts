@@ -155,7 +155,11 @@ const runBackground = (operation: Promise<unknown>) => {
 // MV3 listeners register synchronously at module evaluation; async reply is wrapped explicitly.
 chrome.runtime.onMessage.addListener(
   (message: Request, sender, sendResponse) => {
-    if ((message as { type?: string })?.type === "QC_GALLERY_TRANSPORT")
+    if (
+      ["QC_GALLERY_TRANSPORT", "QC_GALLERY_ARCHIVE"].includes(
+        (message as { type?: string })?.type || "",
+      )
+    )
       return false;
     if (
       !message ||

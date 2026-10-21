@@ -5,6 +5,11 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { build } from "esbuild";
+import {
+  Uint8ArrayReader,
+  Uint8ArrayWriter,
+  ZipReader,
+} from "@zip.js/zip.js";
 
 // Explicit opt-in only: this runner contacts the live site and downloads files.
 // It never attaches to an existing Chrome profile or opens image previews.
@@ -21,8 +26,8 @@ const { values } = parseArgs({
 });
 assert.match(
   values.ids || "",
-  /^[1-9]\d{0,9}(?:,[1-9]\d{0,9}){0,3}$/,
-  "Pass --ids ID,ID (at most four galleries)",
+  /^[1-9]\d{0,9},[1-9]\d{0,9}$/,
+  "Pass exactly two opt-in gallery IDs with --ids ID,ID",
 );
 const ids = values.ids.split(",");
 assert.equal(new Set(ids).size, ids.length, "Use distinct gallery IDs");
@@ -114,6 +119,8 @@ try {
   report.expectedPages = Object.fromEntries(
     [...expectedBooks].map(([id, book]) => [id, book.images.length]),
   );
+  for (const [id, book] of expectedBooks)
+    assert.equal(book.images.length, 12, `Gallery ${id} must have exactly 12 pages`);
   await save();
   context = await chromium.launchPersistentContext(profile, {
     channel: "chromium",
@@ -187,6 +194,8 @@ try {
       status: item.status,
       completed: item.gallery.completed,
       total: item.gallery.total,
+      archiveStaged: item.gallery.archive?.staged,
+      archivePhase: item.gallery.archive?.phase,
       reason: item.reason,
     }));
     const key = JSON.stringify(progress);
@@ -227,76 +236,100 @@ try {
     "Live galleries did not all complete before deadline",
   );
   const records = await manager.evaluate(() => chrome.downloads.search({}));
-  const own = records.filter((d) => d.byExtensionId === report.extensionId);
-  assert.equal(
-    own.length,
-    [...expectedBooks.values()].reduce(
-      (sum, book) => sum + book.images.length,
-      0,
-    ),
-  );
-  for (const item of current.items) {
-    const book = own
-      .filter((d) =>
-        d.filename
-          .replaceAll("\\", "/")
-          .includes("/" + item.gallery.folder + "/"),
-      )
-      .sort((a, b) => a.filename.localeCompare(b.filename));
+  const own = records
+    .filter((d) => d.byExtensionId === report.extensionId)
+    .sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime));
+  report.chromeDownloads = own;
+  assert.equal(own.length, ids.length, "Expected exactly one Chrome ZIP per gallery");
+  const safeTitle = (title) =>
+    Array.from(
+      title
+        .normalize("NFC")
+        .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+        .replace(/[. ]+$/g, "")
+        .replace(/^\.+/g, "")
+        .trim(),
+    )
+      .slice(0, 80)
+      .join("")
+      .replace(/[. ]+$/g, "") || "Gallery";
+  for (let bookIndex = 0; bookIndex < current.items.length; bookIndex++) {
+    const item = current.items[bookIndex];
+    const d = own[bookIndex];
     const expected = expectedBooks.get(item.gallery.id);
-    assert.equal(book.length, expected.images.length);
+    assert.equal(item.gallery.id, ids[bookIndex]);
+    assert.equal(d.state, "complete");
     assert.equal(item.gallery.completed, expected.images.length);
-    for (let n = 0; n < book.length; n++) {
-      const d = book[n];
-      assert.equal(d.state, "complete");
-      assert.equal(
-        path.basename(d.filename),
-        `${String(n + 1).padStart(4, "0")}.webp`,
+    assert.equal(item.gallery.archive?.staged, expected.images.length);
+    const zipPath = path.resolve(d.filename);
+    assert.ok(zipPath.startsWith(path.resolve(downloads) + path.sep));
+    assert.equal(
+      path.relative(downloads, zipPath).split(path.sep).join("/"),
+      `QueueCat/${item.gallery.id}-${safeTitle(expected.title)}.zip`,
+    );
+    const zipBytes = await fs.readFile(zipPath);
+    const reader = new ZipReader(
+      new Uint8ArrayReader(new Uint8Array(zipBytes)),
+      { checkSignature: true },
+    );
+    try {
+      const entries = await reader.getEntries();
+      assert.equal(entries.length, 12, `Gallery ${item.gallery.id} ZIP entry count`);
+      assert.ok(entries.every((entry) => !entry.directory));
+      assert.deepEqual(
+        entries.map((entry) => entry.filename),
+        Array.from(
+          { length: 12 },
+          (_, n) => `${String(n + 1).padStart(4, "0")}.webp`,
+        ),
+        `Gallery ${item.gallery.id} ZIP order`,
       );
-      assert.ok(
-        path.resolve(d.filename).startsWith(path.resolve(downloads) + path.sep),
-      );
-      const bytes = await fs.readFile(d.filename);
-      assert.equal(bytes.subarray(0, 4).toString(), "RIFF");
-      assert.equal(bytes.subarray(8, 12).toString(), "WEBP");
-      const source = expected.images[n];
-      const response = await fetch(await client.imageUrl(source), {
-        headers: { Referer: "https://hitomi.la/" },
-        redirect: "error",
-        signal: AbortSignal.timeout(30000),
-      });
-      assert.equal(response.status, 200);
-      assert.match(response.headers.get("content-type") || "", /^image\/webp/);
-      assert.ok(
-        Number(response.headers.get("content-length")) <= 32 * 1024 * 1024,
-      );
-      const independent = new Uint8Array(await response.arrayBuffer());
-      assert.ok(independent.length <= 32 * 1024 * 1024);
-      assert.equal(
-        digest(bytes),
-        digest(independent),
-        `Wrong content at gallery ${item.gallery.id}, page ${n + 1}`,
-      );
-      report.downloads.push({
-        galleryId: item.gallery.id,
-        page: n + 1,
-        sourceHash: source.hash,
-        filename: path.relative(downloads, d.filename),
-        bytes: bytes.length,
-        sha256: digest(bytes),
-        independentSha256: digest(independent),
-        state: d.state,
-        startTime: d.startTime,
-        endTime: d.endTime,
-      });
-      console.log(`VERIFIED ${item.gallery.id} page ${n + 1}/${book.length}`);
+      for (let n = 0; n < entries.length; n++) {
+        const bytes = await entries[n].getData(new Uint8ArrayWriter());
+        assert.equal(Buffer.from(bytes.subarray(0, 4)).toString(), "RIFF");
+        assert.equal(Buffer.from(bytes.subarray(8, 12)).toString(), "WEBP");
+        const source = expected.images[n];
+        const response = await fetch(await client.imageUrl(source), {
+          headers: { Referer: "https://hitomi.la/" },
+          redirect: "error",
+          signal: AbortSignal.timeout(30000),
+        });
+        assert.equal(response.status, 200);
+        assert.match(response.headers.get("content-type") || "", /^image\/webp/);
+        assert.ok(
+          Number(response.headers.get("content-length")) <= 32 * 1024 * 1024,
+        );
+        const independent = new Uint8Array(await response.arrayBuffer());
+        assert.ok(independent.length <= 32 * 1024 * 1024);
+        const pageDigest = digest(bytes);
+        const independentDigest = digest(independent);
+        assert.equal(
+          pageDigest,
+          independentDigest,
+          `Wrong content at gallery ${item.gallery.id}, page ${n + 1}`,
+        );
+        // Metadata hashes identify original assets; the served WebP rendition
+        // has its own byte digest. Compare against an independent WebP fetch.
+        report.downloads.push({
+          galleryId: item.gallery.id,
+          page: n + 1,
+          sourceHash: source.hash,
+          filename: path.relative(downloads, zipPath),
+          bytes: bytes.length,
+          sha256: pageDigest,
+          independentSha256: independentDigest,
+          zipBytes: zipBytes.length,
+        });
+        console.log(`VERIFIED ${item.gallery.id} page ${n + 1}/12`);
+      }
+    } finally {
+      await reader.close();
     }
   }
-  for (let n = 1; n < report.downloads.length; n++)
+  for (let n = 1; n < own.length; n++)
     assert.ok(
-      Date.parse(report.downloads[n].startTime) >=
-        Date.parse(report.downloads[n - 1].endTime),
-      "Chrome downloads overlapped or started out of order",
+      Date.parse(own[n].startTime) >= Date.parse(own[n - 1].endTime),
+      "Chrome ZIP downloads overlapped or started out of order",
     );
   report.offscreenContexts = await manager.evaluate(() =>
     chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"] }),
@@ -316,7 +349,7 @@ try {
   );
   report.checks.push(
     {
-      name: "all pages match metadata ordering and independently fetched source bytes",
+      name: "each ZIP has 12 ordered pages matching independently fetched source bytes",
       pass: true,
       count: report.downloads.length,
     },

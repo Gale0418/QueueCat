@@ -1,6 +1,6 @@
 # QueueCat ฅ(－ω－)ฅ
 
-**把等待，交給貓貓。** 貼上 Katfile 檔案或 Hitomi 單本圖庫網址，貓貓排隊，Chrome 下載。
+**把等待，交給貓貓。** 貼上 Katfile 檔案網址，貓貓排隊，Chrome 下載。
 
 整串網址一次整理，網站倒數有人顧；驗證或狀態不明時再由你接手。五張小房間貓娘陪你等，QueueCat 的佇列與紀錄只存本機。想介紹給朋友，可在管理頁底部複製不含個人下載資料的產品簡介。可分享短文見 [產品介紹](MARKETING.md)。
 
@@ -8,7 +8,7 @@
 
 介面預設跟隨瀏覽器語言，提供 English、繁體中文與日本語；其他語言回退英文。在 **Preferences → Display Language** 可手動指定或切回 **Follow Browser Language**。通知、狀態、無障礙標籤、分享簡介與已知舊事件也會依設定呈現；檔名、網址及未知網站原文保留。放大角色、半透明卡片與三語驗證見 [本輪紀錄](MissionCenter/mascot-i18n-20261018.md)。
 
-支援 Katfile 免費檔案與 Hitomi 單本圖庫的 Chrome 外掛。貓貓負責排隊，檔案由 Chrome 儲存；Katfile 驗證由本人在原頁面完成。
+支援 Katfile 免費檔案的 Chrome 外掛。貓貓負責排隊，檔案由 Chrome 儲存；Katfile 驗證由本人在原頁面完成。
 
 ## 安裝本機版本
 
@@ -30,16 +30,6 @@ npm run build
 
 你已於 2026-10-18 回報根目錄版本成功載入 Chrome；網站倒數後顯示最終免費下載頁，並由你按「繼續免費下載」啟動傳輸。QueueCat 的全自動交接驗收仍在進行。
 
-## Hitomi 單本圖庫
-
-貼上單本介紹頁、`/galleries/<ID>.html` 或 `/reader/<ID>.html`，確認加入後按「開始排隊」。同一本的不同網址會去重；首頁、搜尋及標籤頁不展開。
-
-一本只占一筆佇列，圖片依序交給 Chrome，存成 `下載位置/QueueCat/Hitomi-圖庫ID-本次識別碼-標題/0001.webp`、`0002.webp` 等。這版提供 **每本獨立資料夾與 WebP 圖片**，不產生網站按鈕的 ZIP；不需要 Rust 小幫手，也不使用壓縮密碼。含圖庫網址的新增批次會停用自動解壓；需要解壓的 Katfile 請另批加入。
-
-圖片先在外掛的離屏頁面取得並驗證，再交由 Chrome 存檔；每張最多 32 MiB、取得逾時 60 秒。取得圖片不會阻塞管理頁或暫停命令。暫停後，已交給 Chrome 的圖片繼續下載；仍在取得中的圖片不再交接存檔，恢復時可能重新取得該張。連續傳輸按首次取得的清單快照完成，不逐頁輪詢即時改版；失敗重試，或停在兩頁之間後重新排隊時，會重讀並核對來源，保留完成頁數、從未完成頁接續。如果重讀時發現內容或標題變更就停止；請移除紀錄後重新加入，新任務另建資料夾，原圖片保留。交接不明時不重送，需核對 Chrome 下載紀錄；也可經確認「移除紀錄並暫停」，只放棄該筆追蹤、不取消下載或刪檔，繼續前仍須先查看 Chrome。
-
-更新舊版後，請在佇列閒置時至 `chrome://extensions` 重新載入 QueueCat，以套用 Hitomi／圖片 CDN、`offscreen` 與 `declarativeNetRequestWithHostAccess` 權限。來源標頭規則只限外掛自己取得的單一圖片 URL，完成後移除；不讀取一般瀏覽流量。**2026-10-21 修正後，兩本各 12 頁的實站下載已通過，24 個編號檔案逐頁與獨立取得的來源內容 SHA-256 相符。**這不代表所有圖庫或未來網站版本都已驗證，詳見 [傳輸修復與實測紀錄](MissionCenter/hitomi-transport-20261021.md)。
-
 ## Katfile 下載後自動解壓（可選）
 
 新增網址時勾選 **Auto-extract after download**，在下方 **Archive Password** 填這批檔案共用的密碼；無密碼壓縮檔可留白。不同密碼請分批加入。分卷請整組貼齊；所有已選卷的 Chrome 下載完成後，才會檢查並解壓到下載位置下的新資料夾，保留原壓縮檔、不覆蓋既有內容、不執行解出的程式。
@@ -59,7 +49,7 @@ Windows x64 使用 Rust 小幫手，預設附官方 7-Zip 26.04 可攜引擎，�
 
 熟手小技巧：貼好網址按 **Ctrl／⌘＋Enter** 加入；焦點在待下載項目時按 **Alt＋↑／↓** 調整順序；**Esc** 收起目前面板或詳情。加入後仍由你按「開始排隊」；排序成功會回報實際位置。設定裡也有「更順手的小技巧」可查。
 
-- 點「新增網址」，貼多行 Katfile 檔案或 Hitomi 單本網址；檢查有效、重複與不支援項目後，按「確認加入」。
+- 點「新增網址」，貼多行 Katfile 檔案網址；檢查有效、重複與不支援項目後，按「確認加入」。
 - 按「開始排隊」才開始處理。一次一筆；上一筆下載完成後，重新確認網站是否允許下一筆。
 - 如果偵測到 Chrome 已有其他 Katfile 下載，會先等它結束。這只涵蓋 Chrome 能辨識來源的下載，不涵蓋其他瀏覽器或外部下載器；網站的限制仍以實際頁面為準。
 - 網站顯示「下載之間不少於120分鐘」時，讀取頁面實際剩餘倒數；不假設從開始或結束起算，也不自行再加滿120分鐘。
@@ -103,17 +93,11 @@ HTML 原始入口在 `entries/`；建置暫存位於 `artifacts/unpacked/`。`np
 
 ```powershell
 npm run test:browser -- --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄> --openssl <openssl.exe>
-# 同樣參數可用於中性圖庫逐頁下載、暫停／恢復與狀態核對
-npm run test:gallery-browser -- --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄> --openssl <openssl.exe>
-# 明確指定 ID 才會連實站下載；不需 OpenSSL，不附接個人 Chrome
-npm run test:gallery-live -- --ids <ID1>,<ID2> --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄>
 ```
 
 測試建立全新設定檔、複製建置成品並執行正式背景程式及 content script。Katfile 回應由 loopback HTTPS 樣本提供，小檔案交給真正的 Chrome Downloads API。DNS 映射及測試憑證設定僅傳給這個新瀏覽器程序，不修改系統、現用 Chrome 或現用外掛；不複製登入資料，也不連真實 Katfile。
 
 來源樣本需占用本機 `127.0.0.1:443`；若已被使用，測試直接停止，不關閉其他服務。下載、截圖與逐項報告位於 `artifacts/browser-acceptance/<執行ID>/`。測試會關閉自己建立的瀏覽器及 HTTPS 服務。模擬驗證通過不等於通過真人 CAPTCHA；以彈窗 HTML 頁面做互動與排版驗收，也不代表工具列原生彈窗已取得。
-
-Hitomi 實站測試的檔案與報告位於 `artifacts/gallery-live/<執行ID>/`；會比對每頁獨立來源的內容，不開啟圖片預覽。中性圖庫測試的 CDP 停止指令未能確認真的替換擴充功能背景程序，因此不宣稱該項實機重啟覆蓋；持久狀態復原另有引擎單元測試。
 
 自動解壓的隔離驗收另用 `npm run test:extraction-browser -- --helper-exe <小幫手.exe> --seven-zip <7z.exe> --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄>`。它在自己的 profile 下載本機產生的加密分卷，核對真正的 downloadId、解壓內容 hash 與背景重啟的冪等結果；只有 native host 註冊原先不存在時才暫時建立測試註冊，測完按所有權還原，不覆寫既有註冊。證據位於 `artifacts/extraction-browser/<執行ID>/`。
 
@@ -130,7 +114,7 @@ Hitomi 實站測試的檔案與報告位於 `artifacts/gallery-live/<執行ID>/`
 
 佇列存在 `chrome.storage.local` 的 `queuecat.state.v1`，不使用雲端同步與遙測。外掛不讀取 Katfile 登入密碼、不要求 cookies 權限；Katfile 登入與驗證維持在網站原頁面。只有你主動填入的壓縮檔密碼會傳給本機小幫手，儲存與限制見上方說明。桌面通知受 Chrome 與作業系統通知設定影響。
 
-角色依你提供的長髮睡衣貓娘三視圖，以 Codex 內建 ImageGen 製作五張透明靜態小房間切片：小床抱被數羊、書桌工作／招手、同張沙發上拿手機思考／伸懶腰。來源見 `public/assets/PROVENANCE.md`，完整提示詞鏈見 `design/reference/mascot-v3-prompts.json`，五圖總覽見 `design/room-v3-preview.html`。圖示為專案幾何 SVG；Nunito Sans 授權見 `public/assets/FONT-LICENSE.txt`。
+角色依你提供的長髮睡衣貓娘三視圖，以 Codex 內建 ImageGen 製作五張透明靜態小房間切片：小床抱被數羊、書桌工作／招手、同張沙發上拿手機思考／伸懶腰。來源見 `public/assets/PROVENANCE.md`，完整提示詞鏈見 `design/reference/mascot-v3-prompts.json`，五圖總覽見 `design/room-v3-preview.html`。圖示為專案幾何 SVG；Nunito Sans 授權見 `public/assets/FONT-LICENSE.txt`；ZIP 函式庫授權隨安裝包附於 `assets/zip-license.txt`。
 
 ## 原始碼授權狀態
 

@@ -6,6 +6,11 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  BlobReader,
+  BlobWriter,
+  ZipReader,
+} from "@zip.js/zip.js/lib/zip-core-external.js";
 
 // End-to-end Hitomi gallery checks use only this owned Chromium profile and a
 // loopback HTTPS fixture. QueueCat's production extension files are copied as-is.
@@ -145,7 +150,6 @@ const testedHashes = {};
 let worker;
 let extensionOrigin;
 let imageFiles = [];
-let expectedFolder;
 
 try {
   await fs.mkdir(fixtureDir, { recursive: true });
@@ -352,6 +356,11 @@ try {
   context.on("page", (page) =>
     page.on("pageerror", (error) => report.pageErrors.push(error.message)),
   );
+  context.on("console", (message) => {
+    if (message.type() === "error") {
+      (report.consoleErrors ??= []).push(message.text());
+    }
+  });
   worker =
     context.serviceWorkers()[0] ||
     (await context.waitForEvent("serviceworker", { timeout: 20_000 }));
@@ -369,6 +378,12 @@ try {
   await cdp.detach();
   await manager.goto(`${extensionOrigin}/manager.html#add`);
   await manager.locator("#url-input").waitFor({ state: "visible" });
+  await record("fresh interface does not advertise the optional provider", async () => {
+    assert.equal(await manager.locator("#provider-chip").innerText(), "Katfile");
+    assert.doesNotMatch(await manager.locator("#share-intro").inputValue(), /gallery|hitomi|圖庫|ギャラリー/i);
+    assert.doesNotMatch(await manager.locator("#url-input").getAttribute("placeholder"), /hitomi/i);
+    return { defaultProvider: "Katfile" };
+  });
 
   const state = async () => {
     const reply = await manager.evaluate(() =>
@@ -534,7 +549,7 @@ try {
   }, "start queue from manager UI");
 
   await record(
-    "first image completes while second image is fetched offscreen without blocking state reads",
+    "first page is staged while second page is fetched offscreen without blocking state reads",
     async () => {
       await eventually(
         async () => {
@@ -550,7 +565,7 @@ try {
           const item = activeGallery(current);
           assert.ok(item);
           assert.equal(item.status, "preparing");
-          assert.equal(item.gallery.completed, 1);
+          assert.equal(item.gallery.archive?.staged, 1);
           assert.equal(item.gallery.total, 3);
           assert.equal(item.downloadId, undefined);
           const downloads = await manager.evaluate(() =>
@@ -559,11 +574,14 @@ try {
           const own = downloads.filter(
             (d) => d.byExtensionId === report.extensionId,
           );
-          assert.equal(own.length, 1);
-          assert.equal(own[0].state, "complete");
+          assert.equal(
+            own.length,
+            0,
+            "ZIP download must wait until all pages are staged and packed",
+          );
           return { current, item };
         },
-        "first image completed and second image held before its last byte",
+        "first page staged and second page held before its last byte",
         60_000,
       );
       assert.equal(secondImageGateReached, true);
@@ -581,9 +599,9 @@ try {
         report.imageRequests[1].host,
         "w2.gold-usergeneratedcontent.net",
       );
-      report.gatedFetch = { page: 2, chromeDownloadNotCreated: true };
+      report.gatedFetch = { page: 2, chromeZipDownloadNotCreated: true };
       return {
-        galleryCompleted: pausedPoint.item.gallery.completed,
+        galleryStaged: pausedPoint.item.gallery.archive.staged,
         galleryTotal: pausedPoint.item.gallery.total,
         offscreenFetchHeld: true,
         stateReadsResponsive: true,
@@ -592,7 +610,7 @@ try {
   );
 
   await record(
-    "pausing during fetch is responsive and prevents disk handoff until explicit resume",
+    "pausing during staging commits the current page but starts no later page or pack",
     async () => {
       await manager.locator('#hero-actions [data-action="pause"]').click();
       await eventually(async () => {
@@ -606,16 +624,18 @@ try {
           const value = await state();
           const item = activeGallery(value);
           assert.equal(value.running, false);
-          assert.equal(item.gallery.completed, 1);
+          assert.equal(item.gallery.archive?.staged, 2);
+          assert.equal(item.gallery.archive?.phase, "collecting");
           assert.equal(item.status, "queued");
           assert.equal(item.downloadId, undefined);
+          assert.equal(item.gallery.completed, 0);
           assert.deepEqual(
             report.imageRequests.map((request) => request.hash),
             hashes.slice(0, 2),
           );
           return value;
         },
-        "prepared second image is released while paused without Chrome handoff",
+        "in-flight second page commits while paused without staging page three or packing",
         60_000,
       );
       const allDownloads = await manager.evaluate(() =>
@@ -624,9 +644,10 @@ try {
       const own = allDownloads.filter(
         (download) => download.byExtensionId === report.extensionId,
       );
-      assert.equal(own.length, 1);
+      assert.equal(own.length, 0);
       return {
         running: current.running,
+        galleryStaged: current.items[0].gallery.archive.staged,
         galleryCompleted: current.items[0].gallery.completed,
         imageRequests: report.imageRequests.map((request) => request.hash),
         ownDownloadCount: own.length,
@@ -647,88 +668,79 @@ try {
     "resume queue and finish the final image",
     60_000,
   );
-  expectedFolder = completeState.items[0].gallery.folder;
-  assert.match(
-    expectedFolder,
-    /^QueueCat\/Hitomi-12345-[a-f0-9]{12}-QueueCat fixture$/i,
-    "gallery folder must identify the gallery and include its generated 12-character run suffix",
-  );
+  const expectedZipPath = completeState.items[0].gallery.archive.filename;
+  assert.match(expectedZipPath, /^QueueCat\/12345-QueueCat fixture\.zip$/i);
   await record(
-    "all real Chrome downloads have correct page paths and fixture bytes",
+    "one real Chrome ZIP download contains the fixture pages in order with matching bytes and CRC",
     async () => {
       const downloads = await manager.evaluate(() =>
         chrome.downloads.search({}),
       );
       const own = downloads
         .filter((download) => download.byExtensionId === report.extensionId)
-        .sort((a, b) => a.filename.localeCompare(b.filename));
-      assert.equal(own.length, 3);
-      const expectedNames = hashes
-        .map(
-          (_, index) =>
-            `${expectedFolder}/${String(index + 1).padStart(4, "0")}.webp`,
-        )
-        .sort();
-      assert.deepEqual(
-        own
-          .map((download) =>
-            download.filename
-              .slice(path.resolve(downloadsDir).length + 1)
-              .replaceAll("\\", "/"),
-          )
-          .sort(),
-        expectedNames,
-      );
-      for (const download of own) assert.equal(download.state, "complete");
-      const downloadsByPage = await Promise.all(
-        own.map(async (download) => {
-          const filename = download.filename
-            .slice(path.resolve(downloadsDir).length + 1)
-            .replaceAll("\\", "/");
+        .sort((a, b) => a.id - b.id);
+      assert.equal(own.length, 1);
+      assert.equal(own[0].state, "complete");
+      const zipDownload = own[0];
+      const relativePath = zipDownload.filename
+        .slice(path.resolve(downloadsDir).length + 1)
+        .replaceAll("\\", "/");
+      assert.deepEqual(relativePath, expectedZipPath);
+      assert.equal(path.extname(relativePath).toLowerCase(), ".zip");
+      const archiveBytes = await fs.readFile(zipDownload.filename);
+      const archiveBlob = new Blob([
+        archiveBytes.buffer.slice(
+          archiveBytes.byteOffset,
+          archiveBytes.byteOffset + archiveBytes.byteLength,
+        ),
+      ]);
+      const reader = new ZipReader(new BlobReader(archiveBlob), {
+        checkSignature: true,
+        checkCrc32: true,
+      });
+      let archiveEntries;
+      try {
+        archiveEntries = await reader.getEntries();
+        assert.deepEqual(
+          archiveEntries.map((entry) => entry.filename),
+          imageFiles.map(
+            (_, index) => `${String(index + 1).padStart(4, "0")}.webp`,
+          ),
+        );
+        for (let index = 0; index < archiveEntries.length; index++) {
+          const entry = archiveEntries[index];
           assert.ok(
-            filename.startsWith(`${expectedFolder}/`),
-            `download escaped expected gallery folder: ${filename}`,
+            "getData" in entry,
+            `expected file entry ${entry.filename}`,
           );
-          const pageName = filename.slice(expectedFolder.length + 1);
-          const pageMatch = /^(\d{4})\.webp$/i.exec(pageName);
-          assert.ok(pageMatch, `unexpected gallery page filename: ${filename}`);
-          const page = Number(pageMatch[1]);
-          assert.ok(
-            page >= 1 && page <= imageFiles.length,
-            `page number is outside fixture range: ${page}`,
-          );
-          const sha256Digest = await sha256(download.filename);
+          const extracted = await entry.getData(new BlobWriter());
           assert.equal(
-            sha256Digest,
-            imageFiles[page - 1].sha256,
-            `downloaded bytes do not match fixture page ${page}`,
+            createHash("sha256")
+              .update(Buffer.from(await extracted.arrayBuffer()))
+              .digest("hex"),
+            imageFiles[index].sha256,
+            `ZIP entry content does not match fixture page ${index + 1}`,
           );
-          return {
-            id: download.id,
-            filename,
-            state: download.state,
-            bytes: download.fileSize,
-            page,
-            sha256: sha256Digest,
-          };
-        }),
-      );
-      assert.deepEqual(
-        downloadsByPage.map((download) => download.page),
-        imageFiles.map((_, index) => index + 1),
-        "download filenames must map one-to-one to their fixture page numbers",
-      );
-      const actualHashes = downloadsByPage.map((download) => download.sha256);
-      assert.deepEqual(
-        [...actualHashes].sort(),
-        imageFiles.map((image) => image.sha256).sort(),
-      );
-      report.downloads = downloadsByPage;
+        }
+      } finally {
+        await reader.close();
+      }
+      report.downloads = [
+        {
+          id: zipDownload.id,
+          filename: relativePath,
+          state: zipDownload.state,
+          bytes: zipDownload.fileSize,
+          entries: archiveEntries.map((entry) => entry.filename),
+          pageHashes: imageFiles.map((image) => image.sha256),
+        },
+      ];
       return {
-        folder: expectedFolder,
-        pageNames: expectedNames,
+        zipPath: relativePath,
+        recordCount: own.length,
         states: own.map((download) => download.state),
-        pageHashes: actualHashes,
+        entries: archiveEntries.map((entry) => entry.filename),
+        pageHashes: imageFiles.map((image) => image.sha256),
         hashesMatch: true,
       };
     },
@@ -752,7 +764,7 @@ try {
       }, "completed gallery remains after reconciliation request");
       assert.deepEqual(
         report.imageRequests.map((request) => request.hash),
-        [hashes[0], hashes[1], hashes[1], hashes[2]],
+        hashes,
       );
       assert.deepEqual(report.pageErrors, []);
       return {
@@ -781,6 +793,24 @@ try {
     ownProfileOnly: true,
   };
   report.status = "pass";
+  await record("completed ZIP releases private staging and download resources", async () => {
+    const remaining = await manager.evaluate(async () => {
+      const root = await navigator.storage.getDirectory();
+      try {
+        const archives = await root.getDirectoryHandle("queuecat-archives");
+        const keys = [];
+        for await (const key of archives.keys()) keys.push(key);
+        return keys;
+      } catch (error) {
+        if (error.name === "NotFoundError") return [];
+        throw error;
+      }
+    });
+    assert.deepEqual(remaining, []);
+    assert.deepEqual(await worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules()), []);
+    assert.deepEqual(await manager.evaluate(() => chrome.runtime.getContexts({contextTypes:["OFFSCREEN_DOCUMENT"]})), []);
+    return { stagingRemoved:true, offscreenClosed:true, rulesRemoved:true };
+  });
 } catch (error) {
   report.status = "fail";
   report.error = error?.stack || String(error);

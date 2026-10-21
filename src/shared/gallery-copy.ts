@@ -1,33 +1,33 @@
 import { messageLanguage } from "./messages";
 import type { SupportedLanguage } from "./language";
 
+// New ZIP and discreet-entry copy authored by Gemini 3.8 Flash, draft-only bridge requests 01/02.
 export const galleryCopyEntries = {
   siteLabel: {
-    en: "Hitomi Gallery",
-    "zh-TW": "Hitomi 圖庫",
-    ja: "Hitomi ギャラリー",
+    en: "Gallery",
+    "zh-TW": "圖庫",
+    ja: "ギャラリー",
   },
   introduction: {
-    en: "Supports Katfile free downloads and Hitomi single galleries.\nQueueCat manages the queue while Chrome saves files locally.\nCurrently a local Chrome test build requiring manual loading; full site workflows are still being verified.",
+    en: "Leave the waiting to the cat.\nBatch paste Katfile links; QueueCat manages the queue and hands downloads to Chrome.\nCurrently a local Chrome test build requiring manual loading; full site workflows are still being verified.",
     "zh-TW":
-      "支援 Katfile 免費檔案與 Hitomi 單本圖庫。\n貓貓替你排隊等候，檔案交由 Chrome 儲存在本機。\n目前為 Chrome 本機測試版，需手動載入；完整實站流程仍在驗證中。",
-    ja: "Katfile 無料ダウンロードおよび Hitomi 単体ギャラリーに対応。\n猫猫が順番待ちを管理し、Chrome がローカルに保存します。\n現在は手動読み込みが必要な Chrome ローカルテスト版であり、実サイトでの完全な動作フローを検証中です。",
+      "把等待，交給貓貓。\n批次貼上 Katfile 網址，貓貓依序排隊、等網站放行，檔案交由 Chrome 儲存在本機。\n目前為 Chrome 本機測試版，需手動載入；完整實站流程仍在驗證中。",
+    ja: "待ち時間は、猫猫におまかせ。\nKatfile のURLを一括貼り付け。猫猫が順番待ちをし、Chrome がローカルに保存します。\n現在は手動読み込みが必要な Chrome ローカルテスト版であり、実サイトでの完全な動作フローを検証中です。",
   },
   linkLabel: {
-    en: "Katfile or Hitomi URL",
-    "zh-TW": "Katfile 或 Hitomi 下載網址",
-    ja: "Katfile または Hitomi ダウンロード URL",
+    en: "Download URL",
+    "zh-TW": "下載網址",
+    ja: "ダウンロード URL",
   },
   addHint: {
-    en: "Supports Katfile download links or Hitomi single gallery URLs",
-    "zh-TW": "支援 Katfile 檔案或 Hitomi 單本圖庫網址",
-    ja: "Katfile ファイルまたは Hitomi 単体ギャラリーの URL に対応",
+    en: "Paste download URLs, one per line or within a block of text.",
+    "zh-TW": "貼上下載網址，每行一個；整段文字也可以。",
+    ja: "ダウンロードURLを1行に1つ貼り付けてください（テキスト全文でも可）。",
   },
   addPlaceholder: {
-    en: "https://katfile.com/123456789abc/sample-archive.zip\nhttps://hitomi.la/reader/1234567.html",
-    "zh-TW":
-      "https://katfile.com/123456789abc/sample-archive.zip\nhttps://hitomi.la/reader/1234567.html",
-    ja: "https://katfile.com/123456789abc/sample-archive.zip\nhttps://hitomi.la/reader/1234567.html",
+    en: "https://katfile.biz/abcdefghijkl/example.rar.html",
+    "zh-TW": "https://katfile.biz/abcdefghijkl/example.rar.html",
+    ja: "https://katfile.biz/abcdefghijkl/example.rar.html",
   },
   album: {
     en: "Gallery Album",
@@ -114,9 +114,9 @@ export const galleryCopyEntries = {
     ja: "ネットワーク接続に失敗しました。後ほど再試行してください（完了したページは保持されます）",
   },
   retryTip: {
-    en: "Retrying resumes from unfinished pages while keeping completed ones",
-    "zh-TW": "重試時會從未完成的頁面繼續下載，保留已完成的頁面",
-    ja: "再試行時は完了したページを保持し、未完了のページから再開します",
+    en: "Retrying verifies existing staged files and resumes unfinished pages",
+    "zh-TW": "重試會核對既有暫存，並接續收集未完成頁面",
+    ja: "再試行時は既存の一時ファイルを確認し、未完了ページから再開します",
   },
   resolving: {
     en: "Resolving gallery images ⸜(*ˊᗜˋ*)⸝",
@@ -124,14 +124,14 @@ export const galleryCopyEntries = {
     ja: "画像リストを解析中 ⸜(*ˊᗜˋ*)⸝",
   },
   folder: {
-    en: "Gallery Folder",
-    "zh-TW": "圖庫資料夾",
-    ja: "ギャラリーフォルダ",
+    en: "ZIP Archive",
+    "zh-TW": "ZIP 壓縮檔",
+    ja: "ZIP アーカイブ",
   },
   imageFormat: {
-    en: "Saved into a dedicated folder per gallery with WebP images ordered by page number",
-    "zh-TW": "每本圖庫獨立資料夾，圖片依頁碼儲存為 WebP",
-    ja: "作品ごとに個別フォルダへ保存され、画像はページ順の WebP 形式になります",
+    en: "Single ZIP per album containing WebP images ordered by page number",
+    "zh-TW": "一本一個 ZIP，內含依頁碼排序的 WebP 圖片",
+    ja: "作品ごとに1つのZIP、ページ順のWebP画像を収録",
   },
   gallerySource: {
     en: "Open Gallery Source",
@@ -139,14 +139,59 @@ export const galleryCopyEntries = {
     ja: "元のギャラリーを開く",
   },
   extractionNotSupported: {
-    en: "Auto-extract not supported for image galleries",
-    "zh-TW": "圖庫為純圖片下載，不支援自動解壓",
-    ja: "画像ギャラリーのため自動解凍には非対応です",
+    en: "This task outputs a single ZIP; auto-extract is not supported here",
+    "zh-TW": "此任務輸出為單本 ZIP，不在此自動解壓縮",
+    ja: "このタスクは単一ZIPを出力するため、自動解凍は行われません",
   },
   downloadTip: {
-    en: "Images are fetched sequentially in the background; please respect site limits.",
-    "zh-TW": "圖片會在背景依序下載；請遵守網站使用限制。",
-    ja: "画像はバックグラウンドで順番にダウンロードされます。サイトの利用制限にご配慮ください。",
+    en: "Images are collected sequentially in the background and packaged into a ZIP once complete.",
+    "zh-TW": "圖片會在背景依序收集，收齊後打包為單本 ZIP。",
+    ja: "画像はバックグラウンドで順番に収集され、揃ったあとに作品ごとのZIPにまとめられます。",
+  },
+  collecting: {
+    en: "Collecting images ฅ(・ω・)ฅ",
+    "zh-TW": "正在收集圖片 ฅ(・ω・)ฅ",
+    ja: "画像を収集中 ฅ(・ω・)ฅ",
+  },
+  packing: {
+    en: "Packaging ZIP ₍ᐢ.ˬ.ᐢ₎",
+    "zh-TW": "正在打包 ZIP ₍ᐢ.ˬ.ᐢ₎",
+    ja: "ZIP をパッケージ中 ₍ᐢ.ˬ.ᐢ₎",
+  },
+  zipReady: {
+    en: "ZIP ready, waiting for Chrome",
+    "zh-TW": "ZIP 已備妥，等候 Chrome 存檔",
+    ja: "ZIP 準備完了、Chrome の保存待機中",
+  },
+  zipSaving: {
+    en: "Chrome is saving ZIP ✨",
+    "zh-TW": "Chrome 正在儲存 ZIP ✨",
+    ja: "Chrome で ZIP を保存中 ✨",
+  },
+  zipComplete: {
+    en: "ZIP download complete ✨",
+    "zh-TW": "ZIP 下載完成 ✨",
+    ja: "ZIP ダウンロード完了 ✨",
+  },
+  stagedProgress: {
+    en: "{done} / {total} pages staged",
+    "zh-TW": "已暫存 {done} / {total} 頁",
+    ja: "{done} / {total} ページ一時保存済み",
+  },
+  zipLimit: {
+    en: "Exceeds 2GiB limit or insufficient storage space",
+    "zh-TW": "超過 2GiB 限制或儲存空間不足",
+    ja: "2GiB 制限超過または空き容量不足",
+  },
+  stagingMissing: {
+    en: "Staged files missing or unverified; needs recollection",
+    "zh-TW": "暫存遺失或無法核對，需重新收集圖片",
+    ja: "一時ファイルが見つからないか確認できないため、再収集が必要です",
+  },
+  legacyFormat: {
+    en: "This legacy task saves as separate images; re-add to create a ZIP",
+    "zh-TW": "此舊任務仍按單張圖片存檔；重新加入可建立 ZIP",
+    ja: "この古いタスクは単体画像として保存されます。再追加すると ZIP になります",
   },
 } as const satisfies Record<string, Record<SupportedLanguage, string>>;
 
