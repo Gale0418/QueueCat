@@ -32,5 +32,5 @@
 
 | QC-E8 | Hitomi 單本圖庫佇列 | Epic | - | P1 | Review | Codex | - | 本機source驗收完成；保留實站與手動重載待驗 | 150 tests/type/build；圖庫6與Katfile23隔離檢查通過 | - | verification,closeout | 單本一任務、固定快照WebP資料夾；實站未驗不宣稱正式release |
 | QC-T14 | 圖庫網址與metadata路由 | Task | QC-E8 | P1 | Review | Codex | - | 保留站方路由改版後的更新需求 | 官方技術來源與JSON-only解析、9個adapter測試、安全host/hash/timeout | - | verification | 未複製GPL extractor；不下載示例圖片；57檔最終來源快照 |
-| QC-T15 | 持久圖庫游標與Chrome下載 | Task | QC-E8 | P1 | Review | Codex | QC-T14 | 真實站台傳輸另待觀察 | 19個engine測試；逐頁真Chrome、pause/resume、重啟、防重送、確認forget不取消 | - | verification | 僅重試或停在兩頁間續排重核manifest；保留Katfile及Rust行為 |
+| QC-T15 | 持久圖庫游標與Chrome下載 | Task | QC-E8 | P1 | Review | Codex | QC-T14 | 修復實站來源標頭／傳輸相容性後再驗 | 實站兩本各12頁辨識；首張皆SERVER_BAD_CONTENT；原19個engine測試與中性圖庫流程通過 | - | verification | 實站未通過；DNR與直接Referer實驗未奏效已撤回；詳hitomi-live-20261021.md |
 | QC-T16 | 三語介面、完整隔離與交付 | Task | QC-E8 | P1 | Review | Codex | QC-T14,QC-T15 | 本機來源與套件驗收閉合；本人閒置重載新權限後觀察實站 | Gemini 3.8Flash 28keys；6/23隔離；Rabbit21檔3issues修後10檔0；三席delta與獨立仲裁閉合 | - | verification,closeout | README/產品介紹已更新；真站、原生popup與discarded診斷仍有明示缺口 |
