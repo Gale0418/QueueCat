@@ -163,6 +163,8 @@ describe("publishExtension", () => {
         "alarms",
         "notifications",
         "nativeMessaging",
+        "offscreen",
+        "declarativeNetRequestWithHostAccess",
       ],
       host_permissions: JSON.parse(
         await readFile(
@@ -178,6 +180,14 @@ describe("publishExtension", () => {
     );
     await writeFile(resolve(staging, "background.js"), "// background");
     await writeFile(resolve(staging, "content.js"), "// standalone content");
+    await writeFile(
+      resolve(staging, "gallery-offscreen.html"),
+      "<!doctype html><script src='gallery-offscreen.js'></script>",
+    );
+    await writeFile(
+      resolve(staging, "gallery-offscreen.js"),
+      "// offscreen blob bridge",
+    );
     await writeFile(
       resolve(staging, "entries/popup.html"),
       '<img src="../assets/cat-happy-v3.png">',

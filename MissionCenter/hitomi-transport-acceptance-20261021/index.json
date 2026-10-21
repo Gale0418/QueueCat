@@ -1,0 +1,149 @@
+{
+  "snapshot": "QC-HITOMI-TRANSPORT-FINAL-02",
+  "route": "critic_full",
+  "loopPolicy": "converge",
+  "recordkeeper": "Codex root; summaries below record actual independent agent returns",
+  "reviewers": [
+    {
+      "agent": "/root/review_blob_queue",
+      "model": "gpt-6-luna",
+      "effort": "high",
+      "scope": "queue serialization/pause/recovery/pruning",
+      "outcome": "no verified unresolved issues",
+      "initialWithdrawn": "active preparing removal scenario rejected by real command guard"
+    },
+    {
+      "agent": "/root/review_blob_security",
+      "model": "gpt-6-luna",
+      "effort": "high",
+      "scope": "offscreen sender/header/resource lifetime/package",
+      "outcome": "timeout and cleanup paths repaired; final delta no verified unresolved P0/P1/P2"
+    },
+    {
+      "agent": "/root/transport_final_integration",
+      "model": "gpt-6-luna",
+      "effort": "high",
+      "scope": "final page ordering/bytes, isolation and honest coverage",
+      "outcome": "24 actual files independently rehashed; no verified unresolved P0/P1/P2",
+      "report": "critic-integration-final.json"
+    }
+  ],
+  "findings": [
+    {
+      "id": "TRANSPORT-IPC-TIMEOUT",
+      "severity": "P2",
+      "outcome": "fixed and tested",
+      "repair": "cancel per-request claims; late fetch with no claims does not allocate Blob"
+    },
+    {
+      "id": "TRANSPORT-DNR-CLEANUP",
+      "severity": "P2",
+      "outcome": "fixed and tested",
+      "repair": "bounded removal retry; cancel Blob on permanent failure; exact owned URL rule bounds residual API failure"
+    },
+    {
+      "id": "RABBIT-ORPHAN-SOURCE",
+      "severity": "major",
+      "outcome": "fixed and tested",
+      "repair": "new-source prepare prunes orphan claims/blobs and aborts old fetches; same source reused; pending handoff never prepares"
+    },
+    {
+      "id": "RABBIT-RUNNER-PATHS",
+      "severity": "minor",
+      "outcome": "fixed and tested",
+      "repair": "remove machine defaults; optional explicit paths or package import"
+    }
+  ],
+  "codeRabbit": [
+    {
+      "file": "coderabbit-1.ndjson",
+      "issues": 2,
+      "files": 17
+    },
+    {
+      "file": "coderabbit-2.ndjson",
+      "issues": 0,
+      "files": 17
+    }
+  ],
+  "tests": {
+    "files": 18,
+    "passed": 165,
+    "typecheck": "passed",
+    "build": "passed",
+    "fixture": 6,
+    "katfile": 23,
+    "live": 24
+  },
+  "outstandingValidatedFindings": 0,
+  "p0": 0,
+  "p1": 0,
+  "p2": 0,
+  "localImplementation": "passed",
+  "twoGalleryLiveDownload": "passed",
+  "generalRelease": "limited to tested galleries; personal Chrome reload still needed",
+  "limits": [
+    "Forced extension worker replacement during fetch not observed: unknown, not passed",
+    "Persistence recovery unit-tested; arbitrary browser lifecycle/CAPTCHA/native toolbar popup not fully covered",
+    "If Chrome DNR API permanently rejects cleanup, only the exact owned image header rule may remain until next request/session end"
+  ],
+  "evidence": {
+    "live": "artifacts/gallery-live/2026-10-21T08-23-18-592Z/report.json",
+    "fixture": "artifacts/gallery-browser/2026-10-21T08-22-40-833Z/report.json",
+    "katfile": "artifacts/browser-acceptance/2026-10-21T08-24-46-964Z/report.json"
+  },
+  "verification": "verification.json",
+  "authorization": "Prior direct user authorization: independent strict experts, CodeRabbit code upload, quota 3/hour and 150 files/run; budget overages permitted with task priority. Final integration and arbiter seats each capped at 2000 response tokens, 10 tools, 4 minutes.",
+  "arbiter": {
+    "agent": "/root/transport_final_arbiter",
+    "model": "gpt-6-luna",
+    "effort": "high",
+    "report": "arbiter-final.json",
+    "outcome": "implementation and two-gallery live passed; general release limited"
+  },
+  "lanes": [
+    {
+      "id": "queue-reliability",
+      "kind": "source",
+      "required": true,
+      "seatId": "/root/review_blob_queue",
+      "coverageStatus": "covered",
+      "evidenceLocator": "snapshot.json"
+    },
+    {
+      "id": "transport-security",
+      "kind": "source/package",
+      "required": true,
+      "seatId": "/root/review_blob_security",
+      "coverageStatus": "covered",
+      "evidenceLocator": "snapshot.json"
+    },
+    {
+      "id": "two-gallery-live",
+      "kind": "journey/files",
+      "required": true,
+      "seatId": "/root/transport_final_integration",
+      "coverageStatus": "covered",
+      "evidenceLocator": "live-final.json"
+    },
+    {
+      "id": "full-background-lifecycle",
+      "kind": "browser lifecycle",
+      "required": false,
+      "seatId": "/root/transport_final_integration",
+      "coverageStatus": "unknown",
+      "evidenceLocator": "fixture-final.json",
+      "reason": "CDP stop calls did not yield a confirmed replacement worker; full release claim excluded"
+    }
+  ],
+  "postRabbitDelta": {
+    "files": [
+      "tests/browser/gallery.mjs"
+    ],
+    "reason": "Correct unsupported restart coverage claim in harness after two observed failures",
+    "validation": "final fixture 6 passed; worker replacement explicitly unknown; product build unchanged"
+  },
+  "stopCondition": "all_findings_resolved",
+  "routeOutcome": "limited",
+  "routeOutcomeReason": "Requested two-gallery implementation and live evidence passed; general lifecycle/native popup coverage is not a full release claim. Tasks remain Review."
+}

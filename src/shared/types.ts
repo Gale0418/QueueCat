@@ -56,6 +56,7 @@ export interface QueueItem {
     at: number;
     step?: "download1" | "download2";
     expectedUrl?: string;
+    sourceImageUrl?: string;
   };
   events: QueueEvent[];
 }

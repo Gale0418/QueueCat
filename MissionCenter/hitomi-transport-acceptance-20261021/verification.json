@@ -1,0 +1,28 @@
+{
+  "verifiedAt": "2026-10-21T08:29:01.638Z",
+  "sourceFiles": 17,
+  "rootBuildFiles": 19,
+  "copies": {
+    "live": {
+      "exactFiles": 19,
+      "manifestOnlyNameDiffers": false,
+      "profileRemoved": true
+    },
+    "fixture": {
+      "exactFiles": 19,
+      "manifestOnlyNameDiffers": false,
+      "profileRemoved": true
+    },
+    "katfile": {
+      "exactFiles": 18,
+      "manifestOnlyNameDiffers": true,
+      "profileRemoved": true
+    }
+  },
+  "livePages": 24,
+  "perPageBytesRehashed": true,
+  "archive": {
+    "bytes": 7490065,
+    "sha256": "402621675b28ef66dbcb9b44a6bba8dbabd6e3cbf5e6a9d5e02a1fe92d09e355"
+  }
+}

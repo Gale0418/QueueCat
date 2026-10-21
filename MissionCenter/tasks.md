@@ -30,7 +30,7 @@
 | QC-T12 | 密碼輸入、分卷排隊與三語狀態 | Task | QC-E7 | P1 | Review | Codex | - | 佇列與UX席03閉合；實站整合保留Review | 114TS及修後定向；取消group/expiry空密碼/closest scope/watchdog | - | verification | Gemini三語文案；純下載不需小幫手 |
 | QC-T13 | 隔離瀏覽器、套件與文件 | Task | QC-E7 | P1 | Review | Codex | QC-T11,QC-T12 | 10/21正式helper已註冊；本人重載後確認就緒；保留實站Review | Chrome06 pass/cleanup全true；2ZIP/CRC/hash；Rabbit3輪7issues修補 | - | verification,closeout | 舊run3兩暫存目錄清理遭policy拒絕已如實保留 |
 
-| QC-E8 | Hitomi 單本圖庫佇列 | Epic | - | P1 | Review | Codex | - | 本機source驗收完成；保留實站與手動重載待驗 | 150 tests/type/build；圖庫6與Katfile23隔離檢查通過 | - | verification,closeout | 單本一任務、固定快照WebP資料夾；實站未驗不宣稱正式release |
+| QC-E8 | Hitomi 單本圖庫佇列 | Epic | - | P1 | Review | Codex | - | 兩本實站24頁通過；本人閒置重載新傳輸權限 | 165 tests/type/build；圖庫6項；逐頁獨立SHA及串行時序核對 | - | verification,closeout | 單本一任務、固定快照WebP資料夾；其他圖庫與原生popup未全面驗證 |
 | QC-T14 | 圖庫網址與metadata路由 | Task | QC-E8 | P1 | Review | Codex | - | 保留站方路由改版後的更新需求 | 官方技術來源與JSON-only解析、9個adapter測試、安全host/hash/timeout | - | verification | 未複製GPL extractor；不下載示例圖片；57檔最終來源快照 |
-| QC-T15 | 持久圖庫游標與Chrome下載 | Task | QC-E8 | P1 | Review | Codex | QC-T14 | 修復實站來源標頭／傳輸相容性後再驗 | 實站兩本各12頁辨識；首張皆SERVER_BAD_CONTENT；原19個engine測試與中性圖庫流程通過 | - | verification | 實站未通過；DNR與直接Referer實驗未奏效已撤回；詳hitomi-live-20261021.md |
-| QC-T16 | 三語介面、完整隔離與交付 | Task | QC-E8 | P1 | Review | Codex | QC-T14,QC-T15 | 本機來源與套件驗收閉合；本人閒置重載新權限後觀察實站 | Gemini 3.8Flash 28keys；6/23隔離；Rabbit21檔3issues修後10檔0；三席delta與獨立仲裁閉合 | - | verification,closeout | README/產品介紹已更新；真站、原生popup與discarded診斷仍有明示缺口 |
+| QC-T15 | 持久圖庫游標與Chrome下載 | Task | QC-E8 | P1 | Review | Codex | QC-T14 | 觀察本人Chrome更新後的實際使用 | 離屏取得後持久Blob交接；兩本各12頁完成，24頁與獨立來源SHA相符 | - | verification | 32MiB/60s上限；來源規則owned/exactURL；claim/逾時/孤兒回收；詳hitomi-transport-20261021.md |
+| QC-T16 | 三語介面、完整隔離與交付 | Task | QC-E8 | P1 | Review | Codex | QC-T14,QC-T15 | 本人閒置重載offscreen與請求規則權限 | Gemini原28keys保留；新增傳輸Rabbit17檔2issues修後17檔0；獨立可靠性與安全delta閉合 | - | verification,closeout | 兩本實站通過；未能確認CDP實際替換背景worker，該覆蓋如實unknown |

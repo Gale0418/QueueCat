@@ -197,6 +197,91 @@ function handoffState(at: number, expectedUrl: string): AppState {
 }
 
 describe("Hitomi 圖庫佇列引擎", () => {
+  const blob =
+    "blob:chrome-extension://queuecat-test/12345678-1234-1234-1234-123456789abc";
+  it("persists the source and exact owned Blob before Chrome handoff, then releases after completion", async () => {
+    const f = fixture();
+    const released: string[] = [];
+    f.ports.gallery!.prepare = async (url) => {
+      expect(url).toBe(imageUrlFor(baseManifest.images[0]));
+      expect(f.options).toHaveLength(0);
+      return blob;
+    };
+    f.ports.gallery!.release = async (url) => {
+      released.push(url);
+    };
+    await addAndStart(f);
+    await f.engine.handleRequest({ type: "QC_GET" });
+    expect(f.state?.items[0].action).toMatchObject({
+      expectedUrl: blob,
+      sourceImageUrl: imageUrlFor(baseManifest.images[0]),
+    });
+    expect(f.options[0].url).toBe(blob);
+    await f.engine.command({ kind: "pause" });
+    await complete(f, 0);
+    expect(released).toEqual([blob]);
+    expect(f.state?.items[0].gallery?.completed).toBe(1);
+    expect(f.options).toHaveLength(1);
+  });
+  it("does not create a download when pause arrives during image preparation", async () => {
+    const f = fixture();
+    let ready!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    let finish!: (url: string) => void;
+    const pending = new Promise<string>((resolve) => {
+      finish = resolve;
+    });
+    const released: string[] = [];
+    f.ports.gallery!.prepare = async () => {
+      ready();
+      return pending;
+    };
+    f.ports.gallery!.release = async (url) => {
+      released.push(url);
+    };
+    await f.engine.command({ kind: "add", urls: [source] });
+    const started = f.engine.command({ kind: "start" });
+    await entered;
+    const paused = f.engine.command({ kind: "pause" });
+    await paused;
+    expect(f.state?.running).toBe(false);
+    expect(f.options).toHaveLength(0);
+    finish(blob);
+    await Promise.all([started, paused]);
+    await f.engine.handleRequest({ type: "QC_GET" });
+    expect(f.options).toHaveLength(0);
+    expect(f.state?.running).toBe(false);
+    expect(f.state?.items[0].status).toBe("queued");
+    expect(released).toEqual([blob]);
+  });
+  it("recovers an owned Blob handoff after worker restart without sending again", async () => {
+    const f = fixture();
+    let prepared = 0;
+    f.ports.gallery!.prepare = async () => {
+      prepared++;
+      return blob;
+    };
+    await addAndStart(f);
+    await f.engine.handleRequest({ type: "QC_GET" });
+    const item = f.state!.items[0];
+    item.downloadId = undefined;
+    item.status = "handoff";
+    await new QueueEngine(f.ports).onStartup();
+    expect(f.options).toHaveLength(1);
+    expect(prepared).toBe(1);
+    expect(f.state?.items[0].downloadId).toBe(f.downloads[0].id);
+  });
+  it("rejects a Blob from another extension without launching Chrome", async () => {
+    const f = fixture();
+    f.ports.gallery!.prepare = async () =>
+      blob.replace("queuecat-test", "other-extension");
+    await addAndStart(f);
+    await f.engine.handleRequest({ type: "QC_GET" });
+    expect(f.state?.items[0].status).toBe("blocked");
+    expect(f.options).toHaveLength(0);
+  });
   it.each([true, false])(
     "keeps source focus for blocked metadata and Katfile items (gallery=%s)",
     async (gallery) => {

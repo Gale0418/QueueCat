@@ -1,5 +1,6 @@
 import { QueueEngine, type DownloadRecord } from "./engine";
 import { createHitomiClient } from "./hitomi";
+import { createGalleryTransport } from "./gallery-transport";
 import type { Request } from "../shared/types";
 import { currentLanguage, type LanguagePreference } from "../shared/language";
 import { translateMessage } from "../shared/messages";
@@ -8,7 +9,7 @@ import { getLocale } from "../shared/locales";
 import type { NativeRequest, NativeReply } from "../shared/extraction";
 
 const ports = {
-  gallery: createHitomiClient(),
+  gallery: { ...createHitomiClient(), ...createGalleryTransport() },
   native: {
     request(message: NativeRequest): Promise<NativeReply> {
       return new Promise((resolve, reject) => {
@@ -154,6 +155,8 @@ const runBackground = (operation: Promise<unknown>) => {
 // MV3 listeners register synchronously at module evaluation; async reply is wrapped explicitly.
 chrome.runtime.onMessage.addListener(
   (message: Request, sender, sendResponse) => {
+    if ((message as { type?: string })?.type === "QC_GALLERY_TRANSPORT")
+      return false;
     if (
       !message ||
       typeof message !== "object" ||

@@ -1,0 +1,146 @@
+{
+  "snapshotId": "QC-HITOMI-TRANSPORT-FINAL-02",
+  "createdAt": "2026-10-21T08:29:01.431Z",
+  "baseCommit": "b4c82bf7fe3ca9fc243db392b62ea13813b6f4cf",
+  "entries": {
+    ".gitignore": {
+      "sha256": "9918dc14ada2ed1677f050b73cfc496230052bbe059fc1de37894bd9b9de5b39"
+    },
+    "package.json": {
+      "sha256": "3edbd932bf9c3ac3e684ab8252d08418774eff383aa20edc5814dba4f5fe688b"
+    },
+    "public/gallery-offscreen.html": {
+      "sha256": "12af454a351309075d9212018dc0fbbaebbff60545369027a1700465a75e7438"
+    },
+    "public/manifest.json": {
+      "sha256": "221b5c0e533dbe48f3b8fa51a57aba1df011da70c4211c771fed076ab81f5073"
+    },
+    "scripts/build-content.mjs": {
+      "sha256": "1323d6311af787323c37125c45ce7072fea8799827f44cedbb0e527ddcd2f0b8"
+    },
+    "scripts/publish-extension.mjs": {
+      "sha256": "1bb1c1c8b35809ecc98f096ea5a22da4d134568fcec4ad766c0187bd7bcfe525"
+    },
+    "scripts/verify-dist.mjs": {
+      "sha256": "7b8fddf06ff022915368cb7d43daa7c9e8d2f087808eace2d54239db7f16466d"
+    },
+    "src/background/engine.ts": {
+      "sha256": "b7ddcfeca0f5f479c1814bea90b6810c606725e41265034b4d0d5beb36325449"
+    },
+    "src/background/gallery-transport.ts": {
+      "sha256": "80b40b2f94a6ed57676261039b7c7f0f4d1f739786964006c75b7119bf138a31"
+    },
+    "src/background/index.ts": {
+      "sha256": "c5e9a1260a8ac0a65f87ff3d8abca55434abec2f555faed4d01afaacbc7349ec"
+    },
+    "src/offscreen/gallery.ts": {
+      "sha256": "09bf8e70e29f6321a1e5bbace724e1e6edbfc7e9cee4d2ef02c40411d0d5deb3"
+    },
+    "src/shared/types.ts": {
+      "sha256": "2f2d07614dae4e262b90007b93873b1103762daff605cf7d1d08a7ff96780a62"
+    },
+    "tests/browser/gallery.mjs": {
+      "sha256": "a54349f70e43dde6fd23ad8080978ff0d5093dcbf625f00d7bbc1eb9a05689b6"
+    },
+    "tests/browser/live-gallery.mjs": {
+      "sha256": "16a9922ae3c3f77af84f2417c992003e03eb2acb42e50e0d4a50724f13a70cb8"
+    },
+    "tests/gallery-engine.test.ts": {
+      "sha256": "0a35632442e592a1acd173cd75aae677ccc44a3c66b11acfabf3ef9a9d31872b"
+    },
+    "tests/gallery-transport.test.ts": {
+      "sha256": "d6d75b370aef0876e38c46582ef9b90fbfe96e866e255f510fbd43086fd08c70"
+    },
+    "tests/publish.test.mjs": {
+      "sha256": "dc5f26dd16e4ee019c57e72f533b0f10da5912c6a5a71fcc6be7fe5518f03216"
+    }
+  },
+  "build": {
+    "background.js": {
+      "bytes": 200636,
+      "sha256": "570b958c535fb30d2d5c210d1aa9a917b7b225877709ff399e9ec2170d5d6e21"
+    },
+    "content.js": {
+      "bytes": 19855,
+      "sha256": "297b0713d81289900d9541cc15d4c6d88a07944a0c664779008b1401e329fa83"
+    },
+    "gallery-offscreen.html": {
+      "bytes": 223,
+      "sha256": "12af454a351309075d9212018dc0fbbaebbff60545369027a1700465a75e7438"
+    },
+    "gallery-offscreen.js": {
+      "bytes": 11510,
+      "sha256": "81ac43d18b7fb499c7c6f1289104227c43803cc65b7af7a6f8e12739e5e38cf5"
+    },
+    "manager.html": {
+      "bytes": 412,
+      "sha256": "f4fa2a1862766f69430f36df2f2bd383e9adf532aa733d39aac458034363d11b"
+    },
+    "manifest.json": {
+      "bytes": 1473,
+      "sha256": "221b5c0e533dbe48f3b8fa51a57aba1df011da70c4211c771fed076ab81f5073"
+    },
+    "popup.html": {
+      "bytes": 408,
+      "sha256": "fea4826515ec8b1898a0abcb9922f2718c8677c5b94a58aadf32c9f37859e360"
+    },
+    "icons\\128.png": {
+      "bytes": 4912,
+      "sha256": "95c4f13ec8ff45d3dca0c735469f55babc8bc8ddee3115d01cff842e3ea5f1b7"
+    },
+    "icons\\16.png": {
+      "bytes": 549,
+      "sha256": "f7fad3c372a26544ee5c27e6a2c7ba8f5d73a9eec75d184d7dcb71c5963ed5e2"
+    },
+    "icons\\32.png": {
+      "bytes": 1253,
+      "sha256": "90fc65325c4d09bd87d4da2399a9fdb1272030485c72eb63f4f0c44e2319e3c9"
+    },
+    "icons\\48.png": {
+      "bytes": 1900,
+      "sha256": "684af3d0e0df6c706e698983c9f3704be0c6db4af518a5b45f124ac6f641afc6"
+    },
+    "assets\\cat-confused-v3.png": {
+      "bytes": 1558668,
+      "sha256": "ffcdb2154ac56f438e2f0781f72a82cc0fec91e98e32606cbedd25afa3f15bc2"
+    },
+    "assets\\cat-happy-v3.png": {
+      "bytes": 1594401,
+      "sha256": "e0d275480384ae8e6b8404164fd67d707e6152a6d0d0e1528be81b7c4fabf131"
+    },
+    "assets\\cat-sleep-v3.png": {
+      "bytes": 1651136,
+      "sha256": "720c94b6a728d6085a1374f5c6377449e5119a7e4fdae65c3d47b16d2fab8b03"
+    },
+    "assets\\cat-verify-v3.png": {
+      "bytes": 1485039,
+      "sha256": "4e38a0c2be59176b42b763eda382f871d3693f96f067ffaf58c7508c300b9d94"
+    },
+    "assets\\cat-work-v3.png": {
+      "bytes": 1471062,
+      "sha256": "43301369a410e7a40190504c2c672ac1f1236bca7699f5e1db0dd7033d6323ad"
+    },
+    "assets\\main-B9d7b_Ld.css": {
+      "bytes": 26104,
+      "sha256": "546d8c408825bf3d7ecd9c8944b80e2253ee106e988c3772172378735f36ba91"
+    },
+    "assets\\main-Cr0yLzqe.js": {
+      "bytes": 116297,
+      "sha256": "3e4b5955e6362a1f57340c46758a4b7e430e451d32f1f4d9702fba45f4ab6dd7"
+    },
+    "assets\\nunito-sans-latin.woff2": {
+      "bytes": 31076,
+      "sha256": "29e3890496844a9ea81975c52771c587c872b4eb317026422d1995b88d21b57d"
+    }
+  },
+  "archive": {
+    "bytes": 7490065,
+    "sha256": "402621675b28ef66dbcb9b44a6bba8dbabd6e3cbf5e6a9d5e02a1fe92d09e355"
+  },
+  "changesFrom01": {
+    "files": [
+      "tests/browser/gallery.mjs"
+    ],
+    "reason": "Remove unsupported mid-fetch forced-restart assertion; explicitly report worker replacement coverage unknown"
+  }
+}

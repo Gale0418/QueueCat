@@ -80,6 +80,8 @@ export interface EnginePorts {
   gallery?: {
     load(id: string): Promise<GalleryManifest>;
     imageUrl(image: GalleryImage): Promise<string>;
+    prepare?(url: string): Promise<string>;
+    release?(blobUrl: string): Promise<void>;
   };
   alarms: {
     get?(name: string): Promise<{ scheduledTime: number } | undefined>;
@@ -122,6 +124,8 @@ const HITOMI_IMAGE_HOSTS = new Set([
 /** All state transitions and Chrome side effects pass through one serialized queue. */
 export class QueueEngine {
   private tail: Promise<unknown> = Promise.resolve();
+  private pauseEpoch = 0;
+  private galleryPreparations = new Set<string>();
   private state?: AppState;
   private lastSample?: { at: number; bytes: number; id: number };
   private unknownSince = new Map<string, number>();
@@ -248,6 +252,27 @@ export class QueueEngine {
       return false;
     }
   }
+  private validGalleryHandoff(item: QueueItem, image: GalleryImage): boolean {
+    const action = item.action;
+    if (!action?.expectedUrl) return false;
+    if (!action.sourceImageUrl)
+      return this.validGalleryImageUrl(action.expectedUrl, image);
+    const prefix = `blob:chrome-extension://${this.p.extensionId}/`;
+    return (
+      this.validGalleryImageUrl(action.sourceImageUrl, image) &&
+      action.expectedUrl.startsWith(prefix) &&
+      /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(
+        action.expectedUrl.slice(prefix.length),
+      )
+    );
+  }
+  private async releaseGalleryBlob(item: QueueItem): Promise<void> {
+    const url = item.action?.expectedUrl;
+    if (item.action?.sourceImageUrl && url && this.p.gallery?.release) {
+      // A cleanup failure must not turn a completed Chrome download into a retry.
+      await this.p.gallery.release(url).catch(() => undefined);
+    }
+  }
   private async refreshGalleryManifest(
     s: AppState,
     item: QueueItem,
@@ -366,6 +391,7 @@ export class QueueEngine {
     reason: string,
   ): Promise<void> {
     if (isTerminal(item.status)) return;
+    await this.releaseGalleryBlob(item);
     item.status = "failed";
     item.reason = reason;
     this.event(item, `圖庫下載失敗：${reason}`);
@@ -378,9 +404,11 @@ export class QueueEngine {
     item: QueueItem,
     revalidate: boolean,
   ): Promise<void> {
+    const pauseEpoch = this.pauseEpoch;
     const gallery = item.gallery;
     if (
       !gallery ||
+      this.galleryPreparations.has(item.id) ||
       !s.running ||
       (s.activeId !== undefined && s.activeId !== item.id) ||
       item.downloadId !== undefined ||
@@ -433,6 +461,87 @@ export class QueueEngine {
       await this.block(s, item, "Hitomi 圖片網址未通過 HTTPS 網域與 hash 檢查");
       return;
     }
+    if (this.pauseEpoch !== pauseEpoch) {
+      s.running = false;
+      s.activeId = undefined;
+      item.status = "queued";
+      await this.save(s);
+      return;
+    }
+    if (this.p.gallery.prepare && this.pauseEpoch === pauseEpoch) {
+      // Network transfer must not hold the state writer: GET/pause remain
+      // responsive. Only the serialized callback below may create a download.
+      item.status = "preparing";
+      await this.save(s);
+      this.galleryPreparations.add(item.id);
+      const finish = (downloadUrl?: string) =>
+        this.serial(async () => {
+          this.galleryPreparations.delete(item.id);
+          const current = await this.load();
+          const target = current.items.find(
+            (candidate) => candidate.id === item.id,
+          );
+          const currentImage =
+            target?.gallery?.images?.[target.gallery.completed];
+          if (
+            !target ||
+            current.activeId !== item.id ||
+            target.status !== "preparing" ||
+            !currentImage ||
+            !this.validGalleryImageUrl(url, currentImage)
+          ) {
+            if (downloadUrl)
+              await this.p.gallery
+                ?.release?.(downloadUrl)
+                .catch(() => undefined);
+            return;
+          }
+          if (!current.running || this.pauseEpoch !== pauseEpoch) {
+            if (downloadUrl)
+              await this.p.gallery
+                ?.release?.(downloadUrl)
+                .catch(() => undefined);
+            target.status = "queued";
+            current.activeId = undefined;
+            await this.save(current);
+            // A later explicit start may already be queued behind the pause.
+            if (current.running) await this.pump(current);
+            return;
+          }
+          if (!downloadUrl) {
+            await this.failGallery(current, target, "gallery_request_failed");
+            return;
+          }
+          await this.handoffGalleryImage(
+            current,
+            target,
+            currentImage,
+            url,
+            downloadUrl,
+          );
+        });
+      void this.p.gallery
+        .prepare(url)
+        .then(
+          (downloadUrl) => finish(downloadUrl),
+          () => finish(),
+        )
+        .catch((error) =>
+          console.error("QueueCat gallery preparation callback", error),
+        );
+      await this.arm(s);
+      return;
+    }
+    await this.handoffGalleryImage(s, item, image, url, url);
+  }
+  private async handoffGalleryImage(
+    s: AppState,
+    item: QueueItem,
+    image: GalleryImage,
+    url: string,
+    downloadUrl: string,
+  ): Promise<void> {
+    const gallery = item.gallery!;
     const filename = `${gallery.folder}/${String(gallery.completed + 1).padStart(4, "0")}.webp`;
     item.reason = undefined;
     item.status = "handoff";
@@ -440,8 +549,14 @@ export class QueueEngine {
       id: crypto.randomUUID(),
       kind: "download",
       at: this.p.now(),
-      expectedUrl: url,
+      expectedUrl: downloadUrl,
+      ...(downloadUrl !== url ? { sourceImageUrl: url } : {}),
     };
+    if (!this.validGalleryHandoff(item, image)) {
+      await this.releaseGalleryBlob(item);
+      await this.block(s, item, "圖庫圖片交接記錄不完整，請人工核對");
+      return;
+    }
     this.event(
       item,
       `已保存第 ${gallery.completed + 1} 張圖片交接，交由 Chrome 下載`,
@@ -449,7 +564,7 @@ export class QueueEngine {
     await this.save(s);
     try {
       const id = await this.p.downloads.download({
-        url,
+        url: downloadUrl,
         filename,
         conflictAction: "uniquify",
       });
@@ -476,7 +591,7 @@ export class QueueEngine {
     if (
       !action?.expectedUrl ||
       !image ||
-      !this.validGalleryImageUrl(action.expectedUrl, image) ||
+      !this.validGalleryHandoff(item, image) ||
       !Number.isFinite(action.at)
     ) {
       await this.block(s, item, "圖庫圖片交接記錄不完整，請人工核對");
@@ -533,7 +648,7 @@ export class QueueEngine {
     if (
       !expectedImage ||
       !item.action?.expectedUrl ||
-      !this.validGalleryImageUrl(item.action.expectedUrl, expectedImage) ||
+      !this.validGalleryHandoff(item, expectedImage) ||
       download.url !== item.action.expectedUrl ||
       download.byExtensionId !== this.p.extensionId
     ) {
@@ -565,6 +680,7 @@ export class QueueEngine {
       return;
     }
     if (download.state === "complete") {
+      await this.releaseGalleryBlob(item);
       const gallery = item.gallery;
       gallery.lastDownloadId = download.id;
       gallery.completed = Math.min(
@@ -895,6 +1011,7 @@ export class QueueEngine {
     });
   }
   command(command: Command): Promise<AppState> {
+    if (command.kind === "pause") this.pauseEpoch++;
     return this.serial(() => this.doCommand(command));
   }
   private async doCommand(c: Command): Promise<AppState> {
@@ -1089,6 +1206,7 @@ export class QueueEngine {
         // Forgetting uncertain bookkeeping never retries, cancels, deletes files,
         // or starts the following item. The user must inspect Chrome first.
         if (forgetUncertain) s.running = false;
+        if (item.gallery) await this.releaseGalleryBlob(item);
         s.items = s.items.filter((x) => x.id !== c.id);
         const canceled = (s.extractions || []).filter(
           (g) => g.itemIds.includes(c.id) && g.status !== "complete",

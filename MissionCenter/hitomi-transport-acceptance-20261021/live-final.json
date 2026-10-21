@@ -1,0 +1,714 @@
+{
+  "startedAt": "2026-10-21T08:23:18.592Z",
+  "status": "pass",
+  "ids": [
+    "4270386",
+    "4270387"
+  ],
+  "checks": [
+    {
+      "name": "distinct galleries added in order without auto-start",
+      "pass": true
+    },
+    {
+      "name": "all pages match metadata ordering and independently fetched source bytes",
+      "pass": true,
+      "count": 24
+    },
+    {
+      "name": "strictly serial Chrome timestamps and no idle offscreen/header rules",
+      "pass": true
+    }
+  ],
+  "transitions": [
+    {
+      "at": "2026-10-21T08:23:27.236Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "preparing",
+          "completed": 0,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:29.267Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "downloading",
+          "completed": 0,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:30.280Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "preparing",
+          "completed": 1,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:31.299Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "downloading",
+          "completed": 1,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:32.325Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "downloading",
+          "completed": 2,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:33.339Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "downloading",
+          "completed": 3,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:34.351Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "preparing",
+          "completed": 4,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:35.372Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "downloading",
+          "completed": 5,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:36.388Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "downloading",
+          "completed": 6,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:37.399Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "preparing",
+          "completed": 8,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:38.429Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "downloading",
+          "completed": 9,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:39.440Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "preparing",
+          "completed": 11,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "queued",
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:40.457Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "preparing",
+          "completed": 0,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:41.494Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "preparing",
+          "completed": 2,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:42.510Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "preparing",
+          "completed": 3,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:43.528Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "preparing",
+          "completed": 5,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:44.551Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "downloading",
+          "completed": 6,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:45.591Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "preparing",
+          "completed": 8,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:46.616Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "downloading",
+          "completed": 8,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:47.661Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "downloading",
+          "completed": 10,
+          "total": 12
+        }
+      ]
+    },
+    {
+      "at": "2026-10-21T08:23:48.723Z",
+      "items": [
+        {
+          "id": "4270386",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        },
+        {
+          "id": "4270387",
+          "status": "complete",
+          "completed": 12,
+          "total": 12
+        }
+      ]
+    }
+  ],
+  "build": {
+    "background.js": "570b958c535fb30d2d5c210d1aa9a917b7b225877709ff399e9ec2170d5d6e21",
+    "content.js": "297b0713d81289900d9541cc15d4c6d88a07944a0c664779008b1401e329fa83",
+    "gallery-offscreen.html": "12af454a351309075d9212018dc0fbbaebbff60545369027a1700465a75e7438",
+    "gallery-offscreen.js": "81ac43d18b7fb499c7c6f1289104227c43803cc65b7af7a6f8e12739e5e38cf5",
+    "manager.html": "f4fa2a1862766f69430f36df2f2bd383e9adf532aa733d39aac458034363d11b",
+    "manifest.json": "221b5c0e533dbe48f3b8fa51a57aba1df011da70c4211c771fed076ab81f5073",
+    "popup.html": "fea4826515ec8b1898a0abcb9922f2718c8677c5b94a58aadf32c9f37859e360",
+    "icons\\128.png": "95c4f13ec8ff45d3dca0c735469f55babc8bc8ddee3115d01cff842e3ea5f1b7",
+    "icons\\16.png": "f7fad3c372a26544ee5c27e6a2c7ba8f5d73a9eec75d184d7dcb71c5963ed5e2",
+    "icons\\32.png": "90fc65325c4d09bd87d4da2399a9fdb1272030485c72eb63f4f0c44e2319e3c9",
+    "icons\\48.png": "684af3d0e0df6c706e698983c9f3704be0c6db4af518a5b45f124ac6f641afc6",
+    "assets\\cat-confused-v3.png": "ffcdb2154ac56f438e2f0781f72a82cc0fec91e98e32606cbedd25afa3f15bc2",
+    "assets\\cat-happy-v3.png": "e0d275480384ae8e6b8404164fd67d707e6152a6d0d0e1528be81b7c4fabf131",
+    "assets\\cat-sleep-v3.png": "720c94b6a728d6085a1374f5c6377449e5119a7e4fdae65c3d47b16d2fab8b03",
+    "assets\\cat-verify-v3.png": "4e38a0c2be59176b42b763eda382f871d3693f96f067ffaf58c7508c300b9d94",
+    "assets\\cat-work-v3.png": "43301369a410e7a40190504c2c672ac1f1236bca7699f5e1db0dd7033d6323ad",
+    "assets\\main-B9d7b_Ld.css": "546d8c408825bf3d7ecd9c8944b80e2253ee106e988c3772172378735f36ba91",
+    "assets\\main-Cr0yLzqe.js": "3e4b5955e6362a1f57340c46758a4b7e430e451d32f1f4d9702fba45f4ab6dd7",
+    "assets\\nunito-sans-latin.woff2": "29e3890496844a9ea81975c52771c587c872b4eb317026422d1995b88d21b57d"
+  },
+  "downloads": [
+    {
+      "galleryId": "4270386",
+      "page": 1,
+      "sourceHash": "e72ada9b86f223f1b6bb371b6401d6dc85e5f79e775743f970084ef3fc366a38",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0001.webp",
+      "bytes": 146292,
+      "sha256": "e5dab4efaae21914e6566ca853905b76b9e3d51124ebee0b693e9d48e9777862",
+      "independentSha256": "e5dab4efaae21914e6566ca853905b76b9e3d51124ebee0b693e9d48e9777862",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:28.775Z",
+      "endTime": "2026-10-21T08:23:29.368Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 2,
+      "sourceHash": "301cedddc85d35222f32d1466acf237ada2604115f4dbcd515a0b2e4cdadfe41",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0002.webp",
+      "bytes": 241990,
+      "sha256": "5dbc2abdc197b87481471b1548d52489797ee231458760ce112cbca0ba469a61",
+      "independentSha256": "5dbc2abdc197b87481471b1548d52489797ee231458760ce112cbca0ba469a61",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:30.925Z",
+      "endTime": "2026-10-21T08:23:31.480Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 3,
+      "sourceHash": "62201c430efaeba36d73a9e8efb7009edc4ecaec2ebbd0692f18f966294d56f1",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0003.webp",
+      "bytes": 226986,
+      "sha256": "5139900d62718c715d2c15f8f05414b8c90d93f5650b1b7c739342a5e51d1c11",
+      "independentSha256": "5139900d62718c715d2c15f8f05414b8c90d93f5650b1b7c739342a5e51d1c11",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:31.955Z",
+      "endTime": "2026-10-21T08:23:32.658Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 4,
+      "sourceHash": "0ae0ee6e5c04ce9ca5c03737cd147ec0198f1651ee623fdad513505947b4f20f",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0004.webp",
+      "bytes": 251162,
+      "sha256": "280589ef484321dda80f1ba9512f7682c552748a562af7e4a206d20410f0663b",
+      "independentSha256": "280589ef484321dda80f1ba9512f7682c552748a562af7e4a206d20410f0663b",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:33.132Z",
+      "endTime": "2026-10-21T08:23:33.951Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 5,
+      "sourceHash": "501a16df9ac7e79fafe3227b6158fdf70bd8b037e7a4e62c3bc5985cf6efc98b",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0005.webp",
+      "bytes": 250834,
+      "sha256": "3fc033e38f680adfd5ac5267f240c067a962a208f88c54ba838aafc8f5ae3a6e",
+      "independentSha256": "3fc033e38f680adfd5ac5267f240c067a962a208f88c54ba838aafc8f5ae3a6e",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:34.417Z",
+      "endTime": "2026-10-21T08:23:34.923Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 6,
+      "sourceHash": "f18372a26cd76fb0b3dccb7eb5646e19b11bd332dd4910cd5dc9f737a6607baa",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0006.webp",
+      "bytes": 220906,
+      "sha256": "3f5ad852cc2cb204470cf6dd4657819ec4425b121195e3074cf69763a7ea3e52",
+      "independentSha256": "3f5ad852cc2cb204470cf6dd4657819ec4425b121195e3074cf69763a7ea3e52",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:35.197Z",
+      "endTime": "2026-10-21T08:23:35.672Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 7,
+      "sourceHash": "ae9fa776d3ecdf6cdb8d9993f26e10b16c17ee21bf14db03f3cb494b032352e6",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0007.webp",
+      "bytes": 174698,
+      "sha256": "dc9f7264a771f2998ee86e806cd98cc7f32a18ffa6105bb64cc6bae66c31660d",
+      "independentSha256": "dc9f7264a771f2998ee86e806cd98cc7f32a18ffa6105bb64cc6bae66c31660d",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:35.937Z",
+      "endTime": "2026-10-21T08:23:36.620Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 8,
+      "sourceHash": "9fee8850a4acb1e91d5bc73485986cf2e2ee4fd93c0f53d0f233bc0503a6bc59",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0008.webp",
+      "bytes": 188410,
+      "sha256": "3aa4b4745440d4078f733ced68ab936a0e1fe4e4aeef21d92188e0553f819ff9",
+      "independentSha256": "3aa4b4745440d4078f733ced68ab936a0e1fe4e4aeef21d92188e0553f819ff9",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:36.905Z",
+      "endTime": "2026-10-21T08:23:37.251Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 9,
+      "sourceHash": "f131cab72add93e3af4604ad66d39c1b9bdd430eccec22dc19164062751fad7a",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0009.webp",
+      "bytes": 232004,
+      "sha256": "2d29ed1e4b4022e9e67e2e1e67ef08125e2a88af5a31ca1bc22dd8dc5f0b9e4f",
+      "independentSha256": "2d29ed1e4b4022e9e67e2e1e67ef08125e2a88af5a31ca1bc22dd8dc5f0b9e4f",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:37.517Z",
+      "endTime": "2026-10-21T08:23:37.985Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 10,
+      "sourceHash": "2abadef4555bc9ce990e90e4760c6e7bfdd65cb9080670e54f4f8b6d5a827983",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0010.webp",
+      "bytes": 202590,
+      "sha256": "7a9a505034216b36398039e9f6d1469c8e69661ac64a5638e69de85d4fc95312",
+      "independentSha256": "7a9a505034216b36398039e9f6d1469c8e69661ac64a5638e69de85d4fc95312",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:38.259Z",
+      "endTime": "2026-10-21T08:23:38.645Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 11,
+      "sourceHash": "84b90f609db1c9a58ad9098cc05982c9a21d95ccc7cb5d2b16a4eaa0bb78306f",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0011.webp",
+      "bytes": 200556,
+      "sha256": "c7130c88c889941d3c4c152df856a0f30a636a0bf2240112499aac351d205f9c",
+      "independentSha256": "c7130c88c889941d3c4c152df856a0f30a636a0bf2240112499aac351d205f9c",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:38.944Z",
+      "endTime": "2026-10-21T08:23:39.260Z"
+    },
+    {
+      "galleryId": "4270386",
+      "page": 12,
+      "sourceHash": "852de1b9c0e8b43a0b7459c3f8b9bc19b4632d2e4342aafbc741e5b555fb869c",
+      "filename": "QueueCat\\Hitomi-4270386-8bf1c4d37ddd-#16_Eaten-trainer Hitomi\\0012.webp",
+      "bytes": 247382,
+      "sha256": "c7c91e4309d6b20d420093903298e6613bef17ccea97328037519fe4f44d3cf3",
+      "independentSha256": "c7c91e4309d6b20d420093903298e6613bef17ccea97328037519fe4f44d3cf3",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:39.527Z",
+      "endTime": "2026-10-21T08:23:39.861Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 1,
+      "sourceHash": "3ae9c0f8f64266f30e69740775e88abec13e1872117a9742f6308fb53b0593a1",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0001.webp",
+      "bytes": 119944,
+      "sha256": "4a027761d4a18c7cff26f7ea035513ccf9135e838c7b9d1b27d5e51b692b9000",
+      "independentSha256": "4a027761d4a18c7cff26f7ea035513ccf9135e838c7b9d1b27d5e51b692b9000",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:40.597Z",
+      "endTime": "2026-10-21T08:23:40.836Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 2,
+      "sourceHash": "526ee7bf57fe6b27e58810d4822ef81db3f296d6d14806cc3d24d5a61b5f61b3",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0002.webp",
+      "bytes": 227564,
+      "sha256": "0a53f5375dbfb07e7394c85439f487e155272da074389f0df565388ef15e69c3",
+      "independentSha256": "0a53f5375dbfb07e7394c85439f487e155272da074389f0df565388ef15e69c3",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:41.114Z",
+      "endTime": "2026-10-21T08:23:41.469Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 3,
+      "sourceHash": "d65c52e29ccd0b5d9d4669d1716fa4d46dbb0655a04ca1f505013c82e6b4184b",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0003.webp",
+      "bytes": 228380,
+      "sha256": "a573a97894f1bac6fc71666f3333d5a76a3053a68b31632b6583f665f8c36a69",
+      "independentSha256": "a573a97894f1bac6fc71666f3333d5a76a3053a68b31632b6583f665f8c36a69",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:41.740Z",
+      "endTime": "2026-10-21T08:23:42.320Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 4,
+      "sourceHash": "880d91489a2c0095a2d501b0a9acbf0d0fa91f355ec00b1fdb7f249574c343e9",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0004.webp",
+      "bytes": 193568,
+      "sha256": "2d87cf1081fd05fe23d547655422ae3869b4a2c8b62a9dd99ab53a3ccd28ffff",
+      "independentSha256": "2d87cf1081fd05fe23d547655422ae3869b4a2c8b62a9dd99ab53a3ccd28ffff",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:42.584Z",
+      "endTime": "2026-10-21T08:23:42.787Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 5,
+      "sourceHash": "a31a212f95431ff8645ec9196aa7eaa0fd3e39375a2f8d2a5713d7c17daabd81",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0005.webp",
+      "bytes": 188718,
+      "sha256": "9934f06971735bbdd000b43914386ce04d3bc8685ef1b12160cd6a759b1a1d22",
+      "independentSha256": "9934f06971735bbdd000b43914386ce04d3bc8685ef1b12160cd6a759b1a1d22",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:43.051Z",
+      "endTime": "2026-10-21T08:23:43.370Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 6,
+      "sourceHash": "5bdd043a05c59156900fbfbb9550e7e68ef77ae6734561ad9b6ab52f6841467a",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0006.webp",
+      "bytes": 180296,
+      "sha256": "3cc8af64f1baa1f6934f2d3069e6d0fbb017afeddd41c293eaabe03db6e10304",
+      "independentSha256": "3cc8af64f1baa1f6934f2d3069e6d0fbb017afeddd41c293eaabe03db6e10304",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:43.637Z",
+      "endTime": "2026-10-21T08:23:44.204Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 7,
+      "sourceHash": "cf06a0f3a8a23a5b516c8e9b9181a70fef23b74c8e6610e6218505f6c916cc77",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0007.webp",
+      "bytes": 180260,
+      "sha256": "522fba162cf257ecb2afa76f2ebb2302e81c98abf16f858f04d2d188fc1e114b",
+      "independentSha256": "522fba162cf257ecb2afa76f2ebb2302e81c98abf16f858f04d2d188fc1e114b",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:44.468Z",
+      "endTime": "2026-10-21T08:23:44.754Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 8,
+      "sourceHash": "e9cd2dd6150c869956af8ed5be48527af8a32e8ddcd2691f3fef31a2f134f77f",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0008.webp",
+      "bytes": 195156,
+      "sha256": "7adfb427bb11b2974e9bf4d05647df5a178d348ad99af225be5a5b522e1d02a2",
+      "independentSha256": "7adfb427bb11b2974e9bf4d05647df5a178d348ad99af225be5a5b522e1d02a2",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:45.192Z",
+      "endTime": "2026-10-21T08:23:45.461Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 9,
+      "sourceHash": "ff490ba377602de1b2825f724bc09219dfacc8383f673243aa24dc101c5eee85",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0009.webp",
+      "bytes": 210072,
+      "sha256": "9f1ebe66f8ae0d597ba9c18492a7d496694b9c7b5c583542c89c21171ccf5d1e",
+      "independentSha256": "9f1ebe66f8ae0d597ba9c18492a7d496694b9c7b5c583542c89c21171ccf5d1e",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:45.724Z",
+      "endTime": "2026-10-21T08:23:46.610Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 10,
+      "sourceHash": "25ace2344e257867088a7380319ceebf931b57564e530fd758cba022459c1cb6",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0010.webp",
+      "bytes": 185482,
+      "sha256": "480a8869522c88be994fb87d052befd971ed1baccef68a0ed29cceaec92de300",
+      "independentSha256": "480a8869522c88be994fb87d052befd971ed1baccef68a0ed29cceaec92de300",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:46.898Z",
+      "endTime": "2026-10-21T08:23:47.231Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 11,
+      "sourceHash": "1d19d35ad9326e27eaa92d4f50398beb070ff8873299e544dd5dc8b906b4ac6a",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0011.webp",
+      "bytes": 154784,
+      "sha256": "e0f21679dce915d51f228500c0af90721a19dbbaeaf48de10f8d064ec5a9a904",
+      "independentSha256": "e0f21679dce915d51f228500c0af90721a19dbbaeaf48de10f8d064ec5a9a904",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:47.502Z",
+      "endTime": "2026-10-21T08:23:48.128Z"
+    },
+    {
+      "galleryId": "4270387",
+      "page": 12,
+      "sourceHash": "b16680229cc4157be653ec15cfda1f50c2876f3d1a33a89e7b9e7c28618f827f",
+      "filename": "QueueCat\\Hitomi-4270387-a5110ae22e3f-#15_Eaten-trainer Hitomi\\0012.webp",
+      "bytes": 222428,
+      "sha256": "b71385767fa4998c40e0f16ae0f0a673e0a83e9da1ad751818aeeedff73b649d",
+      "independentSha256": "b71385767fa4998c40e0f16ae0f0a673e0a83e9da1ad751818aeeedff73b649d",
+      "state": "complete",
+      "startTime": "2026-10-21T08:23:48.396Z",
+      "endTime": "2026-10-21T08:23:48.596Z"
+    }
+  ],
+  "cleanup": {
+    "contextClosed": true,
+    "profileRemoved": true
+  },
+  "isolation": {
+    "profile": "D:\\MyGame\\QueueCat\\artifacts\\gallery-live\\2026-10-21T08-23-18-592Z\\profile",
+    "downloads": "D:\\MyGame\\QueueCat\\artifacts\\gallery-live\\2026-10-21T08-23-18-592Z\\downloads",
+    "personalChromeAttached": false,
+    "personalDownloadsRead": false,
+    "network": "live site; no request interception, proxy or certificate bypass"
+  },
+  "expectedPages": {
+    "4270386": 12,
+    "4270387": 12
+  },
+  "extensionId": "dgbfcmbeiknfgdppjplgoeplnkjlheef",
+  "latest": [
+    {
+      "id": "4270386",
+      "status": "complete",
+      "completed": 12,
+      "total": 12
+    },
+    {
+      "id": "4270387",
+      "status": "complete",
+      "completed": 12,
+      "total": 12
+    }
+  ],
+  "offscreenContexts": [],
+  "sessionRules": [],
+  "finishedAt": "2026-10-21T08:24:00.407Z"
+}

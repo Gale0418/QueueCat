@@ -1,0 +1,29 @@
+{
+  "recordkeeper": "Codex root recording actual independent arbiter return",
+  "agent": "/root/transport_final_arbiter",
+  "snapshot": "QC-HITOMI-TRANSPORT-FINAL-02",
+  "readOnly": true,
+  "sourceHashesMatched": 17,
+  "rootBuildHashesMatched": 19,
+  "liveBuildHashesMatched": 19,
+  "fixtureBuildHashesMatched": 19,
+  "katfileExactBuildHashesMatched": 18,
+  "katfileManifestDifference": "name only; isolation label",
+  "actualLiveFilesRehashed": 24,
+  "actualBytesAndBothDigestsMatched": 24,
+  "profilesAbsent": 3,
+  "archiveMatched": true,
+  "codeRabbitIssues": [
+    2,
+    0
+  ],
+  "integrationCrossCheck": "independent critic recursively rehashed all 24 actual files and agreed",
+  "implementation": "passed",
+  "twoGalleryLive": "passed",
+  "generalRelease": "limited",
+  "workerReplacement": "unknown",
+  "ownTestsRun": false,
+  "ownBuildRun": false,
+  "personalChromeOperated": false,
+  "outstandingValidatedFindings": 0
+}

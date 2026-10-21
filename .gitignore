@@ -5,6 +5,8 @@ artifacts/
 /manifest.json
 /background.js
 /content.js
+/gallery-offscreen.js
+/gallery-offscreen.html
 /popup.html
 /manager.html
 /assets/

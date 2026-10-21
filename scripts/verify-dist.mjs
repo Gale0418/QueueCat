@@ -12,6 +12,8 @@ assert.deepEqual(manifest.permissions, [
   "alarms",
   "notifications",
   "nativeMessaging",
+  "offscreen",
+  "declarativeNetRequestWithHostAccess",
 ]);
 assert.deepEqual(manifest.host_permissions, [
   "https://katfile.com/*",
@@ -26,6 +28,8 @@ const files = [
   "manager.html",
   "background.js",
   "content.js",
+  "gallery-offscreen.html",
+  "gallery-offscreen.js",
   ...Object.values(manifest.icons),
 ];
 for (const file of files)

@@ -9,7 +9,9 @@
     "downloads",
     "alarms",
     "notifications",
-    "nativeMessaging"
+    "nativeMessaging",
+    "offscreen",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "https://katfile.com/*",

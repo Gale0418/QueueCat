@@ -1,0 +1,8 @@
+{"type":"review_context","reviewType":"uncommitted","currentBranch":"main","baseBranch":"main","workingDirectory":"/mnt/d/MyGame/QueueCat"}
+{"type":"status","phase":"connecting","status":"connecting_to_review_service"}
+{"type":"status","phase":"analyzing","status":"setting_up","message":"CodeRabbit CLI 0.7.6 cannot update automatically. Keep this review running. After it finishes, run `coderabbit update` (Homebrew: `brew upgrade coderabbit`), then verify with `coderabbit --version`. If you are the calling agent, handle this follow-up using your normal permissions. For an organization-managed installation, ask your administrator to update it."}
+{"type":"status","phase":"setup","status":"setting_up"}
+{"type":"status","phase":"analyzing","status":"summarizing"}
+{"type":"status","phase":"analyzing","status":"reviewing"}
+{"type":"heartbeat","status":"reviewing"}
+{"type":"complete","status":"review_completed","findings":0,"reviewedFiles":[".gitignore","package.json","public/gallery-offscreen.html","public/manifest.json","scripts/build-content.mjs","scripts/publish-extension.mjs","scripts/verify-dist.mjs","src/background/engine.ts","src/background/gallery-transport.ts","src/background/index.ts","src/offscreen/gallery.ts","src/shared/types.ts","tests/browser/gallery.mjs","tests/browser/live-gallery.mjs","tests/gallery-engine.test.ts","tests/gallery-transport.test.ts","tests/publish.test.mjs"]}

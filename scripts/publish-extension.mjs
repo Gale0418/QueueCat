@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const owned = (file) =>
-  /^(?:manifest\.json|background\.js|content\.js|popup\.html|manager\.html|(?:assets|icons)\/[^/]+)$/.test(
+  /^(?:manifest\.json|background\.js|content\.js|gallery-offscreen\.(?:html|js)|popup\.html|manager\.html|(?:assets|icons)\/[^/]+)$/.test(
     file,
   );
 

@@ -1,0 +1,23 @@
+{
+  "recordkeeper": "Codex root recording actual independent critic return",
+  "agent": "/root/transport_final_integration",
+  "snapshot": "QC-HITOMI-TRANSPORT-FINAL-02",
+  "readOnly": true,
+  "downloadFilesPresent": 24,
+  "actualByteLengthsMatched": 24,
+  "actualDigestsMatchedBothReportedAndIndependent": 24,
+  "perGalleryPages": {
+    "4270386": 12,
+    "4270387": 12
+  },
+  "downloadIntervalsOverlap": 0,
+  "offscreenContextsEmpty": true,
+  "sessionRulesEmpty": true,
+  "profileRemoved": true,
+  "personalChromeAttached": false,
+  "fixtureChecks": 6,
+  "workerReplacementCoverage": "unknown",
+  "katfileChecks": 23,
+  "outstandingValidatedFindings": 0,
+  "correction": "Initial non-recursive directory listing missed nested QueueCat folder; critic corrected this and recomputed all 24 actual files"
+}

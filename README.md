@@ -36,9 +36,9 @@ npm run build
 
 一本只占一筆佇列，圖片依序交給 Chrome，存成 `下載位置/QueueCat/Hitomi-圖庫ID-本次識別碼-標題/0001.webp`、`0002.webp` 等。這版提供 **每本獨立資料夾與 WebP 圖片**，不產生網站按鈕的 ZIP；不需要 Rust 小幫手，也不使用壓縮密碼。含圖庫網址的新增批次會停用自動解壓；需要解壓的 Katfile 請另批加入。
 
-暫停只阻止下一張，已交給 Chrome 的圖片繼續下載。連續傳輸按首次取得的清單快照完成，不逐頁輪詢即時改版；失敗重試，或停在兩頁之間後重新排隊時，會重讀並核對來源，保留完成頁數、從未完成頁接續。如果重讀時發現內容或標題變更就停止；請移除紀錄後重新加入，新任務另建資料夾，原圖片保留。交接不明時不重送，需核對 Chrome 下載紀錄；也可經確認「移除紀錄並暫停」，只放棄該筆追蹤、不取消下載或刪檔，繼續前仍須先查看 Chrome。
+圖片先在外掛的離屏頁面取得並驗證，再交由 Chrome 存檔；每張最多 32 MiB、取得逾時 60 秒。取得圖片不會阻塞管理頁或暫停命令。暫停後，已交給 Chrome 的圖片繼續下載；仍在取得中的圖片不再交接存檔，恢復時可能重新取得該張。連續傳輸按首次取得的清單快照完成，不逐頁輪詢即時改版；失敗重試，或停在兩頁之間後重新排隊時，會重讀並核對來源，保留完成頁數、從未完成頁接續。如果重讀時發現內容或標題變更就停止；請移除紀錄後重新加入，新任務另建資料夾，原圖片保留。交接不明時不重送，需核對 Chrome 下載紀錄；也可經確認「移除紀錄並暫停」，只放棄該筆追蹤、不取消下載或刪檔，繼續前仍須先查看 Chrome。
 
-更新舊版後，請在佇列閒置時至 `chrome://extensions` 重新載入 QueueCat，以套用新增的 Hitomi／圖片 CDN 權限。**2026-10-21 實站測試未通過：兩本各 12 頁皆能辨識，但第一張下載回報 `SERVER_BAD_CONTENT`，目前不可視為可用的實站下載功能。**圖片 CDN 要求來源標頭；實驗性修補未奏效，已撤回，待調整傳輸方式。中性圖庫隔離驗收不等於真實網站下載成功，詳見 [實站測試紀錄](MissionCenter/hitomi-live-20261021.md)。
+更新舊版後，請在佇列閒置時至 `chrome://extensions` 重新載入 QueueCat，以套用 Hitomi／圖片 CDN、`offscreen` 與 `declarativeNetRequestWithHostAccess` 權限。來源標頭規則只限外掛自己取得的單一圖片 URL，完成後移除；不讀取一般瀏覽流量。**2026-10-21 修正後，兩本各 12 頁的實站下載已通過，24 個編號檔案逐頁與獨立取得的來源內容 SHA-256 相符。**這不代表所有圖庫或未來網站版本都已驗證，詳見 [傳輸修復與實測紀錄](MissionCenter/hitomi-transport-20261021.md)。
 
 ## Katfile 下載後自動解壓（可選）
 
@@ -103,13 +103,17 @@ HTML 原始入口在 `entries/`；建置暫存位於 `artifacts/unpacked/`。`np
 
 ```powershell
 npm run test:browser -- --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄> --openssl <openssl.exe>
-# 同樣參數可用於中性圖庫逐頁下載、暫停／恢復與重啟驗收
+# 同樣參數可用於中性圖庫逐頁下載、暫停／恢復與狀態核對
 npm run test:gallery-browser -- --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄> --openssl <openssl.exe>
+# 明確指定 ID 才會連實站下載；不需 OpenSSL，不附接個人 Chrome
+npm run test:gallery-live -- --ids <ID1>,<ID2> --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄>
 ```
 
 測試建立全新設定檔、複製建置成品並執行正式背景程式及 content script。Katfile 回應由 loopback HTTPS 樣本提供，小檔案交給真正的 Chrome Downloads API。DNS 映射及測試憑證設定僅傳給這個新瀏覽器程序，不修改系統、現用 Chrome 或現用外掛；不複製登入資料，也不連真實 Katfile。
 
 來源樣本需占用本機 `127.0.0.1:443`；若已被使用，測試直接停止，不關閉其他服務。下載、截圖與逐項報告位於 `artifacts/browser-acceptance/<執行ID>/`。測試會關閉自己建立的瀏覽器及 HTTPS 服務。模擬驗證通過不等於通過真人 CAPTCHA；以彈窗 HTML 頁面做互動與排版驗收，也不代表工具列原生彈窗已取得。
+
+Hitomi 實站測試的檔案與報告位於 `artifacts/gallery-live/<執行ID>/`；會比對每頁獨立來源的內容，不開啟圖片預覽。中性圖庫測試的 CDP 停止指令未能確認真的替換擴充功能背景程序，因此不宣稱該項實機重啟覆蓋；持久狀態復原另有引擎單元測試。
 
 自動解壓的隔離驗收另用 `npm run test:extraction-browser -- --helper-exe <小幫手.exe> --seven-zip <7z.exe> --playwright-module <Playwright/index.mjs> --browser-cache <Chromium快取目錄>`。它在自己的 profile 下載本機產生的加密分卷，核對真正的 downloadId、解壓內容 hash 與背景重啟的冪等結果；只有 native host 註冊原先不存在時才暫時建立測試註冊，測完按所有權還原，不覆寫既有註冊。證據位於 `artifacts/extraction-browser/<執行ID>/`。
 
