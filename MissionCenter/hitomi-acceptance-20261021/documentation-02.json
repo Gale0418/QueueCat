@@ -1,0 +1,15 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-02",
+  "documents": [
+    {
+      "path": "README.md",
+      "bytes": 14667,
+      "sha256": "dc563a3ead8d9ea151a5f756a80380fae73d93c6d4aa0338b37cb96c4a9e6659"
+    },
+    {
+      "path": "MARKETING.md",
+      "bytes": 1173,
+      "sha256": "099a16826213c1e61ef9513f727ac38d5e9a1b94821f5ac76b0c7d9dabcf6429"
+    }
+  ]
+}

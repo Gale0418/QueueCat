@@ -1,0 +1,238 @@
+{
+  "startedAt": "2026-10-21T02:53:55.766Z",
+  "status": "pass",
+  "checks": [
+    {
+      "name": "system default and three-language UI acceptance",
+      "status": "pass",
+      "ms": 4155,
+      "result": {
+        "languages": [
+          "en",
+          "zh-TW",
+          "ja"
+        ],
+        "screenshots": 6
+      }
+    },
+    {
+      "name": "bulk URL preview and add do not start queue",
+      "status": "pass",
+      "ms": 404
+    },
+    {
+      "name": "actual content script reads countdown, then two native POST steps",
+      "status": "pass",
+      "ms": 2907
+    },
+    {
+      "name": "only first real Chrome download runs; popup shows live progress",
+      "status": "pass",
+      "ms": 528,
+      "result": {
+        "downloadId": 1,
+        "byExtensionId": "jfnmidkgoobbmgohfonnjflafeajbpaa"
+      }
+    },
+    {
+      "name": "keyboard focus survives selection and progress updates",
+      "status": "pass",
+      "ms": 535
+    },
+    {
+      "name": "worker termination wakes and reattaches original download ID",
+      "status": "pass",
+      "ms": 85
+    },
+    {
+      "name": "pause stops next item but current Chrome download completes",
+      "status": "pass",
+      "ms": 458
+    },
+    {
+      "name": "fixture verification holds and resumes once user completes it",
+      "status": "pass",
+      "ms": 31338
+    },
+    {
+      "name": "real Downloads API timestamp equality is measured",
+      "status": "pass",
+      "ms": 9,
+      "result": {
+        "id": 2,
+        "at": "2026-10-21T02:54:39.438Z",
+        "exactIdFound": 1,
+        "equalAfterIncludesId": false
+      }
+    },
+    {
+      "name": "persisted handoff recovers a download at the exact timestamp boundary",
+      "status": "pass",
+      "ms": 60
+    },
+    {
+      "name": "existing page-started Katfile transfer prevents another download",
+      "status": "pass",
+      "ms": 1559
+    },
+    {
+      "name": "missing file stays in attention and next item completes after safety gap",
+      "status": "pass",
+      "ms": 30805
+    },
+    {
+      "name": "unknown download size shows bytes without a fabricated percentage",
+      "status": "pass",
+      "ms": 768
+    },
+    {
+      "name": "unknown handoff survives restart blocked without another transfer",
+      "status": "pass",
+      "ms": 77
+    },
+    {
+      "name": "unknown page stops after grace period without starting a download",
+      "status": "pass",
+      "ms": 30997
+    },
+    {
+      "name": "closing owned work tab blocks and never redownloads",
+      "status": "pass",
+      "ms": 131
+    },
+    {
+      "name": "isolated full browser restart preserves paused queue and settings",
+      "status": "pass",
+      "ms": 2055
+    },
+    {
+      "name": "same-file alias redirect completes using production content actions",
+      "status": "pass",
+      "ms": 883
+    },
+    {
+      "name": "popup keeps vertical scrolling without horizontal overflow",
+      "status": "pass",
+      "ms": 401,
+      "result": {
+        "width": 365,
+        "scrollWidth": 365,
+        "height": 420,
+        "scrollHeight": 545
+      }
+    },
+    {
+      "name": "narrow manager renders light and dark themes without horizontal overflow",
+      "status": "pass",
+      "ms": 564
+    },
+    {
+      "name": "refined popup keeps actions visible and routes uncertain handoff to recheck",
+      "status": "pass",
+      "ms": 504,
+      "result": {
+        "seededPresentation": true,
+        "actualDownload": false,
+        "footer": {
+          "x": 20,
+          "y": 462.8000183105469,
+          "width": 340,
+          "height": 80.39999389648438
+        }
+      }
+    },
+    {
+      "name": "brand message and private-data-free introduction remain clear on desktop and narrow screens",
+      "status": "pass",
+      "ms": 4897,
+      "result": {
+        "clipboardApiSimulated": true,
+        "personalClipboardTouched": false,
+        "sourceUrlsIncluded": false,
+        "automaticallySent": false,
+        "copyStyle": {
+          "color": "rgb(198, 175, 217)",
+          "background": "rgb(60, 48, 74)",
+          "disabled": false
+        }
+      }
+    },
+    {
+      "name": "quick keys add and reorder with honest cat feedback and safe Escape",
+      "status": "pass",
+      "ms": 619,
+      "result": {
+        "added": 3,
+        "reorderedTo": 1,
+        "downloadsStarted": 0,
+        "reducedMotion": true
+      }
+    }
+  ],
+  "pageErrors": [],
+  "blockedNetwork": [],
+  "isolation": {
+    "profile": "D:\\MyGame\\QueueCat\\artifacts\\browser-acceptance\\2026-10-21T02-53-55-612Z\\profile",
+    "extension": "D:\\MyGame\\QueueCat\\artifacts\\browser-acceptance\\2026-10-21T02-53-55-612Z\\extension",
+    "personalChromeAttached": false,
+    "productionWorker": true,
+    "website": "Playwright synthetic Katfile responses",
+    "downloads": "loopback HTTPS fixture only",
+    "dns": "all hostnames mapped to 127.0.0.1 in this process",
+    "credentialsCopied": false,
+    "profileRemoved": true
+  },
+  "limitations": [
+    "Synthetic verification is not real CAPTCHA",
+    "Popup document checks do not imply native toolbar popup coverage",
+    "No live Katfile or personal Chrome operation",
+    "Discarded-tab + lifecycle diagnostic stalled the owned automation session; coverage remains unknown, no product failure inferred."
+  ],
+  "requests": [
+    {
+      "filename": "one.zip",
+      "at": 1792551246882,
+      "endedAt": 1792551248190,
+      "range": null
+    },
+    {
+      "filename": "two.zip",
+      "at": 1792551279393,
+      "endedAt": 1792551279762,
+      "range": null
+    },
+    {
+      "filename": "external.zip",
+      "at": 1792551280168,
+      "endedAt": 1792551280545,
+      "range": null
+    },
+    {
+      "filename": "after-external.zip",
+      "at": 1792551281121,
+      "endedAt": 1792551281500,
+      "range": null
+    },
+    {
+      "filename": "after-missing.zip",
+      "at": 1792551311945,
+      "endedAt": 1792551312327,
+      "range": null
+    },
+    {
+      "filename": "unknown-size.zip",
+      "at": 1792551312764,
+      "endedAt": 1792551313170,
+      "range": null
+    },
+    {
+      "filename": "alias.zip",
+      "at": 1792551347348,
+      "endedAt": 1792551347719,
+      "range": null
+    }
+  ],
+  "browserVersion": "151.0.7922.34",
+  "currentCheck": "quick keys add and reorder with honest cat feedback and safe Escape",
+  "finishedAt": "2026-10-21T02:55:55.568Z"
+}

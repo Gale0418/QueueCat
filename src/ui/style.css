@@ -413,6 +413,11 @@ h4 {
   border-radius: var(--radius);
   margin-bottom: 32px;
 }
+.queue-section {
+  position: relative;
+  z-index: 1;
+  background: var(--paper);
+}
 .current-heading {
   display: flex;
   align-items: center;

@@ -1,0 +1,97 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-01",
+  "phase": "initial-arbitration",
+  "evidenceBasis": {
+    "sealedReports": [
+      "critic-reliability.json",
+      "critic-ux.json",
+      "critic-integration.json"
+    ],
+    "sourceSnapshot": "snapshot-01.json",
+    "immutableSourceCopy": "artifacts/hitomi-snapshots/01",
+    "sourceIdentity": "Root verified all 57 source-file SHA-256 values against snapshot-01 before delta edits began.",
+    "readOnly": true,
+    "productOrTestFilesChanged": false,
+    "browserOrBuildRun": false
+  },
+  "p0p1": {
+    "found": false,
+    "scope": "No P0/P1 issue is substantiated by these three sealed reports and the source paths sampled. This does not claim coverage beyond their scope."
+  },
+  "decisions": [
+    {
+      "id": "reliability-source-revision-during-run",
+      "reportedSeverity": "P2",
+      "decision": "Accept the code-path observation; do not require per-page manifest polling under the stated user scope. Close through precise documentation and explicit fixed-snapshot semantics, conditional on the README delta making the retry/resume boundary unambiguous.",
+      "basis": [
+        "The supplied user requirement is to queue and download one Hitomi gallery; it does not require tracking revisions while an uninterrupted run is in progress.",
+        "In the immutable snapshot, refreshGalleryManifest compares title, total, ordered image hashes and names when called. Retry/start/recovery paths request revalidation, while successful page completion calls startGalleryPage with revalidate=false and advances from the persisted image snapshot (engine.ts around lines 251-350, 395-459, 590-596, 1037-1041).",
+        "README at the base commit describes revalidation in the retry sentence; its nearby content-change stop wording can be read more broadly than the implementation. The distinction should be stated directly: changes are detected when a retry/resume revalidates, while an uninterrupted run finishes from the original saved snapshot.",
+        "Reloading a manifest before every page would add up to 2,000 repeated full-list requests and still cannot guarantee that the source will not change after the check but before a later image request. A single persisted snapshot gives a coherent same-gallery version boundary. If old image URLs stop working, the page can fail and the retry-time revalidation will detect a changed manifest."
+      ],
+      "risk": "During an uninterrupted run, newly published manifest changes are not noticed immediately; the queue may continue requesting the original snapshot's hashes. That behavior is coherent with the requested single-gallery download, but would violate a separate explicit requirement to stop on any mid-run source revision.",
+      "minimumClosure": [
+        "Clarify README wording so the stop-on-change statement explicitly applies when retry/resume revalidates the saved snapshot; state that uninterrupted runs use the original snapshot through completion.",
+        "Keep the existing retry/resume changed-manifest guard and its regression evidence; do not describe this as live revision monitoring.",
+        "If the product owner later requires immediate mid-run revision detection, treat that as a changed requirement and assess a bounded policy; do not silently implement per-page full-manifest polling."
+      ],
+      "status": "conditionally-addressable-by-documentation"
+    },
+    {
+      "id": "ux-unknown-gallery-total",
+      "reportedSeverity": "P2",
+      "decision": "Confirm. The sealed report's source path shows that an unknown total renders only a bare completed-page number, with a generic progress accessible name; this is a real ambiguity across the listed locales.",
+      "basis": [
+        "critic-ux reports galleryPageProgress returning String(done) when total is absent and aria-label containing only the gallery name for an indeterminate progress element.",
+        "The planned localized page unit/unknown-total wording and ARIA name directly address both visual and screen-reader ambiguity."
+      ],
+      "minimumClosure": [
+        "Add translated unknown-total text with an explicit page unit for English, Traditional Chinese, and Japanese, and include completed count plus unknown total in the accessible name.",
+        "Update focused UI assertions to cover the unknown-total branch and all supported locale copy paths; preserve determinate-total behavior.",
+        "Record the exact source/test delta and fresh focused-test result separately from snapshot-01 evidence."
+      ],
+      "status": "confirmed-pending-delta-evidence"
+    },
+    {
+      "id": "integration-per-file-hash-evidence",
+      "reportedSeverity": "P2",
+      "decision": "Confirm. The runner sorts actualHashes in place for set comparison, then reports those sorted values against the original download order. This invalidates filename-to-digest report pairing and can let a page-order mismatch pass; it does not prove a production ordering defect.",
+      "basis": [
+        "The immutable runner at tests/browser/gallery.mjs around lines 647-662 sorts actualHashes and later indexes it using own.indexOf(download).",
+        "The sealed report provides a concrete first/second fixture digest swap; the engine's completed-index selection path alone does not establish a product ordering regression.",
+        "The cited Katfile run is failed/preparing with zero fixture requests and cannot be attributed to product or environment. The earlier 23-pass run is a different background build hash and is not evidence for this snapshot."
+      ],
+      "minimumClosure": [
+        "Fix the runner to preserve each file's digest with its corresponding download record; sort a copy only if an unordered-set assertion is still useful.",
+        "Run a fresh gallery browser acceptance against the identified delta build and verify each numbered filename's digest against the fixture metadata index, not just the digest set.",
+        "Keep the failed Katfile run labeled inconclusive. Do not promote the older 23-pass run into a pass claim for the delta build; obtain a new same-build Katfile run if that regression evidence is required."
+      ],
+      "status": "confirmed-pending-runner-fix-and-new-evidence"
+    }
+  ],
+  "chairProposal": {
+    "blockedGalleryNotificationRoute": {
+      "decision": "Accept with a narrow routing predicate.",
+      "basis": "In snapshot-01, notification clicks for verify/block IDs both issue focus. focusItem opens item.sourceUrl if it cannot focus a matching tab; for a blocked gallery with an ambiguous download handoff, the notification should take the user to Chrome downloads history so they can reconcile the transfer.",
+      "boundary": "Route to downloads history only for a blocked gallery with download intent (action.kind === download or a persisted downloadId). Keep ordinary metadata/source focus behavior, and do not route every blocked gallery indiscriminately.",
+      "minimumClosure": [
+        "Add a focused adapter/engine-level assertion for the blocked gallery download-intent route.",
+        "Add a contrast assertion that a gallery blocked during metadata/source processing retains source focus behavior, plus existing Katfile verification/source focus behavior.",
+        "Confirm notification click IDs still resolve to the intended queue item after restart; label any browser/UI verification as synthetic or unperformed according to the actual evidence."
+      ]
+    },
+    "katfileDiagnostic": "The latest failed/preparing/zero-request run is inconclusive. It must remain a diagnostic record, not a product failure attribution or pass. The older 23-pass run belongs to a different build and must remain separate."
+  },
+  "limits": [
+    "This initial arbitration relies on the three named sealed critic reports and snapshot-01 only; it does not claim the delta is implemented or verified.",
+    "No real Hitomi image transfer, live source-revision timing, personal Chrome flow, or delta build was tested.",
+    "Synthetic gallery evidence and older/different-build Katfile evidence remain separate from any new delta build/run evidence."
+  ],
+  "rootClosureChecklist": [
+    "Provide snapshot-02 or an equivalent immutable delta identity with source hashes for the revised documentation, localized unknown-total UI, notification routing, and browser runner.",
+    "Provide changed-file inventory and fresh focused unit/UI test results for unknown totals and narrowly scoped notification routing.",
+    "Provide a new gallery browser report whose per-file digest pairs are correct and whose tested build identity matches the delta.",
+    "If claiming Katfile coexistence for the delta, provide a fresh same-build Katfile run; otherwise retain Review/inconclusive wording.",
+    "Keep real-site behavior unverified unless separately observed; do not merge synthetic run claims with real-site claims."
+  ]
+}

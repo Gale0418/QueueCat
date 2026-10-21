@@ -1,0 +1,75 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-02",
+  "seatId": "integration-taskflow",
+  "lanes": [
+    "P2 finding delta against snapshot-01",
+    "gallery per-page byte/hash assertion",
+    "snapshot-02 source/build/package and documentation identity",
+    "formal serialized gallery/Katfile browser run closure"
+  ],
+  "scope": "唯讀 delta 核對 snapshot-02、documentation-02、目前測試程式與 root 指定的兩份正式 browser reports；不開 Chrome、不執行 build/browser tests、不修改 tracked 檔。",
+  "resolvedFindings": [
+    {
+      "priorSeverity": "P2",
+      "priorCategory": "test_evidence",
+      "priorFinding": "Gallery browser test 對下載 SHA-256 使用原地 sort 後比較集合，並將排序後 hash 配回檔名，可能漏掉檔案內容與頁碼錯配且產生錯誤逐檔報告。",
+      "status": "resolved_and_formally_closed",
+      "evidenceLocator": "tests/browser/gallery.mjs:686-729",
+      "disposition": "目前程式由檔名抽出 page，逐筆 assert SHA-256 等於 imageFiles[page - 1].sha256；downloadsByPage 保留 filename/page/hash 原序，另核對頁碼一對一，集合比較只排序副本。固定 snapshot-02 run 的三頁逐頁 digest 均匹配 fixture，關閉原本 assertion/report pairing bug。"
+    }
+  ],
+  "findings": [],
+  "limits": [
+    "snapshot-02 所列 57 個來源檔案 bytes/SHA-256 全匹配；17 個 unpacked build entries 與 dist/QueueCat-0.1.0.zip bytes/SHA-256 也全匹配。documentation-02 列出的 README.md 與 MARKETING.md bytes/SHA-256 均匹配。",
+    "實站 Hitomi/Katfile、真實 CAPTCHA 與原生 toolbar popup 仍未驗證；gallery run 使用 loopback synthetic fixture。Discarded-tab/lifecycle 診斷的歷史 coverage 仍未知。",
+    "早先 2026-10-21T02-37-21-373Z Katfile run 的 preparing/0 fixture-download-request fail 仍保留為歷史證據；它沒有足夠資訊歸因產品回歸或環境問題。Ignored 診斷 core 21 checks pass、22 brand check 在 zh-TW 保存狀態尚未套用前讀取 initial en 的失敗，也不被新正式報告抹除；正式 runner 現已等待 html.lang 為 zh-TW。",
+    "150 tests/type/build pass 是 root 提供的狀態，本 seat 未重跑或獨立驗證；本 delta 只核對指定 snapshots、程式與兩份正式 browser reports。"
+  ],
+  "closedEvidence": {
+    "galleryReport": "artifacts/gallery-browser/2026-10-21T02-53-38-840Z/report.json",
+    "galleryStatus": "pass",
+    "galleryChecks": "6/6",
+    "galleryIdentity": {
+      "background": "44a1d360a01eea81605b74a9793d5b6ce7726dc89f1f138b4798dcf9fa9ea0fc",
+      "content": "297b0713d81289900d9541cc15d4c6d88a07944a0c664779008b1401e329fa83",
+      "manifest": "b081cc3270bc65ea1f210033336dcfa25ab628e90a4129d1e0d413763aa56e29"
+    },
+    "galleryPageMappings": [
+      {
+        "page": 1,
+        "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0001.webp",
+        "downloadSha256": "9fc1c554e9e8460746d4582e6362aa113038e6db7d16bbc9bd25e16849310240",
+        "fixtureSha256": "9fc1c554e9e8460746d4582e6362aa113038e6db7d16bbc9bd25e16849310240",
+        "match": true
+      },
+      {
+        "page": 2,
+        "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0002.webp",
+        "downloadSha256": "6a172d02ffe32de9482b140c0938de7a0773ff5b4720fd902da04bd72eefa9fc",
+        "fixtureSha256": "6a172d02ffe32de9482b140c0938de7a0773ff5b4720fd902da04bd72eefa9fc",
+        "match": true
+      },
+      {
+        "page": 3,
+        "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0003.webp",
+        "downloadSha256": "7072b9e2141da17abcd153bc9735f3a98747a2b9ee102ef64b6eefe55cc4227a",
+        "fixtureSha256": "7072b9e2141da17abcd153bc9735f3a98747a2b9ee102ef64b6eefe55cc4227a",
+        "match": true
+      }
+    ],
+    "galleryEvidence": "正式 run 通過單一 Hitomi URL 加入一個 queued Gallery item、三個按序 Chrome .webp downloads 寫入同一 gallery folder、pause/resume，以及 worker restart 不重複請求圖片。",
+    "katfileReport": "artifacts/browser-acceptance/2026-10-21T02-53-55-612Z/report.json",
+    "katfileStatus": "pass",
+    "katfileChecks": "23/23",
+    "katfileIdentity": {
+      "background": "44a1d360a01eea81605b74a9793d5b6ce7726dc89f1f138b4798dcf9fa9ea0fc",
+      "content": "297b0713d81289900d9541cc15d4c6d88a07944a0c664779008b1401e329fa83",
+      "manifestTreatment": "Runner 只將 manifest.name 改成 QueueCat — isolated acceptance；唯讀核對 permissions、host_permissions、service worker 與 content_scripts 均符合 snapshot-02。Gallery report 的 manifest SHA-256 與 snapshot-02 完全相同。"
+    },
+    "katfileEvidence": "正式 run 包含 countdown/two native POSTs、第一個 Chrome download、worker restart handoff、既有 page-started Katfile transfer coexistence、recovery/restart、brand 與 quick-keys checks。runner source 在 brand/quick-keys 操作前等待 documentElement.lang === zh-TW；catch 先保存主要失敗，finally 保存清理結果。",
+    "cleanup": "兩份 report 均記錄 owned profile 已移除，gallery report 記錄 fixture server 已關閉；執行後唯讀 listener 檢查未發現 TCP 443 listener。",
+    "snapshotIdentity": "所有 57 個 snapshot-02 source entry、17 個 unpacked build entry、dist ZIP size/hash 及 documentation-02 README/MARKETING hashes 均匹配。",
+    "formalRunComparison": "固定 snapshot-02 的正式報告關閉 runtime 證據。較早失敗 run 仍保留為歷史證據且未被重新分類；ignored core 診斷不計入正式 23/23 pass。"
+  },
+  "verdict": "P2 source finding resolved and closed by fixed snapshot-02 formal browser evidence: gallery 6/6 and Katfile 23/23. Synthetic-only and explicitly retained historical limits apply."
+}

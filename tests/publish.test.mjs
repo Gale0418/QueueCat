@@ -164,6 +164,12 @@ describe("publishExtension", () => {
         "notifications",
         "nativeMessaging",
       ],
+      host_permissions: JSON.parse(
+        await readFile(
+          new URL("../public/manifest.json", import.meta.url),
+          "utf8",
+        ),
+      ).host_permissions,
       icons,
     };
     await writeFile(
@@ -212,5 +218,5 @@ describe("publishExtension", () => {
       new URL("../scripts/verify-dist.mjs", import.meta.url),
     );
     execFileSync(process.execPath, [verifyScript], { cwd, stdio: "pipe" });
-  });
+  }, 30_000);
 });

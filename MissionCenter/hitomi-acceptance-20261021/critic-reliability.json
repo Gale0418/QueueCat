@@ -1,0 +1,36 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-01",
+  "seatId": "reliability",
+  "lanes": [
+    "gallery-runtime",
+    "queue-scheduler",
+    "restart-recovery",
+    "safety-boundaries",
+    "adapter-tests"
+  ],
+  "scope": [
+    "唯讀檢查 src/background/engine.ts 的圖庫分支、共用排程與狀態轉移。",
+    "唯讀檢查 src/background/hitomi.ts、src/background/index.ts、src/shared/types.ts、src/shared/urls.ts。",
+    "唯讀檢查 tests/gallery-engine.test.ts、tests/hitomi.test.ts、tests/background-adapter.test.ts；執行三檔聚焦 Vitest。",
+    "涵蓋單 QueueItem、逐頁 WebP 路徑、完成後推進、暫停／重啟、manifest 改版、未知交接、forget、Chrome API 邊界及來源 URL 驗證。"
+  ],
+  "limits": [
+    "未執行 build、瀏覽器測試或真實 Hitomi 圖片傳輸；沒有開啟個人 Chrome。",
+    "下載與網路行為只以 mock 測試和程式路徑判讀；未驗證 Chrome 實際落檔、站方即時 manifest 行為或實際重啟環境。",
+    "快照核心檔與所讀測試檔的位元組數及 SHA-256 均符合 snapshot-01；報告外未修改產品／測試檔。"
+  ],
+  "findings": [
+    {
+      "severity": "P2",
+      "category": "source-revision-during-run",
+      "observation": "連續下載期間，完成一頁後會直接用已保存的 images 清單發出下一頁，沒有重新載入並比對目前遠端 manifest。來源若在初次讀取後改版，佇列仍會繼續派送舊快照中的頁面，未依「來源改版停」要求停止。",
+      "evidenceLocator": "src/background/engine.ts:590-596（成功後以 revalidate=false 推進）；395-399（僅 revalidate=true 或缺少快照時 refresh）；416-459（從快照取下一頁並建立 Chrome handoff）。tests/gallery-engine.test.ts:372-401 僅驗證 retry/start 時改版會封鎖。",
+      "reproOrReadPath": "以 tests/gallery-engine.test.ts 的 fixture 路徑推演：addAndStart 讀取初始 manifest 並派送第 1 頁；在第 1 頁進行時將 fixture manifest 改為不同 hash／排序；完成第 1 頁後，syncGalleryDownload 會以 false 呼叫 startGalleryPage，故不呼叫 refreshGalleryManifest，隨即從舊 gallery.images 派送第 2 頁。靜態讀取路徑可直接由上述行號確認；本次未修改測試加入重現案例。",
+      "impact": "來源已有新版本時仍可能繼續下載舊清單頁面，違反改版即停的驗收條件，並使同一 QueueItem／資料夾的完成內容不再代表目前來源版本。",
+      "confidence": "high",
+      "unknown": "無法由唯讀 mock 判定站方在改版後是否仍提供舊 hash 圖片，或 Chrome 是否已開始下一頁時才發生改版；此限制不影響「下一頁 handoff 前沒有重新驗證」的程式事實。",
+      "recommendation": "每次目前圖片確認完成後、下一頁 handoff 前重新載入 manifest，與保存的 title、total 及逐項 hash/name 比對；任何差異都封鎖並保留既有進度，不派送下一頁。"
+    }
+  ],
+  "verdict": "needs-fix: one confirmed P2 finding; focused mock tests pass, but continuous-run source revision is not checked before the next page handoff."
+}

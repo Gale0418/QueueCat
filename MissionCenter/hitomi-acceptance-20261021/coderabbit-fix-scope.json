@@ -1,0 +1,24 @@
+{
+  "baseline": "c876d42673dd164f6714876706d9906e489b77ed",
+  "baseBranch": "main",
+  "changed": [
+    "src/background/engine.ts",
+    "src/background/index.ts",
+    "src/shared/gallery-copy.ts",
+    "src/shared/gallery-messages.ts",
+    "src/shared/types.ts",
+    "src/ui/main.ts",
+    "src/ui/presentation.ts",
+    "src/ui/style.css",
+    "tests/gallery-engine.test.ts",
+    "tests/gallery-ui.test.ts"
+  ],
+  "contextFiles": 54,
+  "excludes": [
+    "binary assets",
+    "generated extension",
+    "native engine",
+    "lockfiles",
+    "unrelated documents"
+  ]
+}

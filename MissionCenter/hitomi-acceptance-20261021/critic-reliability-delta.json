@@ -1,0 +1,21 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-02",
+  "seatId": "reliability-delta",
+  "lanes": [
+    "gallery-snapshot-contract",
+    "retry-and-pause-revalidation",
+    "handoff-safety"
+  ],
+  "scope": [
+    "獨立對照目前 README 第 37、39、41 行所述單 QueueItem、快照連續傳輸、重試／暫停後重新核對之契約，與 src/background/engine.ts 的實際排程轉移。",
+    "核對 src/background/engine.ts、hitomi.ts、index.ts、shared/types.ts、shared/urls.ts 與 gallery engine tests；engine.ts、hitomi.ts、index.ts、types.ts、urls.ts 及所讀三個核心測試檔均符合 snapshot-02 記載的位元組數及 SHA-256。",
+    "執行 npm test -- tests/gallery-engine.test.ts：19 tests passed。"
+  ],
+  "limits": [
+    "README.md 不在 snapshot-02.entries 內；依委託提供的目前契約文字及本地 README 第 39 行比對，但無法以此快照驗證 README 的雜湊或凍結狀態。",
+    "只做靜態讀取及 mock 單元測試；未開 Chrome、未傳輸真實圖片、未執行 build。",
+    "此處置只裁定文件契約與目前引擎路徑的一致性；未新增逐頁即時 manifest 輪詢要求，也未改產品。"
+  ],
+  "findings": [],
+  "verdict": "consistent-with-documented-contract: no confirmed data-mixing or resend bug found under the stated fixed-snapshot continuous-transfer contract. The earlier observation (no manifest fetch between consecutive pages) is true, but is an explicit documented behavior; retry and pause-then-requeue paths revalidate before the next page handoff."
+}

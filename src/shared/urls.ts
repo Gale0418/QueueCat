@@ -4,7 +4,30 @@ export function isKatfileHost(hostname: string): boolean {
     (host) => hostname === host || hostname.endsWith("." + host),
   );
 }
+export function hitomiGalleryId(raw: string): string | undefined {
+  try {
+    const url = new URL(raw);
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      !["hitomi.la", "www.hitomi.la"].includes(url.hostname) ||
+      url.username ||
+      url.password ||
+      url.port
+    )
+      return undefined;
+    const match =
+      /^\/(?:reader|galleries)\/([1-9]\d{0,9})\.html$/.exec(url.pathname) ||
+      /^\/(?:doujinshi|manga|cg|gamecg|artistcg|anime|imageset)\/[^/]+-([1-9]\d{0,9})\.html$/.exec(
+        url.pathname,
+      );
+    return match?.[1];
+  } catch {
+    return undefined;
+  }
+}
 export function normalizeSource(raw: string): string | null {
+  const galleryId = hitomiGalleryId(raw);
+  if (galleryId) return `https://hitomi.la/galleries/${galleryId}.html`;
   try {
     const url = new URL(raw);
     if (
@@ -26,6 +49,8 @@ export function normalizeSource(raw: string): string | null {
   }
 }
 export function sourceKey(raw: string): string {
+  const galleryId = hitomiGalleryId(raw);
+  if (galleryId) return `hitomi:${galleryId}`;
   try {
     const url = new URL(raw);
     return (url.pathname.split("/")[1] || "").toLowerCase();

@@ -1,0 +1,46 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-01",
+  "seatId": "ux-accessibility",
+  "lanes": [
+    "ux",
+    "accessibility",
+    "i18n"
+  ],
+  "scope": [
+    "src/ui/main.ts",
+    "src/ui/presentation.ts",
+    "src/ui/gallery.ts",
+    "src/ui/style.css",
+    "src/shared/gallery-copy.ts",
+    "src/shared/gallery-messages.ts",
+    "tests/gallery-ui.test.ts",
+    "artifacts/gallery-browser/2026-10-21T02-34-13-662Z/manager-gallery.png"
+  ],
+  "limits": [
+    "已核對讀取檔案 SHA-256 與 snapshot-01.json 一致。",
+    "僅檢查靜態來源、指定截圖及 tests/gallery-ui.test.ts；聚焦測試 2/2 通過。",
+    "未執行 build、未操作個人 Chrome、未下載真實圖庫；無法確認未知總頁數是暫時尚未載入或永久未知。"
+  ],
+  "findings": [
+    {
+      "unknown": [
+        "未確認此狀態是 metadata 載入期間的暫態，還是實際可長時間維持的未知總數。"
+      ],
+      "severity": "P2",
+      "observation": "圖庫總頁數未知時，galleryPageProgress 只回傳已完成數字，沒有頁數單位或總數未知提示。佇列列會呈現類似「0 · 單本圖庫」，進度列同樣只顯示數字；這使 0 頁已完成與尚未取得總頁數難以區分，且裸數字跨 English、繁體中文與日文都沒有說明。",
+      "recommendation": "在佇列副標與進度列使用各語言明確的頁數文案，總數未知時呈現如「0 頁已完成 · 總頁數未知」或清楚的讀取中狀態；為不定進度提供包含頁數與未知總數的可及名稱。",
+      "evidenceLocator": [
+        "src/ui/gallery.ts:14-24：total 不存在時回傳 String(done)。",
+        "src/ui/main.ts:238-250：佇列列直接使用 galleryPageProgress；無總數百分比時不補充頁數狀態。",
+        "src/ui/main.ts:120-124：總數未知時 progress 沒有 value，aria-label 僅為圖庫名稱。",
+        "tests/gallery-ui.test.ts：測試將 total/images 設為 undefined，並把回傳值固定為裸數字。",
+        "artifacts/gallery-browser/2026-10-21T02-34-13-662Z/manager-gallery.png：畫面中的佇列副標顯示「0 · 單本圖庫」。"
+      ],
+      "confidence": "high",
+      "impact": "使用者無法從佇列快速判斷圖庫尚未讀取頁數、總頁數未知，或已取得總數且完成 0 頁；螢幕閱讀器遇到無 value 的 progress 時也只有泛稱圖庫的標籤，沒有未知總量語意。",
+      "reproOrReadPath": "以 gallery-ui.test.ts 的 galleryItem 建立 item，設 status=\"queued\"、completed=0，並刪除 gallery.total 與 gallery.images；galleryPageProgress(item) 回傳 \"0\"。聚焦命令：npm test -- --run tests/gallery-ui.test.ts（2/2 passed）。",
+      "category": "ux-accessibility-i18n"
+    }
+  ],
+  "verdict": "findings"
+}

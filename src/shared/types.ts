@@ -15,6 +15,24 @@ export interface QueueEvent {
   at: number;
   message: string;
 }
+export interface GalleryImage {
+  hash: string;
+  name: string;
+}
+export interface GalleryManifest {
+  id: string;
+  title: string;
+  images: GalleryImage[];
+}
+export interface GalleryProgress {
+  id: string;
+  title?: string;
+  folder?: string;
+  images?: GalleryImage[];
+  total?: number;
+  completed: number;
+  lastDownloadId?: number;
+}
 export interface QueueItem {
   id: string;
   sourceUrl: string;
@@ -25,6 +43,7 @@ export interface QueueItem {
   tabId?: number;
   waitUntil?: number;
   downloadId?: number;
+  gallery?: GalleryProgress;
   reason?: string;
   bytesReceived?: number;
   totalBytes?: number;
@@ -78,7 +97,7 @@ export type Command =
   | { kind: "add"; urls: string[]; extraction?: { password: string } }
   | { kind: "start" }
   | { kind: "pause" }
-  | { kind: "remove"; id: string }
+  | { kind: "remove"; id: string; confirmUncertain?: boolean }
   | { kind: "retry"; id: string }
   | { kind: "move"; id: string; direction: -1 | 1 }
   | { kind: "focus"; id: string }

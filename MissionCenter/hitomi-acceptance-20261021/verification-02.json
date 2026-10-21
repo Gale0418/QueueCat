@@ -1,0 +1,20 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-02",
+  "verifiedAt": "2026-10-21T02:59:04.702Z",
+  "sourceFiles": 57,
+  "rootBuildFiles": 17,
+  "galleryBuildFiles": 17,
+  "katfileByteIdenticalFiles": 16,
+  "katfileManifestSemanticMatchExceptName": true,
+  "katfileManifestNameOverride": "QueueCat — isolated acceptance",
+  "zip": {
+    "bytes": 7483954,
+    "sha256": "42b614937eb4a825d89540106d9d72e26231b0f603c984cad6fcbf43f74963e6"
+  },
+  "galleryChecks": 6,
+  "katfileChecks": 23,
+  "perPageDigestPairs": 3,
+  "profilesAbsent": true,
+  "personalChromeAttached": false,
+  "liveHitomiImageTransferVerified": false
+}

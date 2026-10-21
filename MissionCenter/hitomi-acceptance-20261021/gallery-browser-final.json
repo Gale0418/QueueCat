@@ -1,0 +1,260 @@
+{
+  "startedAt": "2026-10-21T02:53:38.841Z",
+  "status": "pass",
+  "checks": [
+    {
+      "name": "single Hitomi URL adds one Gallery queue item through the manager UI",
+      "status": "pass",
+      "ms": 278,
+      "result": {
+        "items": 1,
+        "status": "queued",
+        "metadataFetchedBeforeStart": false
+      }
+    },
+    {
+      "name": "three language layouts have no horizontal overflow at a narrow viewport",
+      "status": "pass",
+      "ms": 585,
+      "result": {
+        "languages": [
+          "en",
+          "zh-TW",
+          "ja"
+        ],
+        "width": 620,
+        "horizontalOverflow": false,
+        "foreground": {
+          "mascotVisible": true,
+          "mascotOverlapsQueue": true,
+          "queueBackground": "rgb(251, 249, 244)",
+          "titleHit": {
+            "visible": true,
+            "hitInsideTarget": true,
+            "hitInsideQueueAction": true,
+            "hitTag": "STRONG",
+            "hitClass": ""
+          },
+          "addButtonHit": {
+            "visible": true,
+            "hitInsideTarget": true,
+            "hitInsideQueueAction": true,
+            "hitTag": "SPAN",
+            "hitClass": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "first image completes while second image is genuinely in progress",
+      "status": "pass",
+      "ms": 868,
+      "result": {
+        "galleryCompleted": 1,
+        "galleryTotal": 3,
+        "inProgressDownloadId": 2,
+        "bytesReceived": 52773,
+        "totalBytes": 52774
+      }
+    },
+    {
+      "name": "pausing the queue lets the current image finish and holds the next image",
+      "status": "pass",
+      "ms": 476,
+      "result": {
+        "running": false,
+        "galleryCompleted": 2,
+        "imageRequests": [
+          "0000000000000000000000000000000000000000000000000000000000000f0c",
+          "0000000000000000000000000000000000000000000000000000000000000123"
+        ],
+        "ownDownloadCount": 2
+      }
+    },
+    {
+      "name": "all real Chrome downloads have correct page paths and fixture bytes",
+      "status": "pass",
+      "ms": 22,
+      "result": {
+        "folder": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture",
+        "pageNames": [
+          "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0001.webp",
+          "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0002.webp",
+          "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0003.webp"
+        ],
+        "states": [
+          "complete",
+          "complete",
+          "complete"
+        ],
+        "pageHashes": [
+          "9fc1c554e9e8460746d4582e6362aa113038e6db7d16bbc9bd25e16849310240",
+          "6a172d02ffe32de9482b140c0938de7a0773ff5b4720fd902da04bd72eefa9fc",
+          "7072b9e2141da17abcd153bc9735f3a98747a2b9ee102ef64b6eefe55cc4227a"
+        ],
+        "hashesMatch": true
+      }
+    },
+    {
+      "name": "worker restart preserves completed gallery and does not request images again",
+      "status": "pass",
+      "ms": 36,
+      "result": {
+        "status": "complete",
+        "completed": 3,
+        "imageRequests": 3,
+        "duplicateDownloads": false
+      }
+    }
+  ],
+  "pageErrors": [],
+  "galleryId": "12345",
+  "title": "QueueCat fixture",
+  "imageRequests": [
+    {
+      "host": "w1.gold-usergeneratedcontent.net",
+      "path": "/1792544401/3312/0000000000000000000000000000000000000000000000000000000000000f0c.webp",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000f0c",
+      "at": "2026-10-21T02:53:43.489Z"
+    },
+    {
+      "host": "w2.gold-usergeneratedcontent.net",
+      "path": "/1792544401/786/0000000000000000000000000000000000000000000000000000000000000123.webp",
+      "hash": "0000000000000000000000000000000000000000000000000000000000000123",
+      "at": "2026-10-21T02:53:43.824Z"
+    },
+    {
+      "host": "w2.gold-usergeneratedcontent.net",
+      "path": "/1792544401/2730/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.webp",
+      "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "at": "2026-10-21T02:53:44.899Z"
+    }
+  ],
+  "stateSeeding": {
+    "used": false,
+    "mechanism": "no extension storage writes"
+  },
+  "isolation": {
+    "profile": "D:\\MyGame\\QueueCat\\artifacts\\gallery-browser\\2026-10-21T02-53-38-840Z\\profile",
+    "extension": "D:\\MyGame\\QueueCat\\artifacts\\gallery-browser\\2026-10-21T02-53-38-840Z\\extension",
+    "downloadsDir": "D:\\MyGame\\QueueCat\\artifacts\\gallery-browser\\2026-10-21T02-53-38-840Z\\downloads",
+    "personalChromeAttached": false,
+    "personalDownloadsRead": false,
+    "network": "owned Chromium host mapping to loopback HTTPS fixture only"
+  },
+  "cleanup": {
+    "profileClosed": true,
+    "fixtureServerClosed": true,
+    "profileRemoved": true,
+    "fixtureSamplesPreserved": true
+  },
+  "testedExtensionSha256": {
+    "background": "44a1d360a01eea81605b74a9793d5b6ce7726dc89f1f138b4798dcf9fa9ea0fc",
+    "content": "297b0713d81289900d9541cc15d4c6d88a07944a0c664779008b1401e329fa83",
+    "manifest": "b081cc3270bc65ea1f210033336dcfa25ab628e90a4129d1e0d413763aa56e29"
+  },
+  "fixtureImages": [
+    {
+      "hash": "0000000000000000000000000000000000000000000000000000000000000f0c",
+      "bytes": 52760,
+      "sha256": "9fc1c554e9e8460746d4582e6362aa113038e6db7d16bbc9bd25e16849310240"
+    },
+    {
+      "hash": "0000000000000000000000000000000000000000000000000000000000000123",
+      "bytes": 52774,
+      "sha256": "6a172d02ffe32de9482b140c0938de7a0773ff5b4720fd902da04bd72eefa9fc"
+    },
+    {
+      "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "bytes": 52734,
+      "sha256": "7072b9e2141da17abcd153bc9735f3a98747a2b9ee102ef64b6eefe55cc4227a"
+    }
+  ],
+  "extensionId": "agdlpnibmhocbgnjgcpfhcapdmifecde",
+  "browserVersion": "151.0.7922.34",
+  "gatedDownload": {
+    "id": 2,
+    "state": "in_progress",
+    "bytesReceived": 52773,
+    "totalBytes": 52774
+  },
+  "downloads": [
+    {
+      "id": 1,
+      "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0001.webp",
+      "state": "complete",
+      "bytes": 52760,
+      "page": 1,
+      "sha256": "9fc1c554e9e8460746d4582e6362aa113038e6db7d16bbc9bd25e16849310240"
+    },
+    {
+      "id": 2,
+      "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0002.webp",
+      "state": "complete",
+      "bytes": 52774,
+      "page": 2,
+      "sha256": "6a172d02ffe32de9482b140c0938de7a0773ff5b4720fd902da04bd72eefa9fc"
+    },
+    {
+      "id": 3,
+      "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0003.webp",
+      "state": "complete",
+      "bytes": 52734,
+      "page": 3,
+      "sha256": "7072b9e2141da17abcd153bc9735f3a98747a2b9ee102ef64b6eefe55cc4227a"
+    }
+  ],
+  "fixture": {
+    "metadataRequests": 2,
+    "routingRequests": 2,
+    "imageRequests": [
+      {
+        "host": "w1.gold-usergeneratedcontent.net",
+        "path": "/1792544401/3312/0000000000000000000000000000000000000000000000000000000000000f0c.webp",
+        "hash": "0000000000000000000000000000000000000000000000000000000000000f0c",
+        "at": "2026-10-21T02:53:43.489Z"
+      },
+      {
+        "host": "w2.gold-usergeneratedcontent.net",
+        "path": "/1792544401/786/0000000000000000000000000000000000000000000000000000000000000123.webp",
+        "hash": "0000000000000000000000000000000000000000000000000000000000000123",
+        "at": "2026-10-21T02:53:43.824Z"
+      },
+      {
+        "host": "w2.gold-usergeneratedcontent.net",
+        "path": "/1792544401/2730/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.webp",
+        "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "at": "2026-10-21T02:53:44.899Z"
+      }
+    ],
+    "galleryCompleted": 3,
+    "downloads": [
+      {
+        "id": 1,
+        "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0001.webp",
+        "state": "complete",
+        "bytes": 52760,
+        "page": 1,
+        "sha256": "9fc1c554e9e8460746d4582e6362aa113038e6db7d16bbc9bd25e16849310240"
+      },
+      {
+        "id": 2,
+        "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0002.webp",
+        "state": "complete",
+        "bytes": 52774,
+        "page": 2,
+        "sha256": "6a172d02ffe32de9482b140c0938de7a0773ff5b4720fd902da04bd72eefa9fc"
+      },
+      {
+        "id": 3,
+        "filename": "QueueCat/Hitomi-12345-6f0b52794566-QueueCat fixture/0003.webp",
+        "state": "complete",
+        "bytes": 52734,
+        "page": 3,
+        "sha256": "7072b9e2141da17abcd153bc9735f3a98747a2b9ee102ef64b6eefe55cc4227a"
+      }
+    ],
+    "ownProfileOnly": true
+  },
+  "finishedAt": "2026-10-21T02:53:47.378Z"
+}

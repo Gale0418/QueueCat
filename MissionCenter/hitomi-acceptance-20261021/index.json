@@ -1,0 +1,112 @@
+{
+  "sessionId": "QC-E8-hitomi-20261021",
+  "route": "critic_full",
+  "loopPolicy": "converge",
+  "snapshots": [
+    "snapshot-01.json",
+    "snapshot-02.json"
+  ],
+  "documentation": "documentation-02.json",
+  "executors": "Each critic and the separate arbiter used gpt-6-luna/high with fork_turns=none",
+  "seats": [
+    {
+      "seatId": "reliability",
+      "agent": "/root/hitomi_final_reliability",
+      "report": "critic-reliability.json",
+      "delta": "critic-reliability-delta.json",
+      "category": "source-revision-during-run",
+      "locator": "src/background/engine.ts:syncGalleryDownload",
+      "disposition": "resolved_by_documented_fixed_snapshot_contract"
+    },
+    {
+      "seatId": "ux-accessibility",
+      "agent": "/root/hitomi_final_ux",
+      "report": "critic-ux.json",
+      "delta": "critic-ux-delta.json",
+      "category": "unknown-progress-semantics",
+      "locator": "src/ui/gallery.ts:galleryPageProgress",
+      "disposition": "fixed_and_verified"
+    },
+    {
+      "seatId": "integration-taskflow",
+      "agent": "/root/hitomi_final_integration",
+      "report": "critic-integration.json",
+      "delta": "critic-integration-delta.json",
+      "category": "per-page-evidence-pairing",
+      "locator": "tests/browser/gallery.mjs:per-page-digests",
+      "disposition": "fixed_and_verified_by_new_browser_run"
+    }
+  ],
+  "arbiter": {
+    "agent": "/root/hitomi_evidence_arbiter",
+    "initial": "arbiter-initial.json",
+    "final": "arbiter-final.json"
+  },
+  "findings": [
+    {
+      "id": "CACC-QC-E8-source-revision-during-run-645f659b-1",
+      "severity": "P2",
+      "category": "source-revision-during-run",
+      "rootCause": "連續下載期間，完成一頁後會直接用已保存的 images 清單發出下一頁，沒有重新載入並比對目前遠端 manifest。來源若在初次讀取後改版，佇列仍會繼續派送舊快照中的頁面，未依「來源改版停」要求停止。",
+      "stableLocator": "src/background/engine.ts:syncGalleryDownload",
+      "originalEvidence": "critic-reliability.json",
+      "deltaEvidence": "critic-reliability-delta.json",
+      "criticProposedDisposition": "每次目前圖片確認完成後、下一頁 handoff 前重新載入 manifest，與保存的 title、total 及逐項 hash/name 比對；任何差異都封鎖並保留既有進度，不派送下一頁。",
+      "chairFinalDisposition": "resolved_by_documented_fixed_snapshot_contract",
+      "arbiterEvidence": "arbiter-final.json"
+    },
+    {
+      "id": "CACC-QC-E8-unknown-progress-semantics-42ea02ae-1",
+      "severity": "P2",
+      "category": "unknown-progress-semantics",
+      "rootCause": "圖庫總頁數未知時，galleryPageProgress 只回傳已完成數字，沒有頁數單位或總數未知提示。佇列列會呈現類似「0 · 單本圖庫」，進度列同樣只顯示數字；這使 0 頁已完成與尚未取得總頁數難以區分，且裸數字跨 English、繁體中文與日文都沒有說明。",
+      "stableLocator": "src/ui/gallery.ts:galleryPageProgress",
+      "originalEvidence": "critic-ux.json",
+      "deltaEvidence": "critic-ux-delta.json",
+      "criticProposedDisposition": "在佇列副標與進度列使用各語言明確的頁數文案，總數未知時呈現如「0 頁已完成 · 總頁數未知」或清楚的讀取中狀態；為不定進度提供包含頁數與未知總數的可及名稱。",
+      "chairFinalDisposition": "fixed_and_verified",
+      "arbiterEvidence": "arbiter-final.json"
+    },
+    {
+      "id": "CACC-QC-E8-per-page-evidence-pairing-52c4241a-1",
+      "severity": "P2",
+      "category": "per-page-evidence-pairing",
+      "rootCause": "Gallery browser assertion 只比較下載 SHA-256 的無序集合，且 `actualHashes.sort()` 會原地排序；之後報告仍按 filename 次序把這個已排序陣列配回每筆 download。因此報告中的逐檔 SHA-256 不代表該檔實際內容，錯誤的頁序/檔名對應也可能通過 assertion。指定的 02:36:27 report 中，fixture 第一張 hash `...0f0c` 的 SHA-256 是 `9710fd01…`，但 `downloads` 把 `0001.webp` 記成 `86c21ac8…`；第二張 `...0123` 的 SHA-256 是 `86c21ac8…`，卻把 `0002.webp` 記成 `9710fd01…`。Engine source 以 `gallery.completed` 同時選 image 與產生序號檔名，未見此處證明產品目前順序錯誤；確定的問題是驗收未核對逐檔對應且報告標錯。",
+      "stableLocator": "tests/browser/gallery.mjs:per-page-digests",
+      "originalEvidence": "critic-integration.json",
+      "deltaEvidence": "critic-integration-delta.json",
+      "criticProposedDisposition": "先保留按 filename 排序的 download records 與各自 SHA-256 配對，再按 metadata 順序核對每個序號檔名的 digest；若另外需要集合比較，對副本排序，避免改動報告所用的逐檔資料。",
+      "chairFinalDisposition": "fixed_and_verified_by_new_browser_run",
+      "arbiterEvidence": "arbiter-final.json"
+    }
+  ],
+  "outstandingValidatedFindings": 0,
+  "p0": 0,
+  "p1": 0,
+  "localSourcePackageOutcome": "passed",
+  "liveReleaseOutcome": "limited",
+  "evidence": {
+    "verification": "verification-02.json",
+    "gallery": "gallery-browser-final.json",
+    "katfile": "katfile-browser-final.json",
+    "codeRabbit": [
+      {
+        "file": "coderabbit-run-1.ndjson",
+        "reviewedFiles": 21,
+        "issues": 3
+      },
+      {
+        "file": "coderabbit-run-2.ndjson",
+        "reviewedFiles": 10,
+        "issues": 0
+      }
+    ]
+  },
+  "limits": [
+    "Live Hitomi image transfers not tested",
+    "Live Katfile/CAPTCHA coverage remains incomplete",
+    "Native toolbar popup and discarded lifecycle coverage remain unknown",
+    "Personal Chrome not operated; user reload needed for updated host permissions"
+  ],
+  "taskDisposition": "QC-E8/QC-T14-16 remain Review for live acceptance; local implementation/package scope closed"
+}

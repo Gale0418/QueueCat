@@ -1,0 +1,35 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-01",
+  "seatId": "integration-taskflow",
+  "lanes": [
+    "來源識別與單一 gallery QueueItem",
+    "manifest、build、package 身分核對",
+    "Chrome WebP folder 下載與圖庫測試證據",
+    "既有 Katfile 流程共存",
+    "browser acceptance failure 與測試隔離"
+  ],
+  "scope": "唯讀評論指定 snapshot 與可讀的 browser acceptance/gallery 證據；不啟動 Chrome、不執行 build 或 browser tests、不修改產品。",
+  "limits": [
+    "Snapshot 列出的 57 個來源檔案及 17 個 unpacked build entry 的 bytes/SHA-256 全部匹配；dist/QueueCat-0.1.0.zip 的 7,483,712 bytes 與 SHA-256 也匹配 snapshot。",
+    "2026-10-21T02-36-27-579Z gallery browser run 的 background、content、manifest SHA-256 與 snapshot build identity 相符；其 loopback fixture 通過單一 Hitomi URL 加入一個 QueueItem、序列下載、WebP folder 路徑、下載 bytes、暫停/續跑與 worker restart checks。這是合成測試證據，不是實站驗證。",
+    "2026-10-21T02-37-21-373Z Katfile browser run 使用 snapshot 對應的 background/content build，但第三項在 item 停留 preparing、下載 fixture request 數為 0；報告明確表示不足以歸因產品回歸或環境問題。沒有從此失敗推定產品缺陷。",
+    "先前 2026-10-21T02-22-25-166Z 的 23 項 pass run 不能當作同 build 的回歸對照：其保存的 extension/background.js 為 186,918 bytes、SHA-256 558e81ac…，snapshot build 的 background.js 為 189,286 bytes、SHA-256 a8154bae…；它只證明另一 build 曾通過合成 Katfile 流程。",
+    "Katfile coexistence 有 unit evidence：gallery-engine tests 包含 gallery retry 與既有 Katfile active item 的互動；先前 23 項 browser report 另有 page-started Katfile transfer 防止重複下載的 pass。指定的新 Katfile run 未到達該檢查。",
+    "Manifest 僅為 Hitomi/gold-usergeneratedcontent metadata 與圖片主機授權；UI 與 engine 明確拒絕對 Hitomi gallery 啟用 archive extraction。測試使用逐張 .webp Chrome downloads，未證明真實 Hitomi 回應、原生 toolbar popup 或實站下載。",
+    "評論只覆蓋指定來源、snapshot、browser run 和 gallery 證據；不對其他 critic 報告、真實站台行為或未列出的使用情境作判斷。"
+  ],
+  "findings": [
+    {
+      "severity": "P2",
+      "category": "test_evidence",
+      "observation": "Gallery browser assertion 只比較下載 SHA-256 的無序集合，且 `actualHashes.sort()` 會原地排序；之後報告仍按 filename 次序把這個已排序陣列配回每筆 download。因此報告中的逐檔 SHA-256 不代表該檔實際內容，錯誤的頁序/檔名對應也可能通過 assertion。指定的 02:36:27 report 中，fixture 第一張 hash `...0f0c` 的 SHA-256 是 `9710fd01…`，但 `downloads` 把 `0001.webp` 記成 `86c21ac8…`；第二張 `...0123` 的 SHA-256 是 `86c21ac8…`，卻把 `0002.webp` 記成 `9710fd01…`。Engine source 以 `gallery.completed` 同時選 image 與產生序號檔名，未見此處證明產品目前順序錯誤；確定的問題是驗收未核對逐檔對應且報告標錯。",
+      "evidenceLocator": "tests/browser/gallery.mjs:647-662（actualHashes 排序後再以 own.indexOf(download) 寫報告）；artifacts/gallery-browser/2026-10-21T02-36-27-579Z/report.json 的 fixtureImages 與 downloads；src/background/engine.ts:416-436（實作依 completed index 選圖並命名）。",
+      "reproOrReadPath": "唯讀閱讀上述測試與 report.json；逐項對照 fixtureImages 的 index/hash/SHA-256 和 downloads 的 filename/SHA-256 即可重現錯配，不需執行 browser test。",
+      "impact": "圖庫接受測試可能漏掉圖片內容與 0001.webp、0002.webp 等序號檔名錯配；目前 report 的逐檔 hash 證據也不可信，降低發現頁序回歸的能力。",
+      "confidence": "high",
+      "unknown": "報告的逐檔 SHA-256 配對已被測試程式的原地 sort 污染；唯讀證據無法由該報告確定每一下載檔實際對應的 metadata index，也沒有證明 production engine 發生錯序。",
+      "recommendation": "先保留按 filename 排序的 download records 與各自 SHA-256 配對，再按 metadata 順序核對每個序號檔名的 digest；若另外需要集合比較，對副本排序，避免改動報告所用的逐檔資料。"
+    }
+  ],
+  "verdict": "P2 test-evidence finding; no product regression proven. Snapshot identity verified. Synthetic gallery flow and recorded Katfile evidence support the stated scope, subject to the limits above."
+}

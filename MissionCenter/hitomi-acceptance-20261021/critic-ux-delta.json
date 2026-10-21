@@ -1,0 +1,29 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-02",
+  "seatId": "ux-accessibility",
+  "lanes": [
+    "ux",
+    "accessibility",
+    "i18n"
+  ],
+  "scope": [
+    "src/ui/gallery.ts",
+    "src/ui/main.ts",
+    "src/shared/gallery-copy.ts",
+    "tests/gallery-ui.test.ts"
+  ],
+  "limits": [
+    "上述讀取檔案 SHA-256 均符合 snapshot-02.json。",
+    "僅執行聚焦測試：npm test -- --run tests/gallery-ui.test.ts（2 tests passed）。",
+    "未開 Chrome、未執行 build、未改產品；未驗證真實 Hitomi 圖片傳輸或原生工具列 popup。保留 snapshot 記載的 Katfile live/CAPTCHA/restart 限制。"
+  ],
+  "priorFindingDisposition": "closed",
+  "priorFindingClosureEvidence": [
+    "src/shared/gallery-copy.ts:53-57 提供 English、繁體中文與日文的 unknownProgress 文案。",
+    "src/ui/gallery.ts:14-23 在總頁數缺失時使用 unknownProgress；galleryPercent 對未知總頁數仍回傳 undefined。",
+    "src/ui/main.ts:120-124 將頁數文案同時放在可見狀態與 progress aria-label，並且只在百分比有值時設定 progress value。",
+    "tests/gallery-ui.test.ts:37-41 與 118-129 驗證未知總數文案、ARIA 標籤及不設定 value。"
+  ],
+  "findings": [],
+  "verdict": "closed_no_new_findings"
+}

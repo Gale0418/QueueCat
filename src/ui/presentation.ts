@@ -1,5 +1,7 @@
 import type { AppState, ItemStatus, Mascot, QueueItem } from "../shared/types";
 import { extractionCopy } from "../shared/extraction-copy";
+import { galleryCopy } from "../shared/gallery-copy";
+import { galleryMessage } from "./gallery";
 export const labels: Record<ItemStatus, string> = {
   queued: "排隊中",
   preparing: "準備頁面",
@@ -19,6 +21,52 @@ export function summary(state: AppState): {
   subtitle: string;
 } {
   const active = state.items.find((i) => i.id === state.activeId);
+  if (active?.gallery) {
+    if (active.status === "complete")
+      return {
+        mascot: "happy",
+        title: galleryCopy("complete"),
+        subtitle: galleryCopy("progress")
+          .replace("{done}", String(active.gallery.completed))
+          .replace(
+            "{total}",
+            String(
+              active.gallery.total ?? active.gallery.images?.length ?? "?",
+            ),
+          ),
+      };
+    if (active.status === "blocked" || active.status === "failed")
+      return {
+        mascot: "confused",
+        title:
+          active.status === "blocked"
+            ? "需要確認下載狀態"
+            : galleryCopy("failed"),
+        subtitle: galleryMessage(active) || galleryCopy("retryTip"),
+      };
+    if (!state.running)
+      return {
+        mascot: "sleep",
+        title:
+          active.status === "downloading" ? "排隊暫停，下載繼續" : "排隊已暫停",
+        subtitle: galleryCopy("retryTip"),
+      };
+    return {
+      mascot: "work",
+      title:
+        active.status === "downloading"
+          ? "正在下載，貓貓顧著"
+          : active.status === "preparing"
+            ? galleryCopy("reading")
+            : galleryCopy("resolving"),
+      subtitle: galleryCopy("progress")
+        .replace("{done}", String(active.gallery.completed))
+        .replace(
+          "{total}",
+          String(active.gallery.total ?? active.gallery.images?.length ?? "?"),
+        ),
+    };
+  }
   if (!active) {
     const extraction = state.extractions?.find(
       (g) =>
@@ -116,6 +164,7 @@ export function summary(state: AppState): {
   };
 }
 export function briefReason(item: QueueItem): string {
+  if (item.gallery) return galleryMessage(item) || galleryCopy("album");
   if (item.status === "waiting") return "倒數結束後，會重新確認網站。";
   if (item.status === "verification") return "請到原分頁完成驗證。";
   if (item.status === "preparing") return "正在確認網站狀態。";

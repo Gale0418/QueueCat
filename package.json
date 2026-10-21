@@ -9,6 +9,7 @@
     "test": "vitest run",
     "test:browser": "node tests/browser/run.mjs",
     "test:extraction-browser": "node tests/browser/extraction.mjs",
+    "test:gallery-browser": "node tests/browser/gallery.mjs",
     "build:helper": "node scripts/package-native.mjs",
     "check": "tsc --noEmit"
   },

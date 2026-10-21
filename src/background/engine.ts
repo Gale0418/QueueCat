@@ -5,6 +5,8 @@ import {
   type Command,
   type DownloadDelta,
   type DownloadCandidate,
+  type GalleryImage,
+  type GalleryManifest,
   type PageObservation,
   type QueueItem,
   type Request,
@@ -14,7 +16,12 @@ import {
   isLanguagePreference,
   normalizeLanguagePreference,
 } from "../shared/language";
-import { isKatfileHost, normalizeSource, sourceKey } from "../shared/urls";
+import {
+  hitomiGalleryId,
+  isKatfileHost,
+  normalizeSource,
+  sourceKey,
+} from "../shared/urls";
 import {
   planExtractions,
   extractionError,
@@ -57,6 +64,7 @@ export interface EnginePorts {
     download(options: {
       url: string;
       conflictAction: "uniquify";
+      filename?: string;
     }): Promise<number>;
     search(query: {
       id?: number;
@@ -68,6 +76,10 @@ export interface EnginePorts {
     resume(id: number): Promise<void>;
     cancel(id: number): Promise<void>;
     show(id: number): Promise<void>;
+  };
+  gallery?: {
+    load(id: string): Promise<GalleryManifest>;
+    imageUrl(image: GalleryImage): Promise<string>;
   };
   alarms: {
     get?(name: string): Promise<{ scheduledTime: number } | undefined>;
@@ -82,6 +94,7 @@ export interface EnginePorts {
     message: string,
     notificationId?: string,
     language?: AppState["settings"]["language"],
+    gallery?: boolean,
   ): Promise<void>;
   setBadge(
     text: string,
@@ -101,6 +114,10 @@ const isTerminal = (s: QueueItem["status"]) =>
   s === "failed" || s === "complete";
 const FREE_ACTION_TIMEOUT = 30_000;
 const EXTERNAL_WAIT = "Chrome 正在下載其他 Katfile 檔案，完成後繼續";
+const HITOMI_IMAGE_HOSTS = new Set([
+  "w1.gold-usergeneratedcontent.net",
+  "w2.gold-usergeneratedcontent.net",
+]);
 
 /** All state transitions and Chrome side effects pass through one serialized queue. */
 export class QueueEngine {
@@ -111,8 +128,14 @@ export class QueueEngine {
 
   constructor(private readonly p: EnginePorts) {}
 
-  private notify(s: AppState, title: string, message: string, id?: string) {
-    return this.p.notify(title, message, id, s.settings.language);
+  private notify(
+    s: AppState,
+    title: string,
+    message: string,
+    id?: string,
+    gallery = false,
+  ) {
+    return this.p.notify(title, message, id, s.settings.language, gallery);
   }
 
   private serial<T>(fn: () => Promise<T>): Promise<T> {
@@ -174,6 +197,426 @@ export class QueueEngine {
     item.updatedAt = this.p.now();
     item.events.push({ at: item.updatedAt, message });
     if (item.events.length > 60) item.events.splice(0, item.events.length - 60);
+  }
+  private galleryFolder(id: string, title: string, itemId: string): string {
+    const safeTitle =
+      Array.from(
+        title
+          .normalize("NFC")
+          .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+          .replace(/[. ]+$/g, "")
+          .replace(/^\.+/g, "")
+          .trim(),
+      )
+        .slice(0, 80)
+        .join("")
+        .replace(/[. ]+$/g, "") || "Gallery";
+    // A new queue entry gets a separate folder, so re-adding changed metadata
+    // cannot mix an old completed prefix with pages from a different revision.
+    const run = itemId.replace(/[^a-z0-9]/gi, "").slice(0, 12);
+    return `QueueCat/Hitomi-${id}-${run}-${safeTitle}`;
+  }
+  private validGalleryImageUrl(raw: string, image: GalleryImage): boolean {
+    try {
+      const url = new URL(raw);
+      const segments = url.pathname.split("/").filter(Boolean);
+      return (
+        url.protocol === "https:" &&
+        HITOMI_IMAGE_HOSTS.has(url.hostname) &&
+        !url.username &&
+        !url.password &&
+        !url.port &&
+        !url.search &&
+        !url.hash &&
+        segments.length === 3 &&
+        /^[1-9]\d{0,15}$/.test(segments[0]) &&
+        /^(?:0|[1-9]\d{0,3})$/.test(segments[1]) &&
+        Number(segments[1]) ===
+          Number.parseInt(
+            `${image.hash.at(-1)}${image.hash.slice(-3, -1)}`,
+            16,
+          ) &&
+        segments.every(
+          (segment) =>
+            segment !== "." &&
+            segment !== ".." &&
+            /^[a-z0-9._-]+$/i.test(segment),
+        ) &&
+        segments.at(-1)?.toLowerCase() === `${image.hash.toLowerCase()}.webp`
+      );
+    } catch {
+      return false;
+    }
+  }
+  private async refreshGalleryManifest(
+    s: AppState,
+    item: QueueItem,
+  ): Promise<boolean> {
+    const gallery = item.gallery;
+    if (!gallery) return false;
+    if (!/^[1-9]\d{0,9}$/.test(gallery.id)) {
+      await this.block(s, item, "Hitomi 圖庫識別碼無效");
+      return false;
+    }
+    if (!this.p.gallery) {
+      await this.failGallery(s, item, "Hitomi 圖庫下載服務尚未就緒");
+      return false;
+    }
+    let manifest: GalleryManifest;
+    try {
+      manifest = await this.p.gallery.load(gallery.id);
+    } catch (error) {
+      const code =
+        error !== null && typeof error === "object" && "code" in error
+          ? error.code
+          : undefined;
+      await this.failGallery(
+        s,
+        item,
+        typeof code === "string" &&
+          [
+            "gallery_unavailable",
+            "gallery_invalid_metadata",
+            "gallery_invalid_routing",
+          ].includes(code)
+          ? code
+          : "gallery_request_failed",
+      );
+      return false;
+    }
+    const valid =
+      manifest?.id === gallery.id &&
+      typeof manifest.title === "string" &&
+      !!manifest.title.trim() &&
+      manifest.title.length <= 300 &&
+      Array.isArray(manifest.images) &&
+      manifest.images.length > 0 &&
+      manifest.images.length <= 2_000 &&
+      manifest.images.every(
+        (image) =>
+          image &&
+          typeof image.hash === "string" &&
+          /^[a-f0-9]{64}$/i.test(image.hash) &&
+          typeof image.name === "string" &&
+          image.name.length > 0 &&
+          image.name.length <= 512 &&
+          !/[\0\r\n]/.test(image.name),
+      ) &&
+      new Set(manifest.images.map((image) => image.hash.toLowerCase())).size ===
+        manifest.images.length;
+    if (!valid) {
+      await this.block(s, item, "Hitomi 圖庫資料無效或已無法核對");
+      return false;
+    }
+    if (!gallery.images && gallery.completed > 0) {
+      await this.block(
+        s,
+        item,
+        "缺少已下載圖庫頁面的核對快照；為避免混冊，請重新加入圖庫",
+      );
+      return false;
+    }
+    const snapshot = manifest.images.map(({ hash, name }) => ({ hash, name }));
+    if (new TextEncoder().encode(JSON.stringify(snapshot)).length > 3_000_000) {
+      await this.block(s, item, "Hitomi 圖庫清單過大，無法安全保存進度");
+      return false;
+    }
+    const changed =
+      (gallery.images !== undefined &&
+        (!gallery.title ||
+          !gallery.folder ||
+          gallery.title !== manifest.title ||
+          gallery.total !== snapshot.length ||
+          gallery.images.length !== snapshot.length ||
+          gallery.images.some(
+            (image, index) =>
+              image.hash !== snapshot[index].hash ||
+              image.name !== snapshot[index].name,
+          ))) ||
+      (gallery.folder !== undefined &&
+        gallery.folder !==
+          this.galleryFolder(gallery.id, manifest.title, item.id));
+    if (changed) {
+      item.title = manifest.title;
+      await this.block(
+        s,
+        item,
+        "Hitomi 圖庫內容或標題已變更；為避免混入不同版本，請重新加入圖庫",
+      );
+      return false;
+    }
+    const titleChanged = item.title !== manifest.title;
+    item.title = manifest.title;
+    if (!gallery.images) {
+      gallery.images = snapshot;
+      gallery.total = snapshot.length;
+      gallery.title = manifest.title;
+      gallery.folder = this.galleryFolder(gallery.id, manifest.title, item.id);
+      this.event(
+        item,
+        `已讀取圖庫「${manifest.title}」，共 ${snapshot.length} 張`,
+      );
+      await this.save(s);
+    } else if (titleChanged) await this.save(s);
+    return true;
+  }
+  private async failGallery(
+    s: AppState,
+    item: QueueItem,
+    reason: string,
+  ): Promise<void> {
+    if (isTerminal(item.status)) return;
+    item.status = "failed";
+    item.reason = reason;
+    this.event(item, `圖庫下載失敗：${reason}`);
+    if (s.activeId === item.id) s.activeId = undefined;
+    await this.save(s);
+    if (s.running) await this.pump(s);
+  }
+  private async startGalleryPage(
+    s: AppState,
+    item: QueueItem,
+    revalidate: boolean,
+  ): Promise<void> {
+    const gallery = item.gallery;
+    if (
+      !gallery ||
+      !s.running ||
+      (s.activeId !== undefined && s.activeId !== item.id) ||
+      item.downloadId !== undefined ||
+      ["blocked", "failed", "complete"].includes(item.status)
+    )
+      return;
+    if (item.action?.kind === "download") {
+      await this.recoverGalleryHandoff(s, item);
+      return;
+    }
+    s.activeId = item.id;
+    if (revalidate || !gallery.images) {
+      item.status = "preparing";
+      await this.save(s);
+      if (!(await this.refreshGalleryManifest(s, item))) return;
+    }
+    const images = gallery.images;
+    if (!images) {
+      await this.block(s, item, "Hitomi 圖庫圖片清單遺失，請重新核對");
+      return;
+    }
+    if (gallery.completed >= (gallery.total || images.length)) {
+      item.status = "complete";
+      item.reason = undefined;
+      gallery.images = undefined;
+      s.activeId = undefined;
+      this.event(item, "圖庫全部下載完成");
+      await this.save(s);
+      if (s.running) await this.pump(s);
+      else await this.arm(s);
+      return;
+    }
+    const image = images[gallery.completed];
+    if (!image || !this.p.gallery) {
+      await this.block(s, item, "圖庫進度與圖片清單不一致，請重新核對");
+      return;
+    }
+    let url: string;
+    try {
+      url = await this.p.gallery.imageUrl(image);
+    } catch (error) {
+      await this.failGallery(
+        s,
+        item,
+        `無法取得第 ${gallery.completed + 1} 張圖片網址：${this.message(error)}`,
+      );
+      return;
+    }
+    if (!this.validGalleryImageUrl(url, image)) {
+      await this.block(s, item, "Hitomi 圖片網址未通過 HTTPS 網域與 hash 檢查");
+      return;
+    }
+    const filename = `${gallery.folder}/${String(gallery.completed + 1).padStart(4, "0")}.webp`;
+    item.reason = undefined;
+    item.status = "handoff";
+    item.action = {
+      id: crypto.randomUUID(),
+      kind: "download",
+      at: this.p.now(),
+      expectedUrl: url,
+    };
+    this.event(
+      item,
+      `已保存第 ${gallery.completed + 1} 張圖片交接，交由 Chrome 下載`,
+    );
+    await this.save(s);
+    try {
+      const id = await this.p.downloads.download({
+        url,
+        filename,
+        conflictAction: "uniquify",
+      });
+      item.downloadId = id;
+      item.status = "downloading";
+      this.event(item, `Chrome 已接手圖庫圖片下載 #${id}`);
+      await this.save(s);
+      await this.syncGalleryDownload(s, item);
+    } catch (error) {
+      await this.block(
+        s,
+        item,
+        `Chrome 圖庫下載交接結果不明：${this.message(error)}；不會自動重送`,
+      );
+    }
+    await this.arm(await this.load());
+  }
+  private async recoverGalleryHandoff(
+    s: AppState,
+    item: QueueItem,
+  ): Promise<void> {
+    const action = item.action;
+    const image = item.gallery?.images?.[item.gallery.completed];
+    if (
+      !action?.expectedUrl ||
+      !image ||
+      !this.validGalleryImageUrl(action.expectedUrl, image) ||
+      !Number.isFinite(action.at)
+    ) {
+      await this.block(s, item, "圖庫圖片交接記錄不完整，請人工核對");
+      return;
+    }
+    const candidates = (
+      await this.p.downloads.search({
+        startedAfter: new Date(action.at - 1).toISOString(),
+        startedBefore: new Date(action.at + HANDOFF_WINDOW + 1).toISOString(),
+      })
+    ).filter(
+      (download) =>
+        download.byExtensionId === this.p.extensionId &&
+        download.url === action.expectedUrl &&
+        Date.parse(download.startTime || "") >= action.at &&
+        Date.parse(download.startTime || "") <= action.at + HANDOFF_WINDOW,
+    );
+    if (candidates.length !== 1) {
+      await this.block(
+        s,
+        item,
+        candidates.length
+          ? "找到多筆可能的圖庫圖片下載，請人工核對"
+          : "圖庫圖片 Chrome 交接結果未知，為避免重複下載已暫停",
+      );
+      return;
+    }
+    item.downloadId = candidates[0].id;
+    item.status = "downloading";
+    this.event(item, `已核對圖庫圖片 Chrome 下載 #${item.downloadId}`);
+    await this.save(s);
+    await this.syncGalleryDownload(s, item);
+  }
+  private async syncGalleryDownload(
+    s: AppState,
+    item: QueueItem,
+  ): Promise<void> {
+    if (
+      item.downloadId === undefined ||
+      !item.gallery ||
+      isTerminal(item.status)
+    )
+      return;
+    const [download] = await this.p.downloads.search({ id: item.downloadId });
+    if (!download) {
+      await this.block(
+        s,
+        item,
+        "Chrome 找不到已保存的圖庫圖片下載紀錄，請人工核對",
+      );
+      return;
+    }
+    const expectedImage = item.gallery.images?.[item.gallery.completed];
+    if (
+      !expectedImage ||
+      !item.action?.expectedUrl ||
+      !this.validGalleryImageUrl(item.action.expectedUrl, expectedImage) ||
+      download.url !== item.action.expectedUrl ||
+      download.byExtensionId !== this.p.extensionId
+    ) {
+      await this.block(s, item, "圖庫圖片交接記錄不完整，請人工核對");
+      return;
+    }
+    item.bytesReceived = download.bytesReceived;
+    item.totalBytes = download.totalBytes;
+    item.downloadPaused = download.paused;
+    item.canResume = download.canResume;
+    const now = this.p.now();
+    if (this.lastSample?.id === download.id && now > this.lastSample.at)
+      item.speed = Math.max(
+        0,
+        ((download.bytesReceived - this.lastSample.bytes) * 1000) /
+          (now - this.lastSample.at),
+      );
+    this.lastSample = {
+      id: download.id,
+      bytes: download.bytesReceived,
+      at: now,
+    };
+    if (
+      download.state !== "interrupted" &&
+      download.danger &&
+      !["safe", "accepted"].includes(download.danger)
+    ) {
+      await this.block(s, item, `Chrome 安全性阻擋：${download.danger}`);
+      return;
+    }
+    if (download.state === "complete") {
+      const gallery = item.gallery;
+      gallery.lastDownloadId = download.id;
+      gallery.completed = Math.min(
+        gallery.completed + 1,
+        gallery.total || gallery.completed + 1,
+      );
+      item.downloadId = undefined;
+      item.action = undefined;
+      item.bytesReceived = undefined;
+      item.totalBytes = undefined;
+      item.speed = undefined;
+      item.downloadPaused = undefined;
+      item.canResume = undefined;
+      item.reason = undefined;
+      if (gallery.completed >= (gallery.total || gallery.images?.length || 0)) {
+        item.status = "complete";
+        gallery.images = undefined;
+        s.activeId = undefined;
+        this.event(item, "圖庫全部下載完成");
+        await this.save(s);
+        if (s.running) await this.pump(s);
+        else await this.arm(s);
+      } else {
+        item.status = "queued";
+        if (!s.running) s.activeId = undefined;
+        this.event(item, `第 ${gallery.completed} 張圖片完成`);
+        await this.save(s);
+        if (s.running) await this.startGalleryPage(s, item, false);
+        else await this.arm(s);
+      }
+      return;
+    }
+    if (download.state === "interrupted") {
+      if (
+        download.canResume ||
+        /USER_SHUTDOWN|CRASH/i.test(download.error || "")
+      )
+        await this.block(
+          s,
+          item,
+          `Chrome 圖庫圖片下載中斷（${download.error || "可續傳"}），請先在 Chrome 核對`,
+        );
+      else
+        await this.failGallery(
+          s,
+          item,
+          `Chrome 明確中止圖庫圖片下載：${download.error || "未知原因"}`,
+        );
+      return;
+    }
+    item.status = "downloading";
+    await this.save(s);
   }
   private async arm(s: AppState, preserveEarlier = false): Promise<void> {
     if (preserveEarlier) {
@@ -421,7 +864,9 @@ export class QueueEngine {
           const s = await this.load();
           const item = s.items.find((x) => x.id === s.activeId);
           if (item?.status === "downloading" && item.downloadId !== undefined)
-            await this.syncDownload(s, item);
+            await (item.gallery
+              ? this.syncGalleryDownload(s, item)
+              : this.syncDownload(s, item));
           await this.syncExtractions(await this.load());
           await this.arm(await this.load(), true);
           return { ok: true, state: structuredClone(await this.load()) };
@@ -463,6 +908,8 @@ export class QueueEngine {
             /[\0\r\n]/.test(c.extraction.password))
         )
           throw new Error("invalid_archive");
+        if (c.extraction && c.urls.some((raw) => hitomiGalleryId(raw)))
+          throw new Error("gallery_extraction_not_supported");
         const additions: QueueItem[] = [];
         for (const raw of c.urls) {
           const url = normalizeSource(raw);
@@ -479,6 +926,9 @@ export class QueueEngine {
             sourceUrl: url,
             title: url,
             status: "queued",
+            ...(hitomiGalleryId(url)
+              ? { gallery: { id: hitomiGalleryId(url)!, completed: 0 } }
+              : {}),
             createdAt: at,
             updatedAt: at,
             events: [{ at, message: "已加入佇列" }],
@@ -585,7 +1035,10 @@ export class QueueEngine {
         s.running = true;
         if (!s.cycleStartedAt) s.cycleStartedAt = this.p.now();
         await this.save(s);
-        await this.pump(s);
+        const active = s.items.find((x) => x.id === s.activeId);
+        if (active?.gallery && active.downloadId === undefined)
+          await this.startGalleryPage(s, active, true);
+        else await this.pump(s);
         return structuredClone(await this.load());
       }
       case "pause":
@@ -609,9 +1062,22 @@ export class QueueEngine {
       }
       case "remove": {
         const item = s.items.find((x) => x.id === c.id);
+        const forgetUncertain =
+          c.confirmUncertain === true &&
+          !!item?.gallery &&
+          item.status === "blocked" &&
+          item.downloadId === undefined &&
+          item.action?.kind === "download";
+        const removableGallery =
+          !!item?.gallery &&
+          item.status === "blocked" &&
+          item.downloadId === undefined &&
+          (item.action?.kind !== "download" || forgetUncertain);
+        const removedActiveGallery =
+          removableGallery && item?.id === s.activeId;
         if (
           !item ||
-          item.id === s.activeId ||
+          (item.id === s.activeId && !removableGallery) ||
           s.extractions?.some(
             (g) =>
               g.itemIds.includes(c.id) &&
@@ -619,6 +1085,10 @@ export class QueueEngine {
           )
         )
           throw new Error("無法移除目前執行項目");
+        if (s.activeId === item.id) s.activeId = undefined;
+        // Forgetting uncertain bookkeeping never retries, cancels, deletes files,
+        // or starts the following item. The user must inspect Chrome first.
+        if (forgetUncertain) s.running = false;
         s.items = s.items.filter((x) => x.id !== c.id);
         const canceled = (s.extractions || []).filter(
           (g) => g.itemIds.includes(c.id) && g.status !== "complete",
@@ -636,13 +1106,28 @@ export class QueueEngine {
         );
         await this.save(s);
         await this.cleanSecrets(s);
-        await this.arm(s);
-        return structuredClone(s);
+        if (removedActiveGallery && s.running) await this.pump(s);
+        else await this.arm(s);
+        return structuredClone(await this.load());
       }
       case "retry": {
         let item = s.items.find((x) => x.id === c.id);
         if (!item || !["failed", "blocked"].includes(item.status))
           throw new Error("只能重試失敗或暫停項目");
+        if (
+          item.gallery &&
+          item.action?.kind === "download" &&
+          item.downloadId === undefined
+        ) {
+          await this.recoverGalleryHandoff(s, item);
+          s = await this.load();
+          item = s.items.find((x) => x.id === c.id)!;
+          if (item.status !== "blocked" || item.downloadId !== undefined)
+            throw new Error(
+              "已找到交接中的圖庫圖片下載，請先核對其狀態後再操作",
+            );
+          throw new Error("圖庫圖片交接結果仍未知；不會重新發起下載");
+        }
         if (item.action?.kind === "download" && item.downloadId === undefined) {
           await this.recoverHandoff(s, item);
           s = await this.load();
@@ -685,7 +1170,21 @@ export class QueueEngine {
         if (!item || item.status !== "blocked")
           throw new Error("項目目前不是暫停狀態");
         item.reason = undefined;
-        if (item.downloadId !== undefined) await this.syncDownload(s, item);
+        if (item.gallery && item.downloadId !== undefined)
+          await this.syncGalleryDownload(s, item);
+        else if (item.gallery && item.action?.kind === "download")
+          await this.recoverGalleryHandoff(s, item);
+        else if (item.gallery) {
+          item.status = "preparing";
+          await this.save(s);
+          if (await this.refreshGalleryManifest(s, item)) {
+            item.status = "queued";
+            item.reason = undefined;
+            if (s.activeId === item.id) s.activeId = undefined;
+            await this.save(s);
+          }
+        } else if (item.downloadId !== undefined)
+          await this.syncDownload(s, item);
         else if (item.action?.kind === "download")
           await this.recoverHandoff(s, item);
         else if (item.tabId !== undefined) {
@@ -704,7 +1203,7 @@ export class QueueEngine {
         await this.save(s);
         if (s.running) await this.pump(s);
         else await this.arm(s);
-        return structuredClone(s);
+        return structuredClone(await this.load());
       }
       case "adopt-download": {
         const item = this.manualDownloadItem(s, c.id);
@@ -723,7 +1222,8 @@ export class QueueEngine {
         }
         this.event(item, `已由你確認並連結 Chrome 下載 #${c.downloadId}`);
         await this.save(s);
-        await this.syncDownload(s, item);
+        if (item.gallery) await this.syncGalleryDownload(s, item);
+        else await this.syncDownload(s, item);
         await this.arm(await this.load());
         return structuredClone(await this.load());
       }
@@ -812,8 +1312,10 @@ export class QueueEngine {
         return structuredClone(s);
       case "show-file": {
         const item = s.items.find((x) => x.id === c.id);
-        if (item?.downloadId !== undefined)
-          await this.p.downloads.show(item.downloadId);
+        const downloadId = item?.gallery
+          ? item.gallery.lastDownloadId
+          : item?.downloadId;
+        if (downloadId !== undefined) await this.p.downloads.show(downloadId);
         return structuredClone(s);
       }
       case "test-notification":
@@ -824,6 +1326,14 @@ export class QueueEngine {
   private async focusItem(s: AppState, id: string): Promise<AppState> {
     const item = s.items.find((x) => x.id === id);
     if (!item) throw new Error("找不到佇列項目");
+    if (
+      item.gallery &&
+      item.status === "blocked" &&
+      (item.action?.kind === "download" || item.downloadId !== undefined)
+    ) {
+      await this.p.tabs.create("chrome://downloads/");
+      return structuredClone(s);
+    }
     if (item.tabId !== undefined) {
       try {
         const tab = await this.p.tabs.get(item.tabId);
@@ -836,6 +1346,7 @@ export class QueueEngine {
       }
     }
     if (
+      !item.gallery &&
       item.id === s.activeId &&
       !["downloading", "handoff", "blocked", "failed", "complete"].includes(
         item.status,
@@ -879,9 +1390,15 @@ export class QueueEngine {
         await this.notify(
           s,
           "QueueCat 佇列已完成",
-          "本輪 Katfile 下載工作已結束。",
+          s.items.some((x) => x.gallery)
+            ? "QueueCat 佇列已完成"
+            : "本輪 Katfile 下載工作已結束。",
           `queuecat-cycle-${s.cycleStartedAt || s.cycleNotifiedAt}`,
         );
+      return;
+    }
+    if (item.gallery) {
+      await this.startGalleryPage(s, item, true);
       return;
     }
     const ownIds = new Set(
@@ -955,6 +1472,7 @@ export class QueueEngine {
     const item = s.items.find((i) => i.id === id);
     if (
       !item ||
+      !!item.gallery ||
       s.activeId !== id ||
       item.status !== "blocked" ||
       item.downloadId !== undefined ||
@@ -1327,6 +1845,7 @@ export class QueueEngine {
         "QueueCat 已暫停佇列",
         reason,
         `queuecat-block-${item.id}`,
+        !!item.gallery,
       );
   }
   private async fail(
@@ -1351,7 +1870,10 @@ export class QueueEngine {
       const s = await this.load();
       const item = s.items.find((x) => x.downloadId === delta.id);
       if (item) {
-        if (!isTerminal(item.status)) await this.syncDownload(s, item);
+        if (!isTerminal(item.status))
+          await (item.gallery
+            ? this.syncGalleryDownload(s, item)
+            : this.syncDownload(s, item));
         await this.arm(await this.load());
         return structuredClone(await this.load());
       }
@@ -1393,7 +1915,10 @@ export class QueueEngine {
           x.action?.kind === "download" &&
           x.action.expectedUrl,
       );
-      if (handoff) await this.recoverHandoff(s, handoff);
+      if (handoff) {
+        if (handoff.gallery) await this.recoverGalleryHandoff(s, handoff);
+        else await this.recoverHandoff(s, handoff);
+      }
       return structuredClone(await this.load());
     });
   }
@@ -1496,6 +2021,20 @@ export class QueueEngine {
       const s = await this.load();
       await this.syncExtractions(s);
       const item = s.items.find((x) => x.id === s.activeId);
+      if (item?.gallery) {
+        if (item.downloadId !== undefined)
+          await this.syncGalleryDownload(s, item);
+        else if (item.action?.kind === "download")
+          await this.recoverGalleryHandoff(s, item);
+        else if (
+          s.running &&
+          !["blocked", "failed", "complete"].includes(item.status)
+        )
+          await this.startGalleryPage(s, item, true);
+        const current = await this.load();
+        await this.arm(current);
+        return structuredClone(current);
+      }
       if (!item) {
         if (s.running) await this.pump(s);
         await this.arm(await this.load());
@@ -1583,7 +2122,18 @@ export class QueueEngine {
       const s = await this.load();
       await this.syncExtractions(s);
       const item = s.items.find((x) => x.id === s.activeId);
-      if (item?.downloadId !== undefined) await this.syncDownload(s, item);
+      if (item?.gallery) {
+        if (item.downloadId !== undefined)
+          await this.syncGalleryDownload(s, item);
+        else if (item.action?.kind === "download")
+          await this.recoverGalleryHandoff(s, item);
+        else if (
+          s.running &&
+          !["blocked", "failed", "complete"].includes(item.status)
+        )
+          await this.startGalleryPage(s, item, true);
+      } else if (item?.downloadId !== undefined)
+        await this.syncDownload(s, item);
       else if (item?.status === "handoff") await this.recoverHandoff(s, item);
       else if (
         s.running &&
@@ -1662,8 +2212,14 @@ export class QueueEngine {
         if (candidates.length === 1) {
           item.downloadId = d.id;
           item.status = "downloading";
-          this.event(item, `Chrome 已建立下載 #${d.id}`);
+          this.event(
+            item,
+            item.gallery
+              ? `Chrome 已建立圖庫圖片下載 #${d.id}`
+              : `Chrome 已建立下載 #${d.id}`,
+          );
           await this.save(s);
+          if (item.gallery) await this.syncGalleryDownload(s, item);
         } else
           await this.block(
             s,

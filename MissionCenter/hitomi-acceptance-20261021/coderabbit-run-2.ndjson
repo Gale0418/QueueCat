@@ -1,0 +1,7 @@
+{"type":"review_context","reviewType":"uncommitted","currentBranch":"main","baseBranch":"main","workingDirectory":"/mnt/d/MyGame/QueueCat/artifacts/coderabbit-hitomi-fix"}
+{"type":"status","phase":"connecting","status":"connecting_to_review_service"}
+{"type":"status","phase":"analyzing","status":"setting_up","message":"CodeRabbit CLI 0.7.6 cannot update automatically. Keep this review running. After it finishes, run `coderabbit update` (Homebrew: `brew upgrade coderabbit`), then verify with `coderabbit --version`. If you are the calling agent, handle this follow-up using your normal permissions. For an organization-managed installation, ask your administrator to update it."}
+{"type":"status","phase":"setup","status":"setting_up"}
+{"type":"status","phase":"analyzing","status":"summarizing"}
+{"type":"status","phase":"analyzing","status":"reviewing"}
+{"type":"complete","status":"review_completed","findings":0,"reviewedFiles":["src/background/engine.ts","src/background/index.ts","src/shared/gallery-copy.ts","src/shared/gallery-messages.ts","src/shared/types.ts","src/ui/main.ts","src/ui/presentation.ts","src/ui/style.css","tests/gallery-engine.test.ts","tests/gallery-ui.test.ts"]}

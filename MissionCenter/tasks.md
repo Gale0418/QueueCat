@@ -29,3 +29,8 @@
 | QC-T11 | 原生解壓與安全工作狀態 | Task | QC-E7 | P1 | Review | Codex | - | 安全席03閉合，保留明示lazy expiry與非OS沙箱限制 | 22Rust；加密RAR單檔/4卷/錯密碼/hash；terminal鎖與原子寫入回歸 | - | verification | 未系統安裝7-Zip或修改檔案關聯 |
 | QC-T12 | 密碼輸入、分卷排隊與三語狀態 | Task | QC-E7 | P1 | Review | Codex | - | 佇列與UX席03閉合；實站整合保留Review | 114TS及修後定向；取消group/expiry空密碼/closest scope/watchdog | - | verification | Gemini三語文案；純下載不需小幫手 |
 | QC-T13 | 隔離瀏覽器、套件與文件 | Task | QC-E7 | P1 | Review | Codex | QC-T11,QC-T12 | 10/21正式helper已註冊；本人重載後確認就緒；保留實站Review | Chrome06 pass/cleanup全true；2ZIP/CRC/hash；Rabbit3輪7issues修補 | - | verification,closeout | 舊run3兩暫存目錄清理遭policy拒絕已如實保留 |
+
+| QC-E8 | Hitomi 單本圖庫佇列 | Epic | - | P1 | Review | Codex | - | 本機source驗收完成；保留實站與手動重載待驗 | 150 tests/type/build；圖庫6與Katfile23隔離檢查通過 | - | verification,closeout | 單本一任務、固定快照WebP資料夾；實站未驗不宣稱正式release |
+| QC-T14 | 圖庫網址與metadata路由 | Task | QC-E8 | P1 | Review | Codex | - | 保留站方路由改版後的更新需求 | 官方技術來源與JSON-only解析、9個adapter測試、安全host/hash/timeout | - | verification | 未複製GPL extractor；不下載示例圖片；57檔最終來源快照 |
+| QC-T15 | 持久圖庫游標與Chrome下載 | Task | QC-E8 | P1 | Review | Codex | QC-T14 | 真實站台傳輸另待觀察 | 19個engine測試；逐頁真Chrome、pause/resume、重啟、防重送、確認forget不取消 | - | verification | 僅重試或停在兩頁間續排重核manifest；保留Katfile及Rust行為 |
+| QC-T16 | 三語介面、完整隔離與交付 | Task | QC-E8 | P1 | Review | Codex | QC-T14,QC-T15 | 本機來源與套件驗收閉合；本人閒置重載新權限後觀察實站 | Gemini 3.8Flash 28keys；6/23隔離；Rabbit21檔3issues修後10檔0；三席delta與獨立仲裁閉合 | - | verification,closeout | README/產品介紹已更新；真站、原生popup與discarded診斷仍有明示缺口 |

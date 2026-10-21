@@ -1,0 +1,153 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-02",
+  "phase": "final-arbitration",
+  "verdict": "All previously confirmed P2 findings are closed against the final source snapshot and formal synthetic acceptance evidence. No P0/P1 or other confirmed unaddressed finding was identified in the reviewed scope. Local source/package delivery can be closed; broader live-site acceptance and manual extension reload remain Review.",
+  "evidenceBasis": {
+    "sealedReports": [
+      "critic-reliability.json",
+      "critic-ux.json",
+      "critic-integration.json",
+      "critic-reliability-delta.json",
+      "critic-ux-delta.json",
+      "critic-integration-delta.json"
+    ],
+    "snapshots": [
+      "snapshot-01.json",
+      "snapshot-02.json"
+    ],
+    "documentationSnapshot": "documentation-02.json",
+    "formalReports": [
+      "artifacts/gallery-browser/2026-10-21T02-53-38-840Z/report.json",
+      "artifacts/browser-acceptance/2026-10-21T02-53-55-612Z/report.json"
+    ],
+    "rootVerification": "verification-02.json",
+    "readOnly": true,
+    "productOrTestFilesChanged": false,
+    "chromeOpened": false,
+    "buildOrTestsRunByArbiter": false
+  },
+  "independentIdentityChecks": {
+    "snapshotSourceFiles": {
+      "expected": 57,
+      "matchedBytesAndSha256": 57,
+      "result": "pass"
+    },
+    "rootBuildEntries": {
+      "expected": 17,
+      "matchedBytesAndSha256": 17,
+      "result": "pass"
+    },
+    "unpackedBuildEntries": {
+      "expected": 17,
+      "matchedBytesAndSha256": 17,
+      "result": "pass"
+    },
+    "galleryExtensionCopy": {
+      "expected": 17,
+      "matchedBytesAndSha256": 17,
+      "result": "pass"
+    },
+    "katfileExtensionCopy": {
+      "unchangedFiles": 16,
+      "totalFiles": 17,
+      "manifestName": "QueueCat — isolated acceptance",
+      "manifestPermissionsHostsWorkerAndContentScriptsMatch": true,
+      "result": "pass"
+    },
+    "documentation": {
+      "expected": 2,
+      "matchedBytesAndSha256": 2,
+      "files": [
+        "README.md",
+        "MARKETING.md"
+      ],
+      "result": "pass"
+    },
+    "zip": {
+      "bytes": 7483954,
+      "sha256": "42b614937eb4a825d89540106d9d72e26231b0f603c984cad6fcbf43f74963e6",
+      "matchesSnapshot02": true
+    }
+  },
+  "p0p1": {
+    "found": false,
+    "scope": "No P0/P1 is substantiated by the six listed critics, snapshot-02, the formal reports, and the source paths sampled. This is not a claim about unreviewed product areas or live-site behavior."
+  },
+  "priorFindingDispositions": [
+    {
+      "id": "reliability-source-revision-during-run",
+      "priorSeverity": "P2",
+      "decision": "Closed by an explicit fixed-snapshot contract; no per-page manifest refresh is required for the supplied single-gallery queue request.",
+      "evidence": [
+        "README.md now states that uninterrupted transfer uses the initially fetched manifest snapshot and does not poll for live changes page by page.",
+        "README.md says retry or re-queue after stopping between pages rereads and compares the source, and stops if the content or title changed.",
+        "critic-reliability-delta reports no confirmed data-mixing or resend bug under this contract; it sampled the engine paths and reports 19 focused gallery engine tests passed."
+      ],
+      "residualBoundary": "A live manifest change during uninterrupted transfer will not be noticed immediately. Real Hitomi behavior and whether old hashes remain downloadable were not tested. The implementation and docs do not claim live revision monitoring."
+    },
+    {
+      "id": "ux-unknown-gallery-total",
+      "priorSeverity": "P2",
+      "decision": "Closed.",
+      "evidence": [
+        "src/shared/gallery-copy.ts defines unknownProgress in English, Traditional Chinese, and Japanese with a page unit and explicit unavailable-total meaning.",
+        "src/ui/gallery.ts uses unknownProgress if total is absent; src/ui/main.ts places the text in the visible progress and its aria-label, and omits progress value when no percentage is known.",
+        "tests/gallery-ui.test.ts covers unknown total text, accessible name, and omitted value; critic-ux-delta reports the focused UI tests passed and verified the relevant source hashes against snapshot-02."
+      ],
+      "residualBoundary": "The focused DOM test uses the English locale for its unknown-total assertion; the source table contains all three translations. No new issue was substantiated by the delta critic."
+    },
+    {
+      "id": "integration-per-file-hash-evidence",
+      "priorSeverity": "P2",
+      "decision": "Closed by runner correction and a new same-snapshot synthetic gallery run.",
+      "evidence": [
+        "tests/browser/gallery.mjs derives each page number from the filename, checks that file's digest against the corresponding fixture image, retains per-download page/hash records, and sorts a copy only for set comparison.",
+        "The final gallery report is pass, 6/6, and identifies the snapshot-02 background/content/manifest build.",
+        "I independently recomputed SHA-256 for each of the three downloaded WebP files. For pages 1, 2, and 3, the on-disk digest matches both its report row and the fixture image at the same page index."
+      ],
+      "residualBoundary": "This validates the loopback fixture path and runner evidence; it does not prove real-site Hitomi image delivery."
+    }
+  ],
+  "chairProposalDisposition": {
+    "blockedGalleryNotificationRoute": {
+      "decision": "Closed with the intended narrow condition.",
+      "evidence": [
+        "src/background/engine.ts routes focus to chrome://downloads/ only when the item is a blocked gallery and has a download action or downloadId.",
+        "tests/gallery-engine.test.ts covers a blocked metadata gallery retaining source focus, a Katfile item retaining source focus, and an ambiguous gallery download handoff opening Chrome downloads history.",
+        "The background notification listener still resolves verify/block notification IDs to the existing focus command."
+      ],
+      "limits": "The routing behavior is covered through engine/unit paths, not through a personal Chrome notification UI."
+    }
+  },
+  "formalRunAdjudication": {
+    "gallery": {
+      "status": "pass",
+      "checks": "6/6",
+      "testedBackgroundSha256": "44a1d360a01eea81605b74a9793d5b6ce7726dc89f1f138b4798dcf9fa9ea0fc",
+      "testedManifestSha256": "b081cc3270bc65ea1f210033336dcfa25ab628e90a4129d1e0d413763aa56e29",
+      "perPageDigests": "3/3 independently matched on-disk file, report row, and fixture page index",
+      "cleanup": "Report records profile and fixture server closed/removed; both report paths were independently checked absent where applicable."
+    },
+    "katfile": {
+      "status": "pass",
+      "checks": "23/23",
+      "testedBackgroundSha256": "44a1d360a01eea81605b74a9793d5b6ce7726dc89f1f138b4798dcf9fa9ea0fc",
+      "scope": "Synthetic loopback Katfile flow, including two POST steps, download recovery, coexistence, and browser UI checks.",
+      "cleanup": "Report records the owned profile removed; its profile path was independently checked absent."
+    },
+    "historicalDiagnostics": "The earlier preparing/zero-request Katfile failure, ignored diagnostic's 21 passing checks with its brand timing failure, and other discarded diagnostic history remain preserved as inconclusive/history. They are not erased, reclassified as current failures, or used as passes for snapshot-02."
+  },
+  "localDeliveryDecision": {
+    "canClose": true,
+    "basis": "snapshot-02 source/build/package identities match locally; both fresh synthetic browser reports match the final build; README and MissionCenter document the behavior and limits.",
+    "projectTracking": "QC-E8 and QC-T14 through QC-T16 may remain Review because those tasks include live-site, native popup, discarded lifecycle, permissions/reload, or other broader acceptance that this local source delivery does not prove.",
+    "rootReportedChecks": "MissionCenter/hitomi-20261021.md reports 150 tests, type check, and build passing. The arbiter did not rerun or independently verify those commands."
+  },
+  "limits": [
+    "No live Hitomi image transfer was verified; gallery evidence uses a synthetic loopback fixture.",
+    "Real CAPTCHA, native toolbar popup, live Katfile behavior, and the discarded-tab/lifecycle diagnostic remain limited or unknown as stated in snapshot-02 and the reports.",
+    "Personal Chrome and its downloads were not used. The user still needs to reload the extension while idle to apply the new permissions.",
+    "The two original CodeRabbit runs are preserved. No claim is made that CodeRabbit reviewed every final delta line; final delta closure relies on source/hash checks, focused tests reported by reviewers/root, and the formal synthetic reports.",
+    "The arbiter performed read-only hash/report/source inspection only; no build, tests, Chrome, or live-site operation was performed in this final pass."
+  ]
+}

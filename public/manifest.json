@@ -3,13 +3,21 @@
   "name": "QueueCat",
   "version": "0.1.0",
   "minimum_chrome_version": "120",
-  "description": "Paste Katfile links in batch. The cat queues them up, waits out site cooldowns, and hands files over to Chrome.",
-  "permissions": ["storage", "downloads", "alarms", "notifications", "nativeMessaging"],
+  "description": "Supports Katfile free downloads and Hitomi single galleries. QueueCat manages the queue while Chrome saves files locally.",
+  "permissions": [
+    "storage",
+    "downloads",
+    "alarms",
+    "notifications",
+    "nativeMessaging"
+  ],
   "host_permissions": [
     "https://katfile.com/*",
     "https://katfile.biz/*",
     "https://www.katfile.com/*",
-    "https://www.katfile.biz/*"
+    "https://www.katfile.biz/*",
+    "https://hitomi.la/*",
+    "https://*.gold-usergeneratedcontent.net/*"
   ],
   "background": { "service_worker": "background.js", "type": "module" },
   "action": {

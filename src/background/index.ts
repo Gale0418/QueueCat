@@ -1,11 +1,14 @@
 import { QueueEngine, type DownloadRecord } from "./engine";
+import { createHitomiClient } from "./hitomi";
 import type { Request } from "../shared/types";
 import { currentLanguage, type LanguagePreference } from "../shared/language";
 import { translateMessage } from "../shared/messages";
+import { translateGalleryMessage } from "../shared/gallery-messages";
 import { getLocale } from "../shared/locales";
 import type { NativeRequest, NativeReply } from "../shared/extraction";
 
 const ports = {
+  gallery: createHitomiClient(),
   native: {
     request(message: NativeRequest): Promise<NativeReply> {
       return new Promise((resolve, reject) => {
@@ -60,7 +63,11 @@ const ports = {
     },
   },
   downloads: {
-    download(options: { url: string; conflictAction: "uniquify" }) {
+    download(options: {
+      url: string;
+      conflictAction: "uniquify";
+      filename?: string;
+    }) {
       return chrome.downloads.download(options);
     },
     async search(query: {
@@ -102,6 +109,7 @@ const ports = {
     message: string,
     notificationId?: string,
     language: LanguagePreference = "system",
+    gallery = false,
   ) {
     const locale = currentLanguage(language);
     await chrome.notifications.create(
@@ -110,7 +118,10 @@ const ports = {
         type: "basic",
         iconUrl: chrome.runtime.getURL("icons/48.png"),
         title: translateMessage(title, locale),
-        message: translateMessage(message, locale),
+        message: translateMessage(
+          gallery ? translateGalleryMessage(message, locale) : message,
+          locale,
+        ),
       },
     );
   },

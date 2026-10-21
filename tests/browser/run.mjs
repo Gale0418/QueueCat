@@ -1255,6 +1255,9 @@ try {
       const manager = await context.newPage();
       await manager.setViewportSize({ width: 1280, height: 900 });
       await manager.goto(`${origin}/manager.html`);
+      await manager.waitForFunction(
+        () => document.documentElement.lang === "zh-TW",
+      );
       await manager.locator("#first-promise").waitFor({ state: "visible" });
       assert.equal(
         await manager.locator("#status-title").innerText(),
@@ -1344,6 +1347,9 @@ try {
     async () => {
       const manager = await context.newPage();
       await manager.goto(`${origin}/manager.html`);
+      await manager.waitForFunction(
+        () => document.documentElement.lang === "zh-TW",
+      );
       const input = manager.locator("#url-input");
       await input.waitFor({ state: "visible" });
       await input.fill("https://unsupported.invalid/not-a-katfile");
@@ -1443,63 +1449,110 @@ try {
   report.status = "pass";
 } catch (error) {
   report.status = "fail";
-  report.error = error.stack;
-  if (control && !control.isClosed()) {
-    report.failureState = await state().catch(() => undefined);
-    report.failureTabs = await control
-      .evaluate(() => chrome.tabs.query({}))
-      .catch(() => []);
-    report.fixturePages = await Promise.all(
-      context
-        .pages()
-        .filter((p) => p.url().startsWith("https://katfile."))
-        .map(async (p) => ({
-          url: p.url(),
-          body: await p
-            .locator("body")
-            .innerText()
-            .catch(() => "unavailable"),
-        })),
-    );
-    report.playwrightPages = context.pages().map((p) => p.url());
-    const diagnostic = await bounded(
-      context.newCDPSession(control),
-      "attach failure diagnostic",
-    );
-    report.ownedTargets = (
-      await diagnostic.send("Target.getTargets")
-    ).targetInfos;
-    await diagnostic.detach();
-  }
+  report.error = error?.stack || String(error);
   console.error(error.stack);
   process.exitCode = 1;
+  // Save the primary failure before optional diagnostics or cleanup can fail.
+  await fs
+    .writeFile(path.join(out, "report.json"), JSON.stringify(report, null, 2))
+    .catch((writeError) => {
+      report.failureReportWriteError = writeError.message;
+      console.error(
+        `Could not persist initial failure report: ${writeError.message}`,
+      );
+    });
+  try {
+    if (control && !control.isClosed()) {
+      report.failureState = await state().catch(() => undefined);
+      report.failureTabs = await control
+        .evaluate(() => chrome.tabs.query({}))
+        .catch(() => []);
+      report.fixturePages = await Promise.all(
+        context
+          .pages()
+          .filter((p) => p.url().startsWith("https://katfile."))
+          .map(async (p) => ({
+            url: p.url(),
+            body: await p
+              .locator("body")
+              .innerText()
+              .catch(() => "unavailable"),
+          })),
+      );
+      report.playwrightPages = context.pages().map((p) => p.url());
+      const diagnostic = await bounded(
+        context.newCDPSession(control),
+        "attach failure diagnostic",
+      );
+      try {
+        report.ownedTargets = (
+          await diagnostic.send("Target.getTargets")
+        ).targetInfos;
+      } finally {
+        await diagnostic.detach().catch(() => {});
+      }
+    }
+  } catch (diagnosticError) {
+    report.diagnosticError = diagnosticError?.stack || String(diagnosticError);
+  }
 } finally {
+  const cleanupErrors = [];
   if (context)
     await bounded(context.close(), "close owned isolated browser").catch(
-      (error) => (report.cleanupError = error.message),
+      (error) => cleanupErrors.push(`browser close: ${error.message}`),
     );
-  for (const stream of streams) stream.destroy();
-  server.closeAllConnections();
-  await new Promise((resolve) => server.close(resolve));
-  siteServer.closeAllConnections();
-  await new Promise((resolve) => siteServer.close(resolve));
+  for (const stream of streams) {
+    try {
+      stream.destroy();
+    } catch (error) {
+      cleanupErrors.push(`fixture stream close: ${error.message}`);
+    }
+  }
+  for (const [label, fixture] of [
+    ["CDN fixture server", server],
+    ["site fixture server", siteServer],
+  ]) {
+    try {
+      fixture.closeAllConnections();
+      await new Promise((resolve, reject) =>
+        fixture.close((error) => (error ? reject(error) : resolve())),
+      );
+    } catch (error) {
+      cleanupErrors.push(`${label} close: ${error.message}`);
+    }
+  }
   const ownedProfile = path.resolve(profile);
   if (
     !ownedProfile.startsWith(path.resolve(out) + path.sep) ||
     path.basename(ownedProfile) !== "profile"
-  )
-    throw new Error("Refusing cleanup outside this owned test run");
-  await fs.rm(ownedProfile, {
-    recursive: true,
-    force: true,
-    maxRetries: 3,
-    retryDelay: 100,
-  });
-  report.isolation.profileRemoved = true;
+  ) {
+    cleanupErrors.push("Refusing cleanup outside this owned test run");
+  } else {
+    try {
+      await fs.rm(ownedProfile, {
+        recursive: true,
+        force: true,
+        maxRetries: 8,
+        retryDelay: 200,
+      });
+      report.isolation.profileRemoved = true;
+    } catch (error) {
+      report.isolation.profileRemoved = false;
+      cleanupErrors.push(`owned profile removal: ${error.message}`);
+    }
+  }
+  if (cleanupErrors.length) {
+    report.cleanupErrors = cleanupErrors;
+    report.status = "fail";
+    process.exitCode = 1;
+  }
   report.finishedAt = new Date().toISOString();
-  await fs.writeFile(
-    path.join(out, "report.json"),
-    JSON.stringify(report, null, 2),
-  );
-  console.log(`REPORT ${path.relative(root, path.join(out, "report.json"))}`);
+  const reportPath = path.join(out, "report.json");
+  try {
+    await fs.writeFile(reportPath, JSON.stringify(report, null, 2));
+    console.log(`REPORT ${path.relative(root, reportPath)}`);
+  } catch (writeError) {
+    process.exitCode = 1;
+    console.error(`Could not persist final report: ${writeError.message}`);
+  }
 }

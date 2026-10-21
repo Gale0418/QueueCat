@@ -13,6 +13,14 @@ assert.deepEqual(manifest.permissions, [
   "notifications",
   "nativeMessaging",
 ]);
+assert.deepEqual(manifest.host_permissions, [
+  "https://katfile.com/*",
+  "https://katfile.biz/*",
+  "https://www.katfile.com/*",
+  "https://www.katfile.biz/*",
+  "https://hitomi.la/*",
+  "https://*.gold-usergeneratedcontent.net/*",
+]);
 const files = [
   "popup.html",
   "manager.html",

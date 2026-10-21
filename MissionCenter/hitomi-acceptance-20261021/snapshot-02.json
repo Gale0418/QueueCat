@@ -1,0 +1,345 @@
+{
+  "snapshotId": "QC-E8-hitomi-final-02",
+  "createdAt": "2026-10-21T02:53:15.424Z",
+  "baseCommit": "41a0a13fafceef5269e2291a91c70fd34a420ca2",
+  "loopPolicy": "converge",
+  "entries": {
+    "package.json": {
+      "bytes": 950,
+      "sha256": "b20760c1b057f1ade217918bf58c9472006d3af68b983508fc6d20fc9f5b9b91"
+    },
+    "public/manifest.json": {
+      "bytes": 1413,
+      "sha256": "b081cc3270bc65ea1f210033336dcfa25ab628e90a4129d1e0d413763aa56e29"
+    },
+    "scripts/verify-dist.mjs": {
+      "bytes": 2653,
+      "sha256": "88621ef18364c2c1558b6219333744d2f7d6d6953106d7ea47920c58e0268cfc"
+    },
+    "src/background/engine.ts": {
+      "bytes": 76720,
+      "sha256": "068ebb3a0e2baa7e0712ca60499827e47e84fd18d96095dc1324f36e6bb39783"
+    },
+    "src/background/hitomi.ts": {
+      "bytes": 10761,
+      "sha256": "dca5ce9a5250dba085c79f89c84746a0108e8ac326a1a96ccd1b8598899361eb"
+    },
+    "src/background/index.ts": {
+      "bytes": 6856,
+      "sha256": "eabca0c49df38d3b69c01ef873f9b56d58d1b651cea03f934309bb233b8491c9"
+    },
+    "src/content/index.ts": {
+      "bytes": 4749,
+      "sha256": "12b3e2298d15b3d182defa688e5afb6f5ec38a350bf92458039ea60d3336af4c"
+    },
+    "src/content/katfile.ts": {
+      "bytes": 16291,
+      "sha256": "cf8193cb2df1d6a93abf93f6137a63161e34402df160320e85751dd4fdefe464"
+    },
+    "src/shared/copy.ts": {
+      "bytes": 2076,
+      "sha256": "2739fd41d7f8ca9abe7d8e71bd39f1439f1c27e75026090bf734b49802acca35"
+    },
+    "src/shared/extraction-copy.ts": {
+      "bytes": 6317,
+      "sha256": "eedbdc3cdf4bf47c14b009d742afe4a0ebe8be289e64a59a832fdb1261555b25"
+    },
+    "src/shared/extraction.ts": {
+      "bytes": 3161,
+      "sha256": "cf0e42eaf47f4e79e0cd2ea55104e14a531606ba399e6e0c9c67c7ec9eec19d6"
+    },
+    "src/shared/gallery-copy.ts": {
+      "bytes": 7957,
+      "sha256": "ded46f070139b09b0d8330196c782a7c7b0bfe92ead9a017838fcd63e39a0dc8"
+    },
+    "src/shared/gallery-messages.ts": {
+      "bytes": 4406,
+      "sha256": "2b3b07b42714d2e79307b88ae4e26142ace86644bcda4c141f1409339014c172"
+    },
+    "src/shared/language.ts": {
+      "bytes": 1976,
+      "sha256": "f88e31166986b7e9efca5c4e30199240431a92d05ef85aa845d5487e31db4178"
+    },
+    "src/shared/locales/en.ts": {
+      "bytes": 12820,
+      "sha256": "543af53817a15fa9db643438f3d76b9612a24b9080351fd63dc50a88156ecb24"
+    },
+    "src/shared/locales/index.ts": {
+      "bytes": 1051,
+      "sha256": "2724e099ff605224e43ac5b9369fc54c9b748c4862cdccbe6c03ebd8e8a85fe4"
+    },
+    "src/shared/locales/ja.ts": {
+      "bytes": 15827,
+      "sha256": "84266593c01780d7e9e9778d7c001dce480aa2a0c7e6b1b95e80675e3e5c8909"
+    },
+    "src/shared/locales/known-text.ts": {
+      "bytes": 17585,
+      "sha256": "520bf3a9b2d531667dc9bd8aea00ee3532439dfed2b854cd442350c5319e767e"
+    },
+    "src/shared/locales/types.ts": {
+      "bytes": 6624,
+      "sha256": "dee9ee0a549764b00d3d49127a3b7eac978225403e43f38299d4b12807b4e413"
+    },
+    "src/shared/locales/zh-TW.ts": {
+      "bytes": 11856,
+      "sha256": "2b7d98d99c862ecc1de9b72964991825890cfe9abbaef0e2ce6f9eb30575558d"
+    },
+    "src/shared/messages.ts": {
+      "bytes": 2678,
+      "sha256": "c91ec91a623cc5e571651dd6efd63d24075a09fb80bed2744ae975dee88d4a97"
+    },
+    "src/shared/types.ts": {
+      "bytes": 4367,
+      "sha256": "2a7fc436cafb322437442dcd27d492a5f479381fc40dcf6cd2306bf7fe1928e8"
+    },
+    "src/shared/urls.ts": {
+      "bytes": 2745,
+      "sha256": "81dfad5ff4aca416d57f460b35e1c479c98e8d5fc4e93dc41fbb4a5d7aa19875"
+    },
+    "src/ui/brand.ts": {
+      "bytes": 512,
+      "sha256": "68026bfe49ca2b01c9d86debbd1d897ce9b5f50b1482d6b2f985cede5cc5d48a"
+    },
+    "src/ui/client.ts": {
+      "bytes": 5759,
+      "sha256": "05f6e852161dbbc88dc24c94dd95ec60a928140dfe8ad38e3b33db97bd982e4e"
+    },
+    "src/ui/gallery.ts": {
+      "bytes": 1293,
+      "sha256": "971df363c22e62c179cbc62438d0c7af01f2370b2bb11c5bc5462843fc2ca129"
+    },
+    "src/ui/icons.ts": {
+      "bytes": 1599,
+      "sha256": "c45259be48729a25226f88c6ede9e7ddfb184f0e496a9540c7964af835e36008"
+    },
+    "src/ui/localization.ts": {
+      "bytes": 2029,
+      "sha256": "6c73e1349662acb4dee055c62e9dff98c2974c6a38429105bf8c5e2d2e42db16"
+    },
+    "src/ui/main.ts": {
+      "bytes": 53003,
+      "sha256": "0549ee3588f0014d2786c2adb55ce384e21bd4a3cdafa0ff4975606e4af6bccc"
+    },
+    "src/ui/presentation.ts": {
+      "bytes": 7356,
+      "sha256": "dc39c881482080ecee42ec974666f6751a46107ec5e04d21dea45ca2fd1f25db"
+    },
+    "src/ui/style.css": {
+      "bytes": 32608,
+      "sha256": "0813ecb9478e739d46a392d7ef8edf3d17e8739561126e4abb5c6e62448071e3"
+    },
+    "tests/background-adapter.test.ts": {
+      "bytes": 5026,
+      "sha256": "3a559ba104f02394bbe73e0e37e9e7af1b7b37eb1ded95230fad43ae2ee36e08"
+    },
+    "tests/browser/extraction-flow.mjs": {
+      "bytes": 30087,
+      "sha256": "3413e3248d92fd74d1c70eaff1c55a0d67380a4acc4ac87956d3bb00fc610c0a"
+    },
+    "tests/browser/extraction.mjs": {
+      "bytes": 28147,
+      "sha256": "c5f6a163a4c264d7c71dfa06d0fe266b936391c698404d031598a197b0bbcade"
+    },
+    "tests/browser/gallery.mjs": {
+      "bytes": 27644,
+      "sha256": "0b3004052a79d03b048a4e679b4df6ebf8547afa53e00963301da82b78eeffba"
+    },
+    "tests/browser/run.mjs": {
+      "bytes": 54377,
+      "sha256": "487f976f8f5b78a57d663f00bb616c16136351fcc233c717c822e572e671328c"
+    },
+    "tests/browser/visibility.mjs": {
+      "bytes": 4844,
+      "sha256": "f208efb35085fdd27ed4aa592fc6436a105f34f477fd68f48d50604d4944068d"
+    },
+    "tests/client.test.ts": {
+      "bytes": 564,
+      "sha256": "ba42c1585ca79344bb88e88702c5d6c54d4183b01b3d049667bd0695cf77de78"
+    },
+    "tests/engine.test.ts": {
+      "bytes": 37017,
+      "sha256": "c7a3778c1b9768c5d209485c1fa3fde4dd44b3bf96a5ef4ce1be3c093a473ffd"
+    },
+    "tests/extraction-ui.test.ts": {
+      "bytes": 7631,
+      "sha256": "ea9b0140aab47a01f467c395e769e59822b775f8f5e81406d169304c81bf0e43"
+    },
+    "tests/extraction.test.ts": {
+      "bytes": 12067,
+      "sha256": "ab568aa8b33dc6660b1b191777a1c379527766e6c439e2ca7edd2d2ab684052a"
+    },
+    "tests/fixtures/katfile-cooldown.html": {
+      "bytes": 434,
+      "sha256": "40190ce75909ec86b591e03ddc8cf92abbff4bbe3045226081a62df6895d1a8e"
+    },
+    "tests/fixtures/katfile-final.html": {
+      "bytes": 648,
+      "sha256": "1e3e02a8a85c33f59ac1cfef59853da6971b186f4e8ec74c7ab2e7f268dd8f45"
+    },
+    "tests/fixtures/katfile-initial.html": {
+      "bytes": 886,
+      "sha256": "c9439d5b641fd3da6a08547d0730bc0bd2521d4d2ddf3c73185e69efba82683a"
+    },
+    "tests/gallery-engine.test.ts": {
+      "bytes": 17428,
+      "sha256": "c56b1096577b2156cc6ae5521530f2a11a02d7af5102356ec3518b9807512e86"
+    },
+    "tests/gallery-ui.test.ts": {
+      "bytes": 9305,
+      "sha256": "aed09f69c8e32b85d4e02cf9fb79996253784a2297806b5682c53f71ff663c0c"
+    },
+    "tests/hitomi.test.ts": {
+      "bytes": 10141,
+      "sha256": "edcacd0dda3845473675d8084aa6d090f2c9779a107ca1f09f46ae723c9ca8d1"
+    },
+    "tests/katfile.test.ts": {
+      "bytes": 13674,
+      "sha256": "7820bfa23ef65cff1f0cd2e658e8b8a061a7b1d233aebd168055d3c48ca40758"
+    },
+    "tests/language.test.ts": {
+      "bytes": 3854,
+      "sha256": "f3a2ed7583e32c17d66d0e8231b013597f91ff9e2ea6c02f84d79804b40bf0fb"
+    },
+    "tests/localization.test.ts": {
+      "bytes": 2583,
+      "sha256": "e922156afbe9699c7336aecee8a0eb6c3df0d5b9cf9033f0154854697c164f8a"
+    },
+    "tests/messages.test.ts": {
+      "bytes": 1345,
+      "sha256": "7aca95cccd9d4fa5ce960ee56274c61eead1308d8ecc55155e956e9109e5f461"
+    },
+    "tests/package.test.mjs": {
+      "bytes": 4745,
+      "sha256": "71f01ae8fffcea30c649826e5d9a95a7a337ab6fa6aa74231e8ba97c051ec0b9"
+    },
+    "tests/presentation.test.ts": {
+      "bytes": 2193,
+      "sha256": "6731ce94c3ed3fa7fff63921e0eaee64d607b5983485c051cbb805776c6a1685"
+    },
+    "tests/publish.test.mjs": {
+      "bytes": 6624,
+      "sha256": "0c56c70d58336a582b88b9c3e5938e1af412858bee33681467367c3ffbe7e23d"
+    },
+    "tests/ui-accessibility.test.ts": {
+      "bytes": 8578,
+      "sha256": "63589321684beeed0dc456f0f56b209e5d8b5fdeffa5672647ad23c78339cce4"
+    },
+    "tests/urls.test.ts": {
+      "bytes": 2912,
+      "sha256": "f283217ef1df04633888585d48472d777b47d8a27ab8017349a88938cf262296"
+    },
+    "vite.config.ts": {
+      "bytes": 342,
+      "sha256": "d155d32736ad375c16e1410212cbf62da283da5a35324fcbd64dfafe907e3ba0"
+    }
+  },
+  "build": {
+    "version": "0.1.0",
+    "assets": {
+      "artifacts/unpacked/assets/cat-sleep-v3.png": {
+        "width": 1254,
+        "height": 1254,
+        "alpha": true
+      },
+      "artifacts/unpacked/assets/cat-work-v3.png": {
+        "width": 1254,
+        "height": 1254,
+        "alpha": true
+      },
+      "artifacts/unpacked/assets/cat-verify-v3.png": {
+        "width": 1254,
+        "height": 1254,
+        "alpha": true
+      },
+      "artifacts/unpacked/assets/cat-confused-v3.png": {
+        "width": 1254,
+        "height": 1254,
+        "alpha": true
+      },
+      "artifacts/unpacked/assets/cat-happy-v3.png": {
+        "width": 1254,
+        "height": 1254,
+        "alpha": true
+      }
+    },
+    "entries": {
+      "background.js": {
+        "bytes": 189862,
+        "sha256": "44a1d360a01eea81605b74a9793d5b6ce7726dc89f1f138b4798dcf9fa9ea0fc"
+      },
+      "content.js": {
+        "bytes": 19855,
+        "sha256": "297b0713d81289900d9541cc15d4c6d88a07944a0c664779008b1401e329fa83"
+      },
+      "manager.html": {
+        "bytes": 412,
+        "sha256": "f4fa2a1862766f69430f36df2f2bd383e9adf532aa733d39aac458034363d11b"
+      },
+      "manifest.json": {
+        "bytes": 1413,
+        "sha256": "b081cc3270bc65ea1f210033336dcfa25ab628e90a4129d1e0d413763aa56e29"
+      },
+      "popup.html": {
+        "bytes": 408,
+        "sha256": "fea4826515ec8b1898a0abcb9922f2718c8677c5b94a58aadf32c9f37859e360"
+      },
+      "icons\\128.png": {
+        "bytes": 4912,
+        "sha256": "95c4f13ec8ff45d3dca0c735469f55babc8bc8ddee3115d01cff842e3ea5f1b7"
+      },
+      "icons\\16.png": {
+        "bytes": 549,
+        "sha256": "f7fad3c372a26544ee5c27e6a2c7ba8f5d73a9eec75d184d7dcb71c5963ed5e2"
+      },
+      "icons\\32.png": {
+        "bytes": 1253,
+        "sha256": "90fc65325c4d09bd87d4da2399a9fdb1272030485c72eb63f4f0c44e2319e3c9"
+      },
+      "icons\\48.png": {
+        "bytes": 1900,
+        "sha256": "684af3d0e0df6c706e698983c9f3704be0c6db4af518a5b45f124ac6f641afc6"
+      },
+      "assets\\cat-confused-v3.png": {
+        "bytes": 1558668,
+        "sha256": "ffcdb2154ac56f438e2f0781f72a82cc0fec91e98e32606cbedd25afa3f15bc2"
+      },
+      "assets\\cat-happy-v3.png": {
+        "bytes": 1594401,
+        "sha256": "e0d275480384ae8e6b8404164fd67d707e6152a6d0d0e1528be81b7c4fabf131"
+      },
+      "assets\\cat-sleep-v3.png": {
+        "bytes": 1651136,
+        "sha256": "720c94b6a728d6085a1374f5c6377449e5119a7e4fdae65c3d47b16d2fab8b03"
+      },
+      "assets\\cat-verify-v3.png": {
+        "bytes": 1485039,
+        "sha256": "4e38a0c2be59176b42b763eda382f871d3693f96f067ffaf58c7508c300b9d94"
+      },
+      "assets\\cat-work-v3.png": {
+        "bytes": 1471062,
+        "sha256": "43301369a410e7a40190504c2c672ac1f1236bca7699f5e1db0dd7033d6323ad"
+      },
+      "assets\\main-B9d7b_Ld.css": {
+        "bytes": 26104,
+        "sha256": "546d8c408825bf3d7ecd9c8944b80e2253ee106e988c3772172378735f36ba91"
+      },
+      "assets\\main-Cr0yLzqe.js": {
+        "bytes": 116297,
+        "sha256": "3e4b5955e6362a1f57340c46758a4b7e430e451d32f1f4d9702fba45f4ab6dd7"
+      },
+      "assets\\nunito-sans-latin.woff2": {
+        "bytes": 31076,
+        "sha256": "29e3890496844a9ea81975c52771c587c872b4eb317026422d1995b88d21b57d"
+      }
+    }
+  },
+  "zip": {
+    "bytes": 7483954,
+    "sha256": "42b614937eb4a825d89540106d9d72e26231b0f603c984cad6fcbf43f74963e6"
+  },
+  "limits": [
+    "No real Hitomi image transfer verified",
+    "Native toolbar popup not captured",
+    "Existing Katfile live/CAPTCHA/restart gaps remain Review"
+  ]
+}
