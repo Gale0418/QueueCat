@@ -128,9 +128,13 @@ export function summary(state: AppState): {
     };
   if (state.externalWaitReason)
     return {
-      mascot: "sleep",
-      title: "等目前那筆下載結束",
-      subtitle: state.externalWaitReason,
+      mascot: state.externalTransfer ? "work" : "sleep",
+      title: state.externalTransfer
+        ? "正在下載，貓貓顧著"
+        : "等目前那筆下載結束",
+      subtitle: state.externalTransfer
+        ? t("正在追蹤 Chrome 下載，完成後繼續佇列。")
+        : state.externalWaitReason,
     };
   if (active?.status === "waiting")
     return {
@@ -201,6 +205,25 @@ export function progress(item: QueueItem): number | undefined {
         Math.max(0, ((item.bytesReceived || 0) / item.totalBytes) * 100),
       )
     : undefined;
+}
+export function downloadRemaining(item: QueueItem): string {
+  if (item.status !== "downloading") return "";
+  if (item.downloadPaused) return t("下載已暫停");
+  const remaining = (item.totalBytes ?? -1) - (item.bytesReceived ?? 0);
+  if (
+    !item.totalBytes ||
+    item.totalBytes <= 0 ||
+    !Number.isFinite(remaining) ||
+    !item.speed ||
+    !Number.isFinite(item.speed) ||
+    item.speed <= 0
+  )
+    return t("正在估算下載剩餘時間");
+  const seconds = Math.max(1, Math.ceil(remaining / item.speed));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const time = `${hours ? `${hours}:` : ""}${String(minutes).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+  return t(`預估下載剩餘 ${time}`);
 }
 export const escape = (value: unknown): string =>
   String(value ?? "").replace(

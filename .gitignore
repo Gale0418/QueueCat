@@ -2,6 +2,7 @@ node_modules/
 dist/
 .impeccable/review/
 artifacts/
+/.publish-*/
 /manifest.json
 /background.js
 /content.js

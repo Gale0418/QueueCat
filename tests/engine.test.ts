@@ -4,7 +4,11 @@ import {
   type DownloadRecord,
   type EnginePorts,
 } from "../src/background/engine";
-import type { AppState } from "../src/shared/types";
+import {
+  initialState,
+  type AppState,
+  type ItemStatus,
+} from "../src/shared/types";
 
 function fixture(seed?: AppState) {
   let now = 1_800_000_000_000;
@@ -152,6 +156,544 @@ function fixture(seed?: AppState) {
 
 const url1 = "https://katfile.biz/ntrr1zdzt6i0/file.rar.html";
 const url2 = "https://katfile.com/abcdefghijkl/second.rar.html";
+
+describe("舊 cloud 來源的持久化遷移", () => {
+  const cloud = "https://katfile.cloud/f2zz0o58k8ef/SO-37194.rar.html";
+  const co = cloud.replace("katfile.cloud", "katfile.co");
+  function seed(status: ItemStatus = "queued"): AppState {
+    const s = initialState();
+    s.items = [
+      {
+        id: "legacy",
+        sourceUrl: cloud,
+        title: "SO-37194.rar",
+        status,
+        createdAt: 1,
+        updatedAt: 1,
+        events: [],
+      },
+    ];
+    return s;
+  }
+  it.each<ItemStatus>([
+    "queued",
+    "preparing",
+    "waiting",
+    "verification",
+    "handoff",
+    "downloading",
+    "blocked",
+    "failed",
+    "complete",
+  ])("%s 只修正來源，保留狀態、順序、下載 ID 與交接連結", async (status) => {
+    const s = seed(status);
+    s.items[0].downloadId = 77;
+    s.items[0].action = {
+      id: "sent",
+      kind: "download",
+      at: 10,
+      expectedUrl: "https://s5003.katfile.cloud:183/d/unchanged/file.rar",
+    };
+    const f = fixture(s);
+    const result = await f.engine.getState();
+    expect(result.items[0]).toEqual({ ...s.items[0], sourceUrl: co });
+    expect(f.state!.items[0].sourceUrl).toBe(co);
+    expect(f.writes).toBe(1);
+    expect(f.created).toHaveLength(0);
+    expect(f.actions).toHaveLength(0);
+    expect(f.downloads).toHaveLength(0);
+    await f.engine.getState();
+    expect(f.writes).toBe(1);
+    const restarted = fixture(structuredClone(f.state!));
+    await restarted.engine.getState();
+    expect(restarted.writes).toBe(0);
+  });
+  it("遷移保存失敗不會快取成功，下次載入會重試", async () => {
+    const f = fixture(seed());
+    f.failStorage(true);
+    await expect(f.engine.getState()).rejects.toThrow("storage denied");
+    expect(f.state!.items[0].sourceUrl).toBe(cloud);
+    f.failStorage(false);
+    expect((await f.engine.getState()).items[0].sourceUrl).toBe(co);
+    expect(f.state!.items[0].sourceUrl).toBe(co);
+  });
+  it("新加入 cloud 使用 co 開頁；再加入 co 不會重複排隊", async () => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [cloud, co] });
+    expect(f.state!.items).toHaveLength(1);
+    expect(f.state!.items[0].sourceUrl).toBe(co);
+    await f.engine.command({ kind: "start" });
+    expect(f.created).toEqual([co]);
+  });
+  it.each<ItemStatus>(["preparing", "waiting", "verification"])(
+    "背景重啟時將 %s 的 cloud 工作頁改開 co，等待新頁回報",
+    async (status) => {
+      const s = seed(status);
+      s.running = true;
+      s.activeId = "legacy";
+      s.items[0].tabId = 42;
+      s.items[0].waitUntil = 1_800_000_030_000;
+      const f = fixture(s);
+      f.ports.tabs.get = async (id) => ({ id, url: cloud });
+      const updates: unknown[] = [];
+      f.ports.tabs.update = async (_id, props) => {
+        updates.push(props);
+      };
+      await f.engine.onStartup();
+      expect(updates).toEqual([{ url: co }]);
+      expect(f.state!.items[0]).toMatchObject({
+        sourceUrl: co,
+        status: "preparing",
+        tabId: 42,
+      });
+      expect(f.actions).toHaveLength(0);
+      expect(f.created).toHaveLength(0);
+      expect(f.downloads).toHaveLength(0);
+    },
+  );
+  it("blocked 的舊工作頁按前往後只導航至 co，再接回倒數", async () => {
+    const s = seed("blocked");
+    s.running = true;
+    s.activeId = "legacy";
+    s.items[0].tabId = 42;
+    const f = fixture(s);
+    let currentUrl = cloud;
+    const updates: unknown[] = [];
+    f.ports.tabs.get = async (id) => ({ id, url: currentUrl });
+    f.ports.tabs.update = async (_id, props) => {
+      updates.push(props);
+      if (props.url) currentUrl = props.url;
+    };
+    await f.engine.command({ kind: "focus", id: "legacy" });
+    expect(updates).toEqual([{ url: co, active: true }]);
+    expect(f.actions).toHaveLength(0);
+    await f.engine.handleRequest(
+      {
+        type: "QC_PAGE",
+        observation: {
+          kind: "waiting",
+          pageUrl: co,
+          waitSeconds: 120,
+        },
+      },
+      42,
+    );
+    expect(f.state!.items[0].status).toBe("waiting");
+  });
+});
+
+describe("前往工作分頁時自動接回來源觀察", () => {
+  async function disconnected() {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1, url2] });
+    await f.engine.command({ kind: "start" });
+    await f.engine.onTabRemoved(f.state!.items[0].tabId!);
+    return f;
+  }
+  it("重新使用同一檔案的現有分頁，直接接回網站倒數", async () => {
+    const f = await disconnected();
+    const item = f.state!.items[0];
+    // 原始 .biz 連結已轉址到 .co，檔案 ID 不變。
+    const redirected = url1.replace("katfile.biz", "katfile.co");
+    f.ports.tabs.get = async (id) => ({ id, url: redirected });
+    await f.engine.command({ kind: "focus", id: item.id });
+    expect(f.created).toHaveLength(1);
+    expect(f.actions).toContainEqual({ type: "QC_OBSERVE" });
+    expect(f.state!.items[0]).toMatchObject({
+      status: "preparing",
+      reason: undefined,
+    });
+    await f.engine.handleRequest(
+      {
+        type: "QC_PAGE",
+        observation: {
+          kind: "waiting",
+          pageUrl: redirected,
+          waitSeconds: 6000,
+        },
+      },
+      item.tabId,
+    );
+    expect(f.state!.items[0]).toMatchObject({
+      status: "waiting",
+      waitUntil: f.ports.now() + 6_000_000,
+    });
+    expect(f.state!.activeId).toBe(item.id);
+    expect(f.state!.items[1].status).toBe("queued");
+    expect(f.downloads).toHaveLength(0);
+  });
+  it("已關閉的來源只重開一次；新頁未就緒時等待回報，不重載或卡回 blocked", async () => {
+    const f = await disconnected();
+    const item = f.state!.items[0];
+    const oldTabId = item.tabId!;
+    f.setTabMissing(true);
+    f.setSendUnavailable(true);
+    const updates: unknown[] = [];
+    f.ports.tabs.update = async (_id, props) => {
+      updates.push(props);
+    };
+    await f.engine.command({ kind: "focus", id: item.id });
+    const newTabId = f.state!.items[0].tabId!;
+    expect(newTabId).not.toBe(oldTabId);
+    expect(f.created).toHaveLength(2);
+    expect(updates).toEqual([{ active: true }]);
+    expect(f.state!.items[0].status).toBe("preparing");
+    expect(f.activeAlarm).toBeDefined();
+    f.setTabMissing(false);
+    const report = {
+      type: "QC_PAGE" as const,
+      observation: {
+        kind: "waiting" as const,
+        pageUrl: url1,
+        waitSeconds: 5000,
+      },
+    };
+    await f.engine.handleRequest(report, oldTabId);
+    expect(f.state!.items[0].status).toBe("preparing");
+    await f.engine.handleRequest(report, newTabId);
+    expect(f.state!.items[0].status).toBe("waiting");
+    expect(f.downloads).toHaveLength(0);
+  });
+  it("既有分頁腳本失效時重載原網址，之後重新接上倒數", async () => {
+    const f = await disconnected();
+    const item = f.state!.items[0];
+    f.setSendUnavailable(true);
+    const updates: unknown[] = [];
+    f.ports.tabs.update = async (_id, props) => {
+      updates.push(props);
+    };
+    await f.engine.command({ kind: "focus", id: item.id });
+    expect(updates).toEqual([{ active: true }, { url: url1 }]);
+    expect(f.created).toHaveLength(1);
+    f.setSendUnavailable(false);
+    await f.engine.handleRequest(
+      {
+        type: "QC_PAGE",
+        observation: { kind: "waiting", pageUrl: url1, waitSeconds: 42 },
+      },
+      item.tabId,
+    );
+    expect(f.state!.items[0].status).toBe("waiting");
+  });
+  it("原分頁已切到其他檔案時另建正確來源，不讀取錯誤分頁的倒數", async () => {
+    const f = await disconnected();
+    const item = f.state!.items[0];
+    const oldGet = f.ports.tabs.get;
+    f.ports.tabs.get = async (id) =>
+      id === item.tabId ? { id, url: url2 } : oldGet(id);
+    await f.engine.command({ kind: "focus", id: item.id });
+    expect(f.created).toEqual([url1, url1]);
+    expect(f.state!.items[0].tabId).not.toBe(item.tabId);
+    expect(f.state!.items[0].status).toBe("preparing");
+  });
+  it("重新載入失敗時明確暫停，不會另開分頁或下載", async () => {
+    const f = await disconnected();
+    f.setSendUnavailable(true);
+    f.ports.tabs.update = async (_id, props) => {
+      if (props.url) throw new Error("navigation denied");
+    };
+    await f.engine.command({ kind: "focus", id: f.state!.items[0].id });
+    expect(f.state!.items[0]).toMatchObject({
+      status: "blocked",
+      reason: "無法重新觀察來源分頁，請人工檢查",
+    });
+    expect(f.created).toHaveLength(1);
+    expect(f.downloads).toHaveLength(0);
+  });
+  it("接回狀態無法保存時，不會送出觀察或重新載入，也不另開分頁", async () => {
+    const f = await disconnected();
+    f.failStorage(true);
+    const response = await f.engine.handleRequest({
+      type: "QC_COMMAND",
+      command: { kind: "focus", id: f.state!.items[0].id },
+    });
+    expect(response.ok).toBe(false);
+    expect(f.created).toHaveLength(1);
+    expect(f.actions).toHaveLength(0);
+    expect(f.state!.items[0].status).toBe("blocked");
+  });
+  it.each(["download-id", "download-action", "paused", "inactive"])(
+    "%s 不會因前往分頁而解除暫停或重送下載",
+    async (scenario) => {
+      const f = await disconnected();
+      const seed = structuredClone(f.state!);
+      if (scenario === "download-id") seed.items[0].downloadId = 77;
+      if (scenario === "download-action")
+        seed.items[0].action = {
+          id: "sent",
+          kind: "download",
+          at: f.ports.now(),
+          expectedUrl: "https://katfile.co/get/file",
+        };
+      if (scenario === "paused") seed.running = false;
+      if (scenario === "inactive") seed.activeId = seed.items[1].id;
+      const restored = fixture(seed);
+      await restored.engine.command({ kind: "focus", id: seed.items[0].id });
+      expect(restored.state!.items[0].status).toBe("blocked");
+      expect(restored.actions).toHaveLength(0);
+      expect(restored.downloads).toHaveLength(0);
+      expect(restored.state!.running).toBe(seed.running);
+    },
+  );
+  it("接回時清除舊的未知頁面逾時，但保留免費步驟防重紀錄", async () => {
+    const f = await disconnected();
+    const seed = structuredClone(f.state!);
+    const item = seed.items[0];
+    item.events.push({
+      at: f.ports.now() - 60_000,
+      message: "頁面狀態尚未辨識（等待判定）",
+    });
+    item.action = {
+      id: "free-sent",
+      kind: "free",
+      step: "download1",
+      at: f.ports.now() - 60_000,
+    };
+    const restored = fixture(seed);
+    await restored.engine.command({ kind: "focus", id: item.id });
+    expect(restored.state!.items[0].action).toEqual(item.action);
+    await restored.engine.onAlarm();
+    expect(restored.state!.items[0].status).toBe("preparing");
+    await restored.engine.handleRequest(
+      {
+        type: "QC_PAGE",
+        observation: { kind: "free", pageUrl: url1, step: "download1" },
+      },
+      item.tabId,
+    );
+    expect(restored.state!.items[0].status).toBe("blocked");
+    expect(
+      restored.actions.every(
+        (m) => (m as { type: string }).type === "QC_OBSERVE",
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("移除 Katfile 佇列記錄", () => {
+  async function ready(f: ReturnType<typeof fixture>, itemIndex = 0) {
+    const item = f.state!.items[itemIndex];
+    await f.engine.handleRequest(
+      {
+        type: "QC_PAGE",
+        observation: {
+          kind: "ready",
+          pageUrl: item.sourceUrl,
+          finalUrl: "https://s1.katfile.co:183/d/fixture/file.rar",
+        },
+      },
+      item.tabId,
+    );
+  }
+
+  async function downloading() {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1, url2] });
+    await f.engine.command({ kind: "start" });
+    await ready(f);
+    expect(f.state!.items[0].status).toBe("downloading");
+    return f;
+  }
+
+  async function interrupted() {
+    const f = await downloading();
+    f.downloads[0].state = "interrupted";
+    f.downloads[0].error = "NETWORK_FAILED";
+    f.downloads[0].canResume = true;
+    await f.engine.onDownloadChanged({
+      id: 77,
+      state: { current: "interrupted" },
+    });
+    expect(f.state!.items[0].status).toBe("blocked");
+    return f;
+  }
+  it("移除可續傳但已中斷的項目時不操作 Chrome，並接續下一筆", async () => {
+    const f = await interrupted();
+    const removed = f.state!.items[0];
+    const nextId = f.state!.items[1].id;
+    const chromeCalls: string[] = [];
+    f.ports.downloads.cancel = async () => {
+      chromeCalls.push("cancel");
+    };
+    f.ports.downloads.pause = async () => {
+      chromeCalls.push("pause");
+    };
+    f.ports.downloads.resume = async () => {
+      chromeCalls.push("resume");
+    };
+    await f.engine.command({ kind: "remove", id: removed.id });
+    expect(chromeCalls).toEqual([]);
+    expect(f.downloads).toHaveLength(1);
+    expect(f.state!.items.map((item) => item.id)).toEqual([nextId]);
+    expect(f.state!.activeId).toBe(nextId);
+    expect(f.created).toEqual([url1, url2]);
+    expect(f.state!.detachedDownloadIds).toContain(77);
+    f.downloads[0].state = "complete";
+    await f.engine.onDownloadChanged({
+      id: 77,
+      state: { current: "complete" },
+    });
+    expect(f.state!.activeId).toBe(nextId);
+    expect(f.created).toEqual([url1, url2]);
+    expect(f.downloads).toHaveLength(1);
+  });
+
+  it("移除不可續傳的中斷下載後可直接開始下一筆", async () => {
+    const f = await interrupted();
+    const nextId = f.state!.items[1].id;
+    f.downloads[0].canResume = false;
+    await f.engine.command({ kind: "remove", id: f.state!.items[0].id });
+
+    expect(f.state!.items.map((item) => item.id)).toEqual([nextId]);
+    expect(f.state!.activeId).toBe(nextId);
+    expect(f.created).toEqual([url1, url2]);
+  });
+
+  it("移除進行中的下載後保留背景追蹤，完成事件到達前不開下一筆", async () => {
+    const f = await downloading();
+    const removed = f.state!.items[0];
+    const nextId = f.state!.items[1].id;
+    const chromeCalls: string[] = [];
+    f.ports.downloads.cancel = async () => {
+      chromeCalls.push("cancel");
+    };
+    f.ports.downloads.pause = async () => {
+      chromeCalls.push("pause");
+    };
+    f.ports.downloads.resume = async () => {
+      chromeCalls.push("resume");
+    };
+
+    await f.engine.command({ kind: "remove", id: removed.id });
+
+    expect(chromeCalls).toEqual([]);
+    expect(f.state!.items.map((item) => item.id)).toEqual([nextId]);
+    expect(f.state!.detachedDownloadIds).toContain(77);
+    expect(f.state!.activeId).toBeUndefined();
+    expect(f.created).toEqual([url1]);
+
+    f.downloads[0].state = "complete";
+    await f.engine.onDownloadChanged({
+      id: 77,
+      state: { current: "complete" },
+    });
+    expect(f.state!.activeId).toBe(nextId);
+    expect(f.created).toEqual([url1, url2]);
+    expect(f.state!.detachedDownloadIds).not.toContain(77);
+  });
+
+  it("背景重啟後仍等待已移除項目的 Chrome 下載完成", async () => {
+    const f = await downloading();
+    const removed = f.state!.items[0];
+    const nextId = f.state!.items[1].id;
+    await f.engine.command({ kind: "remove", id: removed.id });
+    const reopened = new QueueEngine(f.ports);
+    await reopened.onStartup();
+
+    expect(f.state!.detachedDownloadIds).toContain(77);
+    expect(f.state!.activeId).toBeUndefined();
+    expect(f.created).toEqual([url1]);
+    f.downloads[0].state = "complete";
+    await reopened.onDownloadChanged({
+      id: 77,
+      state: { current: "complete" },
+    });
+    expect(f.state!.items.map((item) => item.id)).toEqual([nextId]);
+    expect(f.state!.activeId).toBe(nextId);
+    expect(f.created).toEqual([url1, url2]);
+  });
+
+  it("移除尚未綁定的最後一筆同名來源後，外部下載卡也會消失", async () => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1] });
+    f.downloads.push({
+      id: 91,
+      url: "https://s1.katfile.co:183/d/token/file.rar",
+      filename: "D:/Downloads/file.rar",
+      startTime: new Date(f.ports.now()).toISOString(),
+      state: "in_progress",
+      bytesReceived: 10,
+      totalBytes: 100,
+      paused: false,
+      canResume: true,
+    });
+    await f.engine.command({ kind: "start" });
+    expect(f.state!.externalTransfer).toBeDefined();
+    await f.engine.command({ kind: "remove", id: f.state!.items[0].id });
+    expect(f.state!.items).toHaveLength(0);
+    expect(f.state!.externalTransfer).toBeUndefined();
+    expect(f.downloads[0].state).toBe("in_progress");
+  });
+
+  it("暫停排隊時只移除錯誤項目，不開下一筆", async () => {
+    const f = await interrupted();
+    await f.engine.command({ kind: "pause" });
+    await f.engine.command({ kind: "remove", id: f.state!.items[0].id });
+    expect(f.state!.activeId).toBeUndefined();
+    expect(f.state!.running).toBe(false);
+    expect(f.state!.items[0].status).toBe("queued");
+    expect(f.created).toHaveLength(1);
+  });
+  it("儲存移除失敗時不得啟動下一筆", async () => {
+    const f = await downloading();
+    const id = f.state!.items[0].id;
+    f.failStorage(true);
+    const result = await f.engine.handleRequest({
+      type: "QC_COMMAND",
+      command: { kind: "remove", id },
+    });
+    expect(result.ok).toBe(false);
+    expect(f.state!.items).toHaveLength(2);
+    expect(f.created).toHaveLength(1);
+    expect(f.downloads).toHaveLength(1);
+  });
+
+  it("沒有下載識別碼的未知交接可移除，並暫停佇列避免交接並行", async () => {
+    const f = await interrupted();
+    const seed = structuredClone(f.state!);
+    seed.items[0].downloadId = undefined;
+    const restored = fixture(seed);
+    const result = await restored.engine.handleRequest({
+      type: "QC_COMMAND",
+      command: { kind: "remove", id: seed.items[0].id },
+    });
+    expect(result.ok).toBe(true);
+    expect(restored.state!.items).toHaveLength(1);
+    expect(restored.state!.running).toBe(false);
+    expect(restored.created).toHaveLength(0);
+  });
+
+  it.each([
+    "preparing",
+    "waiting",
+    "verification",
+    "handoff",
+    "queued",
+  ] as const)("%s 狀態的非交接項目可移除並繼續佇列", async (status) => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1, url2] });
+    await f.engine.command({ kind: "start" });
+    const item = f.state!.items[0];
+    item.status = status;
+    item.action = undefined;
+    item.downloadId = undefined;
+    await f.engine.command({ kind: "remove", id: item.id });
+    expect(f.state!.items).toHaveLength(1);
+    expect(f.state!.activeId).toBe(f.state!.items[0].id);
+    expect(f.created).toEqual([url1, url2]);
+  });
+  it("僅來源追蹤中斷、尚未交接下載的項目也能直接移除", async () => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1, url2] });
+    await f.engine.command({ kind: "start" });
+    const item = f.state!.items[0];
+    await f.engine.onTabRemoved(item.tabId!);
+    await f.engine.command({ kind: "remove", id: item.id });
+    expect(f.state!.items).toHaveLength(1);
+    expect(f.created).toEqual([url1, url2]);
+    expect(f.downloads).toHaveLength(0);
+  });
+});
 
 describe("手動開始下載後的明確核對", () => {
   async function blocked() {
@@ -334,7 +876,7 @@ describe("QueueEngine", () => {
     await f.engine.onAlarm();
     expect(f.activeAlarm).toBeUndefined();
   });
-  it("discovers an unrecorded resumable external download at startup", async () => {
+  it("does not let a historical resumable interrupted download block startup", async () => {
     const f = fixture();
     await f.engine.command({ kind: "add", urls: [url1] });
     f.state!.running = true;
@@ -349,13 +891,11 @@ describe("QueueEngine", () => {
     });
     const reopened = new QueueEngine(f.ports);
     await reopened.onStartup();
-    expect(f.created).toHaveLength(0);
-    expect(f.state!.externalDownloadId).toBe(91);
-    f.downloads[0].canResume = false;
-    await reopened.onDownloadChanged({ id: 91, canResume: { current: false } });
     expect(f.created).toHaveLength(1);
+    expect(f.state!.externalDownloadId).toBeUndefined();
+    expect(f.state!.externalTransfer).toBeUndefined();
   });
-  it("keeps waiting for a known resumable external transfer after alarm and startup", async () => {
+  it("stops waiting when a known external download becomes interrupted", async () => {
     const f = fixture();
     f.downloads.push({
       id: 90,
@@ -375,16 +915,9 @@ describe("QueueEngine", () => {
       state: { current: "interrupted" },
       canResume: { current: true },
     });
-    await f.engine.onAlarm();
-    expect(f.created).toHaveLength(0);
-    expect(f.state!.externalDownloadId).toBe(90);
-    const reopened = new QueueEngine(f.ports);
-    await reopened.onStartup();
-    expect(f.created).toHaveLength(0);
-    expect(f.state!.externalDownloadId).toBe(90);
-    f.downloads[0].canResume = false;
-    await reopened.onDownloadChanged({ id: 90, canResume: { current: false } });
     expect(f.created).toHaveLength(1);
+    expect(f.state!.externalDownloadId).toBeUndefined();
+    expect(f.state!.externalTransfer).toBeUndefined();
   });
   it("待執行排序可跨過清單中的完成紀錄", async () => {
     const f = fixture();
@@ -1088,6 +1621,159 @@ describe("QueueEngine", () => {
     expect(f.created).toHaveLength(0);
   });
 
+  it.each(["start", "alarm", "popup", "created"])(
+    "reconnects the same source's live browser download via %s",
+    async (entry) => {
+      const f = fixture();
+      await f.engine.command({ kind: "add", urls: [url1] });
+      if (entry !== "start") await f.engine.command({ kind: "start" });
+      const d: DownloadRecord = {
+        id: 91,
+        url: "https://s5003.katfile.co:183/d/token/file.rar",
+        referrer: url1.replace(".biz", ".co"),
+        filename: "D:/Downloads/file.rar",
+        state: "in_progress",
+        bytesReceived: 500,
+        totalBytes: 2000,
+        paused: false,
+        canResume: true,
+      };
+      f.downloads.push(d);
+      if (entry === "start") await f.engine.command({ kind: "start" });
+      if (entry === "alarm") await f.engine.onAlarm();
+      if (entry === "popup") {
+        // Restore the external wait already persisted by an older version.
+        f.state!.externalDownloadId = 91;
+        // Engine fixture storage shares the saved state object; reload it.
+        await new QueueEngine(f.ports).handleRequest({ type: "QC_GET" });
+      }
+      if (entry === "created") await f.engine.onDownloadCreated(d);
+      expect(f.state!.items[0]).toMatchObject({
+        status: "downloading",
+        downloadId: 91,
+        bytesReceived: 500,
+      });
+      expect(f.state!.externalWaitReason).toBeUndefined();
+      expect(f.state!.activeId).toBe(f.state!.items[0].id);
+      expect(f.downloads).toHaveLength(1);
+      expect(f.created).toHaveLength(entry === "start" ? 0 : 1);
+    },
+  );
+
+  it.each(["filename-only", "wrong-id", "lookalike-host", "ambiguous"])(
+    "does not auto-adopt an uncertain download: %s",
+    async (kind) => {
+      const f = fixture();
+      await f.engine.command({ kind: "add", urls: [url1] });
+      const d: DownloadRecord = {
+        id: 91,
+        url: "https://s5003.katfile.co:183/d/token/file.rar",
+        filename: "file.rar",
+        referrer:
+          kind === "filename-only"
+            ? undefined
+            : kind === "wrong-id"
+              ? "https://katfile.co/zzzzzzzzzzzz/file.rar.html"
+              : kind === "lookalike-host"
+                ? url1.replace("katfile.biz", "katfile.biz.evil.test")
+                : url1,
+        state: "in_progress",
+        bytesReceived: 500,
+        totalBytes: 2000,
+        paused: false,
+        canResume: true,
+      };
+      f.downloads.push(d);
+      if (kind === "ambiguous") f.downloads.push({ ...d, id: 92 });
+      await f.engine.command({ kind: "start" });
+      expect(f.state!.items[0].downloadId).toBeUndefined();
+      expect(f.state!.externalDownloadId).toBe(91);
+      expect(f.created).toHaveLength(0);
+    },
+  );
+
+  it("shows the actual external transfer and estimates its speed even without a full source referrer", async () => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1] });
+    const d: DownloadRecord = {
+      id: 91,
+      url: "https://s5003.katfile.co:183/d/token/SO-37194.rar",
+      referrer: "https://katfile.co/",
+      filename: "D:/Downloads/SO-37194.rar",
+      state: "in_progress",
+      bytesReceived: 500,
+      totalBytes: 2000,
+      paused: false,
+      canResume: true,
+    };
+    f.downloads.push(d);
+    await f.engine.command({ kind: "start" });
+    expect(f.state!.externalTransfer).toMatchObject({
+      title: "SO-37194.rar",
+      bytesReceived: 500,
+    });
+    d.bytesReceived = 600;
+    f.setNow(f.ports.now() + 1000);
+    await f.engine.handleRequest({ type: "QC_GET" });
+    expect(f.state!.externalTransfer).toMatchObject({
+      bytesReceived: 600,
+      speed: 100,
+    });
+    expect(f.state!.items[0].downloadId).toBeUndefined();
+    expect(f.created).toHaveLength(0);
+  });
+
+  it.each(["confirm", "finish-first", "restart"])(
+    "holds an unlinked same-name download to prevent duplicate work: %s",
+    async (mode) => {
+      const f = fixture();
+      await f.engine.command({ kind: "add", urls: [url1] });
+      const filename = decodeURIComponent(
+        new URL(url1).pathname.split("/").pop()!,
+      ).replace(/\.html$/, "");
+      const d: DownloadRecord = {
+        id: 91,
+        url: `https://s5003.katfile.co:183/d/token/${filename}`,
+        referrer: "https://katfile.co/",
+        filename: `D:/Downloads/${filename}`,
+        state: "in_progress",
+        bytesReceived: 100,
+        totalBytes: 200,
+        startTime: new Date(f.ports.now()).toISOString(),
+        paused: false,
+        canResume: true,
+      };
+      f.downloads.push(d);
+      await f.engine.command({ kind: "start" });
+      expect(f.state!.items[0].status).toBe("blocked");
+      expect(f.state!.items[0].reason).toContain("同名下載");
+      expect(f.created).toHaveLength(0);
+      if (mode !== "confirm") {
+        d.state = "complete";
+        if (mode === "restart") await new QueueEngine(f.ports).onStartup();
+        else
+          await f.engine.onDownloadChanged({
+            id: 91,
+            state: { current: "complete" },
+          });
+        await f.engine.onAlarm();
+        expect(f.state!.items[0].status).toBe("blocked");
+        expect(f.created).toHaveLength(0);
+      }
+      await f.engine.command({
+        kind: "adopt-download",
+        id: f.state!.items[0].id,
+        downloadId: 91,
+      });
+      expect(f.state!.items[0].downloadId).toBe(91);
+      expect(f.state!.items[0].status).toBe(
+        mode === "confirm" ? "downloading" : "complete",
+      );
+      expect(f.downloads).toHaveLength(1);
+      expect(f.created).toHaveLength(0);
+    },
+  );
+
   it("waits for an unrelated Katfile download, then continues when it ends", async () => {
     const f = fixture();
     f.downloads.push({
@@ -1133,6 +1819,142 @@ describe("QueueEngine", () => {
     await f.engine.onAlarm();
     expect(f.writes).toBe(writes);
     expect(f.state!.externalDownloadId).toBe(12);
+  });
+
+  it("QC_GET repairs a missed external completion and starts the queued item", async () => {
+    const f = fixture();
+    f.downloads.push({
+      id: 21,
+      url: "https://katfile.biz/external-file",
+      state: "in_progress",
+      bytesReceived: 10,
+      totalBytes: 20,
+      paused: false,
+      canResume: true,
+    });
+    await f.engine.command({ kind: "add", urls: [url1] });
+    await f.engine.command({ kind: "start" });
+    expect(f.created).toHaveLength(0);
+    expect(f.state!.externalDownloadId).toBe(21);
+
+    f.downloads[0].state = "complete";
+    const result = await f.engine.handleRequest({ type: "QC_GET" });
+
+    expect(result.state!.externalDownloadId).toBeUndefined();
+    expect(result.state!.externalTransfer).toBeUndefined();
+    expect(f.created).toHaveLength(1);
+    expect(f.state!.activeId).toBe(f.state!.items[0].id);
+  });
+
+  it("repeated QC_GET keeps the earlier external-wait alarm deadline", async () => {
+    const f = fixture();
+    f.downloads.push({
+      id: 22,
+      url: "https://katfile.biz/external-file",
+      state: "in_progress",
+      bytesReceived: 10,
+      totalBytes: 20,
+      paused: false,
+      canResume: true,
+    });
+    await f.engine.command({ kind: "add", urls: [url1] });
+    await f.engine.command({ kind: "start" });
+    const deadline = f.activeAlarm;
+    expect(deadline).toBeDefined();
+
+    f.setNow(f.ports.now() + 10_000);
+    await f.engine.handleRequest({ type: "QC_GET" });
+    await f.engine.handleRequest({ type: "QC_GET" });
+
+    expect(f.activeAlarm).toBe(deadline);
+    expect(f.created).toHaveLength(0);
+  });
+
+  it("QC_GET 清除過期外部等待時尊重已暫停的佇列", async () => {
+    const f = fixture();
+    f.downloads.push({
+      id: 23,
+      url: "https://katfile.biz/external-file",
+      state: "in_progress",
+      bytesReceived: 10,
+      totalBytes: 20,
+      paused: false,
+      canResume: true,
+    });
+    await f.engine.command({ kind: "add", urls: [url1] });
+    await f.engine.command({ kind: "start" });
+    await f.engine.command({ kind: "pause" });
+    f.downloads[0].state = "complete";
+
+    const result = await f.engine.handleRequest({ type: "QC_GET" });
+
+    expect(result.state!.running).toBe(false);
+    expect(result.state!.externalDownloadId).toBeUndefined();
+    expect(result.state!.externalTransfer).toBeUndefined();
+    expect(f.created).toHaveLength(0);
+  });
+
+  it("QC_GET 可恢復已移除來源漏接的 Chrome 完成事件", async () => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1, url2] });
+    await f.engine.command({ kind: "start" });
+    const first = f.state!.items[0];
+    await f.engine.handleRequest(
+      {
+        type: "QC_PAGE",
+        observation: {
+          kind: "ready",
+          pageUrl: first.sourceUrl,
+          finalUrl: "https://katfile.com/get/file",
+        },
+      },
+      first.tabId,
+    );
+    await f.engine.command({ kind: "remove", id: first.id });
+    expect(f.state!.detachedDownloadIds).toContain(77);
+    expect(f.created).toHaveLength(1);
+
+    f.downloads[0].state = "complete";
+    await f.engine.handleRequest({ type: "QC_GET" });
+
+    expect(f.state!.detachedDownloadIds).not.toContain(77);
+    expect(f.state!.activeId).toBe(f.state!.items[0].id);
+    expect(f.created).toEqual([url1, url2]);
+  });
+
+  it("已追蹤下載完成但仍有另一筆進行中時繼續等待", async () => {
+    const f = fixture();
+    f.downloads.push(
+      {
+        id: 24,
+        url: "https://katfile.biz/external-one",
+        state: "in_progress",
+        bytesReceived: 10,
+        totalBytes: 20,
+        paused: false,
+        canResume: true,
+      },
+      {
+        id: 25,
+        url: "https://katfile.com/external-two",
+        state: "in_progress",
+        bytesReceived: 1,
+        totalBytes: 20,
+        paused: false,
+        canResume: true,
+      },
+    );
+    await f.engine.command({ kind: "add", urls: [url1] });
+    await f.engine.command({ kind: "start" });
+    expect(f.state!.externalDownloadId).toBe(24);
+
+    f.downloads[0].state = "complete";
+    const result = await f.engine.handleRequest({ type: "QC_GET" });
+
+    expect(result.state!.externalDownloadId).toBe(25);
+    expect(result.state!.externalWaitReason).toBeDefined();
+    expect(f.created).toHaveLength(0);
+    expect(f.state!.activeId).toBeUndefined();
   });
 
   it("does not block the queue for non-Katfile downloads", async () => {

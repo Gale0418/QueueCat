@@ -147,6 +147,7 @@ export const en: LocaleMessages = {
   actionRetryAria: "Retry queue",
   actionShowFileAria: "Show in folder",
   actionRemoveAria: "Remove item",
+  actionStopRemove: "Stop and remove",
   emptyQueueTitle: "No files queued yet ฅ(－ω－)ฅ",
   emptyQueueDesc: "Paste a few Katfile links to put the cat on duty.",
   emptyQueueBtn: "Add first batch of links",

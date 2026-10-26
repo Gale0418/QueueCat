@@ -99,7 +99,13 @@ export interface AppState {
   cycleStartedAt?: number;
   cycleNotifiedAt?: number;
   externalDownloadId?: number;
+  /** Removed records whose Chrome downloads still gate sequential work. */
+  detachedDownloadIds?: number[];
   externalWaitReason?: string;
+  externalTransfer?: Pick<
+    QueueItem,
+    "title" | "bytesReceived" | "totalBytes" | "speed" | "downloadPaused"
+  >;
   extractions?: ExtractionGroup[];
   nativeHelper?: { available: boolean; engineAvailable?: boolean };
   pendingSecretDeletes?: string[];
@@ -168,6 +174,13 @@ export interface DownloadDelta {
   danger?: { current: string };
 }
 export const STORAGE_KEY = "queuecat.state.v1";
+export function canRemoveBlockedSource(item: QueueItem): boolean {
+  return (
+    !item.gallery &&
+    item.status === "blocked" &&
+    (item.downloadId !== undefined || item.action?.kind !== "download")
+  );
+}
 export function initialState(): AppState {
   return {
     version: 1,

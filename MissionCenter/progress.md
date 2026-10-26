@@ -1,9 +1,9 @@
 <!-- mission-center-managed-summary v=1 -->
 # Progress
 
-- Project: MissionCenter
-- Objective: MissionCenter workspace
-- Current status: 0/17 tasks
+- Project: QueueCat
+- Objective: Katfile修正、CodeRabbit審查與main交付
+- Current status: 0/26 tasks
 - Milestone: Next slice
 - Progress bar: [----------] 0%
 - Active tasks:

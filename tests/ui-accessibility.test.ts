@@ -145,8 +145,12 @@ it("exposes both category selectors and announces status changes without repeati
   state.items[0].status = "downloading";
   state.items[0].bytesReceived = 100;
   state.items[0].totalBytes = 1000;
+  state.items[0].speed = 10;
   changed!({ [STORAGE_KEY]: { newValue: state } }, "local");
   expect(announcement.textContent).toContain("下載中");
+  expect(document.querySelector(".download-remaining")?.textContent).toBe(
+    "預估下載剩餘 01:30",
+  );
   const announcedText = announcement.firstChild;
   state.items[0].bytesReceived = 200;
   changed!({ [STORAGE_KEY]: { newValue: state } }, "local");
@@ -154,6 +158,41 @@ it("exposes both category selectors and announces status changes without repeati
   expect(document.querySelector(".transfer-meta")?.textContent).toContain(
     "200 B",
   );
+  state.externalDownloadId = 91;
+  state.externalWaitReason = "Chrome 正在下載其他 Katfile 檔案，完成後繼續";
+  state.externalTransfer = {
+    title: "SO-37194.rar",
+    bytesReceived: 500,
+    totalBytes: 1500,
+    speed: 10,
+  };
+  changed!({ [STORAGE_KEY]: { newValue: state } }, "local");
+  expect(
+    document.querySelector("#current .current-file")?.textContent,
+  ).toContain("SO-37194.rar");
+  expect(document.querySelector(".download-remaining")?.textContent).toBe(
+    "預估下載剩餘 01:40",
+  );
+  state.items[0].status = "blocked";
+  state.items[0].reason =
+    "Chrome 已有同名下載，請確認是否為同一筆；不會重新下載。";
+  changed!({ [STORAGE_KEY]: { newValue: state } }, "local");
+  const confirmExternal = document.querySelector<HTMLButtonElement>(
+    '[data-action="confirm-external"]',
+  )!;
+  expect(confirmExternal.textContent).toBe("確認是同一筆下載，接續追蹤");
+  confirmExternal.click();
+  expect(uiRequest).toHaveBeenLastCalledWith({
+    kind: "adopt-download",
+    id: "test-download",
+    downloadId: 91,
+  });
+  await Promise.resolve();
+  state.items[0].status = "downloading";
+  state.items[0].reason = undefined;
+  state.externalDownloadId = undefined;
+  state.externalWaitReason = undefined;
+  changed!({ [STORAGE_KEY]: { newValue: state } }, "local");
   document.querySelector<HTMLButtonElement>('[data-filter="queue"]')!.click();
   const file = document.querySelector<HTMLButtonElement>(
     '[data-select="test-download"]',
@@ -224,6 +263,52 @@ it("exposes both category selectors and announces status changes without repeati
       .querySelector("#hero-actions .primary")
       ?.getAttribute("data-action"),
   ).toBe("downloads");
+  expect(
+    document.querySelector('#hero-actions [data-action="remove"]')?.textContent,
+  ).toContain("移除紀錄");
+  expect(
+    document
+      .querySelector(
+        '.queue-row[data-id="test-download"] [data-action="remove"]',
+      )
+      ?.getAttribute("aria-label"),
+  ).toBe("移除紀錄");
+  for (const status of [
+    "queued",
+    "preparing",
+    "waiting",
+    "verification",
+    "handoff",
+    "downloading",
+    "complete",
+  ] as const) {
+    state.items[0].status = status;
+    changed!({ [STORAGE_KEY]: { newValue: state } }, "local");
+    document
+      .querySelector<HTMLButtonElement>(
+        `[data-filter="${status === "complete" ? "complete" : "queue"}"]`,
+      )!
+      .click();
+    expect(
+      document
+        .querySelector(
+          '.queue-row[data-id="test-download"] [data-action="remove"]',
+        )
+        ?.getAttribute("aria-label"),
+    ).toBe("移除紀錄");
+  }
+  state.items[0].status = "blocked";
+  const literalReason = '等待 & <來源> <img src=x onerror="alert(1)">';
+  state.items[0].reason = literalReason;
+  changed!({ [STORAGE_KEY]: { newValue: state } }, "local");
+  document
+    .querySelector<HTMLButtonElement>('[data-filter="attention"]')!
+    .click();
+  const secondary = document.querySelector(
+    '.queue-row[data-id="test-download"] .file-info small',
+  )!;
+  expect(secondary.textContent).toBe(literalReason);
+  expect(secondary.querySelector("img")).toBeNull();
   const writeText = vi.fn(async (_text: string) => {});
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
@@ -251,4 +336,11 @@ it("exposes both category selectors and announces status changes without repeati
   const intro = document.querySelector<HTMLTextAreaElement>("#share-intro")!;
   expect(document.activeElement).toBe(intro);
   expect(intro.selectionEnd).toBe(intro.value.length);
+  document
+    .querySelector<HTMLButtonElement>('#hero-actions [data-action="remove"]')!
+    .click();
+  expect(uiRequest).toHaveBeenLastCalledWith({
+    kind: "remove",
+    id: "test-download",
+  });
 });

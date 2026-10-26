@@ -1,8 +1,11 @@
-export const KATFILE_HOSTS = ["katfile.com", "katfile.biz"];
+// 接受 katfile.<任意單一網域尾碼>；不宣稱該網域由 Katfile 擁有。
+const KATFILE_DOMAIN = /^katfile\.[a-z](?:[a-z0-9-]{0,61}[a-z0-9])$/i;
+export function isKatfileSourceHost(hostname: string): boolean {
+  return KATFILE_DOMAIN.test(hostname.replace(/^www\./i, ""));
+}
 export function isKatfileHost(hostname: string): boolean {
-  return KATFILE_HOSTS.some(
-    (host) => hostname === host || hostname.endsWith("." + host),
-  );
+  // 最終下載網址可位於同類網域的 CDN 子網域。
+  return KATFILE_DOMAIN.test(hostname.split(".").slice(-2).join("."));
 }
 export function hitomiGalleryId(raw: string): string | undefined {
   try {
@@ -32,7 +35,7 @@ export function normalizeSource(raw: string): string | null {
     const url = new URL(raw);
     if (
       !["http:", "https:"].includes(url.protocol) ||
-      !KATFILE_HOSTS.includes(url.hostname.replace(/^www\./, "")) ||
+      !isKatfileSourceHost(url.hostname) ||
       url.username ||
       url.password
     )
@@ -41,11 +44,22 @@ export function normalizeSource(raw: string): string | null {
     if (!/^\/[a-z0-9]{12}(?:\/[^\s]*)?\/?$/i.test(url.pathname)) return null;
     url.protocol = "https:";
     url.hostname = url.hostname.replace(/^www\./, "");
+    if (url.hostname === "katfile.cloud") url.hostname = "katfile.co";
     url.hash = "";
     url.port = "";
     return url.href;
   } catch {
     return null;
+  }
+}
+/** 只遷移已知舊來源網域，不改寫 CDN 下載連結或其他站點。 */
+export function migrateLegacyKatfileSource(raw: string): string {
+  try {
+    if (!["katfile.cloud", "www.katfile.cloud"].includes(new URL(raw).hostname))
+      return raw;
+    return normalizeSource(raw) ?? raw;
+  } catch {
+    return raw;
   }
 }
 export function sourceKey(raw: string): string {

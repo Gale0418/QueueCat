@@ -154,6 +154,12 @@ describe("publishExtension", () => {
     const icons = Object.fromEntries(
       iconSizes.map((size) => [size, `icons/icon-${size}.png`]),
     );
+    const sourceManifest = JSON.parse(
+      await readFile(
+        new URL("../public/manifest.json", import.meta.url),
+        "utf8",
+      ),
+    );
     const manifest = {
       manifest_version: 3,
       version: "1.2.3",
@@ -166,12 +172,8 @@ describe("publishExtension", () => {
         "offscreen",
         "declarativeNetRequestWithHostAccess",
       ],
-      host_permissions: JSON.parse(
-        await readFile(
-          new URL("../public/manifest.json", import.meta.url),
-          "utf8",
-        ),
-      ).host_permissions,
+      host_permissions: sourceManifest.host_permissions,
+      content_scripts: sourceManifest.content_scripts,
       icons,
     };
     await writeFile(

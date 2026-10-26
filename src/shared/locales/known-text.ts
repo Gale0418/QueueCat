@@ -1,32 +1,54 @@
 import type { SupportedLanguage } from "../language";
 
 const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
+  "只移除 QueueCat 紀錄，Chrome 下載會繼續。": {
+    en: "Remove only the QueueCat record. Chrome downloads continue.",
+    ja: "QueueCat の記録のみ削除します。Chrome のダウンロードは続行します。",
+  },
+  待核對下載: { en: "Match download", ja: "ダウンロードの照合待ち" },
+  "確認是同一筆下載，接續追蹤": {
+    en: "Confirm this is the same download and track it",
+    ja: "同じダウンロードと確認して追跡",
+  },
+  "Chrome 已有同名下載，請確認是否為同一筆；不會重新下載。": {
+    en: "Chrome has a download with the same name. Confirm whether it is the same file; it will not be downloaded again.",
+    ja: "Chrome に同名のダウンロードがあります。同じファイルか確認してください。再ダウンロードはしません。",
+  },
+  下載已暫停: { en: "Download paused", ja: "ダウンロード一時停止中" },
+  "正在追蹤 Chrome 下載，完成後繼續佇列。": {
+    en: "Tracking the Chrome download; the queue continues when it finishes.",
+    ja: "Chrome のダウンロードを追跡中。完了後にキューを再開します。",
+  },
+  正在估算下載剩餘時間: {
+    en: "Estimating download time remaining",
+    ja: "ダウンロード残り時間を計算中",
+  },
   // Engine events & state messages
-  "已加入佇列": {
+  已加入佇列: {
     en: "Added to queue",
     ja: "キューに追加されました",
   },
-  "已重新排入佇列": {
+  已重新排入佇列: {
     en: "Re-queued",
     ja: "キューに再追加されました",
   },
-  "已重新核對": {
+  已重新核對: {
     en: "Re-checked",
     ja: "再照合しました",
   },
-  "正在準備來源分頁": {
+  正在準備來源分頁: {
     en: "Preparing source tab",
     ja: "元のタブを準備中",
   },
-  "下載完成": {
+  下載完成: {
     en: "Download complete",
     ja: "ダウンロード完了",
   },
-  "已通知需要完成網站驗證": {
+  已通知需要完成網站驗證: {
     en: "Notified that site verification is needed",
     ja: "サイト認証が必要であることを通知しました",
   },
-  "需要完成網站驗證": {
+  需要完成網站驗證: {
     en: "Site verification needed",
     ja: "サイトの認証が必要です",
   },
@@ -50,7 +72,7 @@ const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
     en: "Tab tracking interrupted; if download already started, please check Chrome downloads.",
     ja: "作業タブの追跡が中断されました。ダウンロードが始まっている場合は Chrome 側をご確認ください。",
   },
-  "來源分頁已關閉": {
+  來源分頁已關閉: {
     en: "Source tab closed",
     ja: "元のタブが閉じられました",
   },
@@ -70,7 +92,7 @@ const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
     en: "Source tab not responding; please check manually",
     ja: "元のタブから応答がありません。手動で確認してください",
   },
-  "等待結束但來源分頁無法回應": {
+  等待結束但來源分頁無法回應: {
     en: "Wait finished but source tab did not respond",
     ja: "待機が終了しましたが元のタブが応答しません",
   },
@@ -82,7 +104,7 @@ const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
     en: "Download link failed Katfile HTTPS domain check",
     ja: "ダウンロードリンクが Katfile HTTPS ドメインチェックを通過しませんでした",
   },
-  "交接記錄不完整": {
+  交接記錄不完整: {
     en: "Handoff record incomplete",
     ja: "引継ぎ記録が不完全です",
   },
@@ -114,11 +136,11 @@ const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
     en: "Site requires waiting, but no reliable time remaining; check source tab.",
     ja: "サイトの待機時間が必要ですが残り時間が不明です。元のタブをご確認ください。",
   },
-  "來源頁回報明確失敗": {
+  來源頁回報明確失敗: {
     en: "Source page reported failure",
     ja: "元のページから失敗が報告されました",
   },
-  "來源頁沒有確認免費步驟": {
+  來源頁沒有確認免費步驟: {
     en: "Source page did not confirm free step",
     ja: "元のページで無料ステップが確認されませんでした",
   },
@@ -164,15 +186,15 @@ const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
   },
 
   // Command errors & exceptions
-  "只能重排待執行項目": {
+  只能重排待執行項目: {
     en: "Can only reorder queued items",
     ja: "並べ替えできるのは待機中の項目のみです",
   },
-  "無法移除目前執行項目": {
+  無法移除目前執行項目: {
     en: "Cannot remove the currently active item",
     ja: "現在実行中の項目は削除できません",
   },
-  "只能重試失敗或暫停項目": {
+  只能重試失敗或暫停項目: {
     en: "Can only retry failed or paused items",
     ja: "再試行できるのは失敗または一時停止した項目のみです",
   },
@@ -188,11 +210,12 @@ const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
     en: "Chrome download record not found; please check manually without re-downloading",
     ja: "Chrome のダウンロード履歴が見つかりません。二重ダウンロード防止のため手動で確認してください",
   },
-  "Chrome 仍保留可續傳下載；請先在 Chrome 取消舊下載，或恢復並等它完成，再重新核對": {
-    en: "Resumable download exists in Chrome; cancel it in Chrome or resume until complete before retrying",
-    ja: "Chrome に再開可能なダウンロードが残っています。Chrome 側でキャンセルするか完了を待ってから再照合してください",
-  },
-  "項目目前不是暫停狀態": {
+  "Chrome 仍保留可續傳下載；請先在 Chrome 取消舊下載，或恢復並等它完成，再重新核對":
+    {
+      en: "Resumable download exists in Chrome; cancel it in Chrome or resume until complete before retrying",
+      ja: "Chrome に再開可能なダウンロードが残っています。Chrome 側でキャンセルするか完了を待ってから再照合してください",
+    },
+  項目目前不是暫停狀態: {
     en: "Item is not currently paused",
     ja: "項目は現在一時停止状態ではありません",
   },
@@ -204,11 +227,11 @@ const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
     en: "Download no longer matches reconciliation criteria; please re-check",
     ja: "このダウンロードは照合条件を満たさなくなりました。再度ご確認ください",
   },
-  "語言設定無效": {
+  語言設定無效: {
     en: "Invalid language setting",
     ja: "言語設定が無効です",
   },
-  "找不到佇列項目": {
+  找不到佇列項目: {
     en: "Queue item not found",
     ja: "キューの項目が見つかりません",
   },
@@ -224,23 +247,23 @@ const EXACT_TRANSLATIONS: Record<string, Record<"en" | "ja", string>> = {
     en: "Chrome did not return a tab ID",
     ja: "Chrome がタブIDを返しませんでした",
   },
-  "只能核對目前尚未交接的待處理項目": {
+  只能核對目前尚未交接的待處理項目: {
     en: "Can only reconcile pending items not yet handed off",
     ja: "照合できるのは未引継ぎの要確認項目のみです",
   },
-  "背景處理失敗": {
+  背景處理失敗: {
     en: "Background processing failed",
     ja: "バックグラウンド処理に失敗しました",
   },
-  "未知錯誤": {
+  未知錯誤: {
     en: "Unknown error",
     ja: "不明なエラー",
   },
-  "未知原因": {
+  未知原因: {
     en: "unknown reason",
     ja: "原因不明",
   },
-  "可續傳": {
+  可續傳: {
     en: "resumable",
     ja: "再開可能",
   },
@@ -279,6 +302,11 @@ interface PatternRule {
 }
 
 const PATTERN_RULES: PatternRule[] = [
+  {
+    pattern: /^預估下載剩餘 ([\d:]+)$/,
+    en: (m) => `Estimated download time remaining: ${m[1]}`,
+    ja: (m) => `ダウンロード残り時間の目安：${m[1]}`,
+  },
   {
     pattern: /^已記錄\s+(download\d+)\s+免費下載動作，通知來源頁執行一次$/,
     en: (m) =>

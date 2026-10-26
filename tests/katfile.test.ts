@@ -26,6 +26,26 @@ function freeForm(extra = ""): string {
 }
 
 describe("Katfile DOM 轉接層", () => {
+  it.each(["co", "cloud", "future"])(
+    "katfile.%s 能辨識冷卻與同站最終下載連結",
+    (suffix) => {
+      const url = `https://katfile.${suffix}/wfnml3a1oeg6/08-1924140.rar.html`;
+      const waiting = page(cooldownHtml, url);
+      expect(inspectPage(waiting.window.document, url)).toMatchObject({
+        kind: "waiting",
+        waitSeconds: 3767,
+      });
+      const finalUrl = `https://s1.katfile.${suffix}/d/fixture-only/archive.rar`;
+      const ready = page(
+        `<a id="dlink" href="${finalUrl}">繼續免費下載</a>`,
+        url,
+      );
+      expect(inspectPage(ready.window.document, url)).toMatchObject({
+        kind: "ready",
+        finalUrl,
+      });
+    },
+  );
   it.each(["archive.7z.001", "archive.zip.002", "archive.r00"])(
     "支援分卷最終下載連結 %s",
     (filename) => {
@@ -38,7 +58,9 @@ describe("Katfile DOM 轉接層", () => {
     },
   );
   it("不因任意數字副檔名就放寬最終下載連結辨識", () => {
-    const dom = page('<a href="https://cdn.katfile.biz/download/unknown.001">Continue free download</a>');
+    const dom = page(
+      '<a href="https://cdn.katfile.biz/download/unknown.001">Continue free download</a>',
+    );
     expect(inspectPage(dom.window.document, PAGE_URL).kind).toBe("unknown");
   });
   it("實站限速推銷頁的「繼續免費下載」是最終下載網址，不是驗證或錯誤", () => {

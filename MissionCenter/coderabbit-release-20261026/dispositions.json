@@ -1,0 +1,37 @@
+{
+  "firstReview": {
+    "files": 140,
+    "issues": 2,
+    "critical": 0,
+    "major": 0,
+    "minor": 2
+  },
+  "issues": [
+    {
+      "file": "tests/browser/gallery.mjs",
+      "severity": "minor",
+      "disposition": "verified-fixed",
+      "verification": "Removed author-specific defaults; node --check and parseArgs defaults/overrides verified; no browser execution claimed."
+    },
+    {
+      "file": "src/ui/main.ts",
+      "severity": "minor",
+      "disposition": "verified-fixed",
+      "verification": "DOM regression reproduced literal &amp;/&lt; output before fix. Single final HTML escape renders literal special characters and does not create injected img nodes; regression passed after fix."
+    }
+  ],
+  "secondReview": {
+    "files": 3,
+    "issues": 0,
+    "status": "review_completed"
+  },
+  "validation": {
+    "testFiles": 21,
+    "tests": 277,
+    "build": "passed",
+    "defenderUnpacked": "found no threats",
+    "defenderZip": "found no threats",
+    "zipSha256": "CC00F1FB95840CAE4CA895E89250C03BA438E6DF4ACAA3E2D083878C7F8CCB0A",
+    "personalChromeAcceptance": "not performed"
+  }
+}

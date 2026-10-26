@@ -1,8 +1,8 @@
 <!-- mission-center-managed-summary v=1 -->
 # Project
 
-- Project: MissionCenter
-- Goal: MissionCenter workspace
+- Project: QueueCat
+- Goal: Katfile修正、CodeRabbit審查與main交付
 - Cycle: Unassigned
 - Labels: mission-center
 - Activity log:

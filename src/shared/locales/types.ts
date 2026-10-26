@@ -130,6 +130,7 @@ export interface LocaleMessages {
   actionRetryAria: string;
   actionShowFileAria: string;
   actionRemoveAria: string;
+  actionStopRemove: string;
   emptyQueueTitle: string;
   emptyQueueDesc: string;
   emptyQueueBtn: string;

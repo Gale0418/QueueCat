@@ -3,6 +3,7 @@ import { initialState, type QueueItem } from "../src/shared/types";
 import {
   briefReason,
   bytes,
+  downloadRemaining,
   escape,
   progress,
   summary,
@@ -17,6 +18,25 @@ const item: QueueItem = {
   events: [],
 };
 describe("狀態與未知資料呈現", () => {
+  it("以實際速度估算下載時間，區分暫停、未知速度與網站冷卻", () => {
+    const downloading = {
+      ...item,
+      bytesReceived: 100,
+      totalBytes: 7400,
+      speed: 2,
+    };
+    expect(downloadRemaining(downloading)).toBe("預估下載剩餘 1:00:50");
+    expect(downloadRemaining({ ...downloading, speed: 0 })).toBe(
+      "正在估算下載剩餘時間",
+    );
+    expect(downloadRemaining({ ...downloading, totalBytes: -1 })).toBe(
+      "正在估算下載剩餘時間",
+    );
+    expect(downloadRemaining({ ...downloading, downloadPaused: true })).toBe(
+      "下載已暫停",
+    );
+    expect(downloadRemaining({ ...downloading, status: "waiting" })).toBe("");
+  });
   it("未知大小不產生虛構百分比", () => {
     expect(
       progress({ ...item, totalBytes: -1, bytesReceived: 10 }),
@@ -40,7 +60,11 @@ describe("狀態與未知資料呈現", () => {
     expect(escape("<img src=x onerror=alert(1)>")).not.toContain("<img");
   });
   it("舊版分頁提示在小摘要改為追蹤中斷，完整原因仍留在原資料", () => {
-    const blocked = { ...item, status: "blocked" as const, reason: "來源分頁已關閉" };
+    const blocked = {
+      ...item,
+      status: "blocked" as const,
+      reason: "來源分頁已關閉",
+    };
     expect(briefReason(blocked)).toBe("工作分頁追蹤已中斷。");
     expect(blocked.reason).toBe("來源分頁已關閉");
   });

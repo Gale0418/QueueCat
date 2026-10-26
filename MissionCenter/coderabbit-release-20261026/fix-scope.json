@@ -1,0 +1,26 @@
+{
+  "createdAt": "2026-10-26T10:58:43.755Z",
+  "reviewBase": "f65eef7eb2b1d9ba92188cd4c2c2ebc94a9b3e10",
+  "files": [
+    {
+      "path": "tests/browser/gallery.mjs",
+      "bytes": 29394,
+      "sha256": "37330a170f38668ba589f41d288341a8e8dfaf58b2b2f20dd704d77f63a982cc"
+    },
+    {
+      "path": "src/ui/main.ts",
+      "bytes": 55189,
+      "sha256": "8adbbff0ef618928bbbacf314218418400ec6082694128374958dc9dfac3c563"
+    },
+    {
+      "path": "tests/ui-accessibility.test.ts",
+      "bytes": 11704,
+      "sha256": "5d4f7ad0aef45feabda80262a1f72a933371c2e6681be578bfb55e1adec3dd2f"
+    }
+  ],
+  "changed": [
+    "src/ui/main.ts",
+    "tests/browser/gallery.mjs",
+    "tests/ui-accessibility.test.ts"
+  ]
+}

@@ -19,6 +19,7 @@ import {
 import {
   hitomiGalleryId,
   isKatfileHost,
+  migrateLegacyKatfileSource,
   normalizeSource,
   sourceKey,
 } from "../shared/urls";
@@ -133,6 +134,8 @@ const isTerminal = (s: QueueItem["status"]) =>
   s === "failed" || s === "complete";
 const FREE_ACTION_TIMEOUT = 30_000;
 const EXTERNAL_WAIT = "Chrome 正在下載其他 Katfile 檔案，完成後繼續";
+const MATCHING_DOWNLOAD =
+  "Chrome 已有同名下載，請確認是否為同一筆；不會重新下載。";
 const HITOMI_IMAGE_HOSTS = new Set([
   "w1.gold-usergeneratedcontent.net",
   "w2.gold-usergeneratedcontent.net",
@@ -170,7 +173,8 @@ export class QueueEngine {
     if (!this.state) {
       const raw = await this.p.storage.get(STORAGE_KEY);
       const s = raw as AppState | undefined;
-      this.state =
+      let migrated = false;
+      const next =
         s?.version === 1 && Array.isArray(s.items)
           ? {
               ...s,
@@ -179,12 +183,20 @@ export class QueueEngine {
                 ...s.settings,
                 language: normalizeLanguagePreference(s.settings?.language),
               },
-              items: s.items.map((item) => ({
-                ...item,
-                events: Array.isArray(item.events) ? item.events : [],
-              })),
+              items: s.items.map((item) => {
+                const sourceUrl = migrateLegacyKatfileSource(item.sourceUrl);
+                migrated ||= sourceUrl !== item.sourceUrl;
+                return {
+                  ...item,
+                  sourceUrl,
+                  events: Array.isArray(item.events) ? item.events : [],
+                };
+              }),
             }
           : initialState();
+      // 先持久化才更新快取；保存失敗時下次載入仍會重試遷移。
+      if (migrated) await this.p.storage.set({ [STORAGE_KEY]: next });
+      this.state = next;
     }
     return structuredClone(this.state);
   }
@@ -497,8 +509,7 @@ export class QueueEngine {
   ): Promise<void> {
     const canContinue = this.galleryArchiveControlCurrent(s);
     await this.failGallery(s, item, reason, false);
-    if (canContinue && this.galleryArchiveControlCurrent(s))
-      await this.pump(s);
+    if (canContinue && this.galleryArchiveControlCurrent(s)) await this.pump(s);
   }
   private async startGalleryPage(
     s: AppState,
@@ -665,7 +676,9 @@ export class QueueEngine {
     return !s.running || this.pauseEpoch !== pauseEpoch;
   }
   private galleryArchiveControlCurrent(s: AppState): boolean {
-    return s.running && this.galleryControlRequested === this.galleryControlApplied;
+    return (
+      s.running && this.galleryControlRequested === this.galleryControlApplied
+    );
   }
   private async suspendGalleryArchive(
     s: AppState,
@@ -687,11 +700,7 @@ export class QueueEngine {
     const archivePort = this.p.gallery?.archive;
     const gallery = item.gallery!;
     if (!archivePort) {
-      await this.failGalleryArchive(
-        s,
-        item,
-        "gallery_archive_missing",
-      );
+      await this.failGalleryArchive(s, item, "gallery_archive_missing");
       return;
     }
     const fingerprint = await this.galleryFingerprint(
@@ -1221,7 +1230,12 @@ export class QueueEngine {
     if (preserveEarlier) {
       if (!this.p.alarms.get) return;
       const existing = await this.p.alarms.get(ALARM);
-      if (existing && existing.scheduledTime <= this.p.now() + 30_000) return;
+      if (
+        existing &&
+        existing.scheduledTime > this.p.now() &&
+        existing.scheduledTime <= this.p.now() + 30_000
+      )
+        return;
     }
     await this.p.alarms.clear(ALARM);
     if (s.pendingSecretDeletes?.length)
@@ -1234,6 +1248,15 @@ export class QueueEngine {
       )
     ) {
       await this.p.alarms.create(ALARM, { when: this.p.now() + 30_000 });
+    }
+    if (s.running && s.externalDownloadId !== undefined) {
+      const active = s.items.find((item) => item.id === s.activeId);
+      const deadline =
+        active?.status === "waiting" && (active.waitUntil || 0) > this.p.now()
+          ? Math.min(active.waitUntil!, this.p.now() + 30_000)
+          : this.p.now() + 30_000;
+      await this.p.alarms.create(ALARM, { when: deadline });
+      return;
     }
     if (!s.activeId) {
       if (s.running && s.items.some((x) => x.status === "queued")) {
@@ -1471,6 +1494,26 @@ export class QueueEngine {
         if (request.type === "QC_GET") {
           const s = await this.load();
           const item = s.items.find((x) => x.id === s.activeId);
+          if (s.externalDownloadId !== undefined || s.externalWaitReason) {
+            const external = await this.findExternal(
+              new Set(
+                s.items.flatMap((i) =>
+                  i.downloadId === undefined ? [] : [i.downloadId],
+                ),
+              ),
+              s.externalDownloadId,
+              s.detachedDownloadIds,
+            );
+            if (external) await this.waitForExternal(s, external);
+            else {
+              s.externalDownloadId = undefined;
+              s.externalWaitReason = undefined;
+              s.externalTransfer = undefined;
+              s.detachedDownloadIds = [];
+              await this.save(s);
+              if (s.running && !s.activeId) await this.pump(s);
+            }
+          }
           if (item?.status === "downloading" && item.downloadId !== undefined)
             await (item.gallery
               ? this.syncGalleryDownload(s, item)
@@ -1692,9 +1735,11 @@ export class QueueEngine {
           (item.action?.kind !== "download" || forgetUncertain);
         const removedActiveGallery =
           removableGallery && item?.id === s.activeId;
+        const removableSource = !!item && !item.gallery;
+        const removedActiveSource = removableSource && item?.id === s.activeId;
         if (
           !item ||
-          (item.id === s.activeId && !removableGallery) ||
+          (item.id === s.activeId && !removableGallery && !removableSource) ||
           s.extractions?.some(
             (g) =>
               g.itemIds.includes(c.id) &&
@@ -1702,6 +1747,38 @@ export class QueueEngine {
           )
         )
           throw new Error("無法移除目前執行項目");
+        if (removableSource) {
+          // Removing a reminder never controls the actual Chrome download.
+          // Keep only its ID to prevent the next queued source running in parallel.
+          if (item.downloadId !== undefined && item.status !== "complete")
+            s.detachedDownloadIds = [
+              ...new Set([...(s.detachedDownloadIds || []), item.downloadId]),
+            ];
+          if (
+            removedActiveSource &&
+            s.externalDownloadId !== undefined &&
+            (await this.manualDownloads(s, item)).some(
+              (d) => d.id === s.externalDownloadId,
+            )
+          )
+            s.detachedDownloadIds = [
+              ...new Set([
+                ...(s.detachedDownloadIds || []),
+                s.externalDownloadId,
+              ]),
+            ];
+          if (
+            s.externalDownloadId !== undefined &&
+            s.detachedDownloadIds?.includes(s.externalDownloadId)
+          )
+            s.externalTransfer = undefined;
+          if (
+            removedActiveSource &&
+            item.action?.kind === "download" &&
+            item.downloadId === undefined
+          )
+            s.running = false;
+        }
         if (s.activeId === item.id) s.activeId = undefined;
         // Forgetting uncertain bookkeeping never retries, cancels, deletes files,
         // or starts the following item. The user must inspect Chrome first.
@@ -1732,7 +1809,8 @@ export class QueueEngine {
         await this.save(s);
         await cleanupArchive;
         await this.cleanSecrets(s);
-        if (removedActiveGallery && s.running) await this.pump(s);
+        if ((removedActiveGallery || removedActiveSource) && s.running)
+          await this.pump(s);
         else await this.arm(s);
         return structuredClone(await this.load());
       }
@@ -1857,6 +1935,7 @@ export class QueueEngine {
         if (s.externalDownloadId === c.downloadId) {
           s.externalDownloadId = undefined;
           s.externalWaitReason = undefined;
+          s.externalTransfer = undefined;
         }
         this.event(item, `已由你確認並連結 Chrome 下載 #${c.downloadId}`);
         await this.save(s);
@@ -1964,6 +2043,15 @@ export class QueueEngine {
   private async focusItem(s: AppState, id: string): Promise<AppState> {
     const item = s.items.find((x) => x.id === id);
     if (!item) throw new Error("找不到佇列項目");
+    const reconnect =
+      s.running &&
+      !item.gallery &&
+      item.id === s.activeId &&
+      ["preparing", "waiting", "verification", "blocked"].includes(
+        item.status,
+      ) &&
+      item.downloadId === undefined &&
+      item.action?.kind !== "download";
     if (
       item.gallery &&
       item.status === "blocked" &&
@@ -1973,17 +2061,28 @@ export class QueueEngine {
       return structuredClone(s);
     }
     if (item.tabId !== undefined) {
+      let tab: { url?: string } | undefined;
       try {
-        const tab = await this.p.tabs.get(item.tabId);
-        if (tab.url && this.isSourceFor(item, tab.url)) {
-          await this.p.tabs.update(item.tabId, { active: true });
-          return structuredClone(s);
-        }
+        tab = await this.p.tabs.get(item.tabId);
       } catch {
         /* 原分頁已關閉，重新建立來源分頁供使用者查看。 */
       }
+      if (tab?.url && this.isSourceFor(item, tab.url)) {
+        if (reconnect && migrateLegacyKatfileSource(tab.url) !== tab.url) {
+          await this.reconnectSource(s, item, undefined, true);
+          await this.p.tabs.update(item.tabId, {
+            url: item.sourceUrl,
+            active: true,
+          });
+          return structuredClone(s);
+        }
+        await this.p.tabs.update(item.tabId, { active: true });
+        if (reconnect) await this.reconnectSource(s, item, tab.url);
+        return structuredClone(s);
+      }
     }
     if (
+      !reconnect &&
       !item.gallery &&
       item.id === s.activeId &&
       !["downloading", "handoff", "blocked", "failed", "complete"].includes(
@@ -2006,7 +2105,40 @@ export class QueueEngine {
     item.tabId = tab.id;
     await this.save(s);
     await this.p.tabs.update(tab.id, { active: true });
+    if (reconnect) await this.reconnectSource(s, item);
     return structuredClone(s);
+  }
+  private async reconnectSource(
+    s: AppState,
+    item: QueueItem,
+    existingUrl?: string,
+    waitForLoad = false,
+  ): Promise<void> {
+    // 呼叫端已核對來源與交接狀態；保留免費步驟 action，避免重新送出同一步驟。
+    item.status = "preparing";
+    item.reason = undefined;
+    item.waitUntil = undefined;
+    this.unknownSince.delete(item.id);
+    item.events = item.events.filter(
+      (e) => e.message !== "頁面狀態尚未辨識（等待判定）",
+    );
+    this.event(item, "已重新核對");
+    await this.save(s);
+    await this.arm(s);
+    if (waitForLoad) return;
+    try {
+      await this.p.tabs.send(item.tabId!, { type: "QC_OBSERVE" });
+    } catch {
+      // 新頁面載入後會主動回報。既有頁面的舊腳本可能因外掛重載而失效，
+      // 僅在訊息無法送達時重載已核對的來源網址，讓 Chrome 載入新版腳本。
+      if (existingUrl) {
+        try {
+          await this.p.tabs.update(item.tabId!, { url: existingUrl });
+        } catch {
+          await this.block(s, item, "無法重新觀察來源分頁，請人工檢查");
+        }
+      }
+    }
   }
   private async pump(s: AppState): Promise<void> {
     if (!s.running || s.activeId) {
@@ -2044,7 +2176,11 @@ export class QueueEngine {
         i.downloadId === undefined ? [] : [i.downloadId],
       ),
     );
-    const external = await this.findExternal(ownIds, s.externalDownloadId);
+    const external = await this.findExternal(
+      ownIds,
+      s.externalDownloadId,
+      s.detachedDownloadIds,
+    );
     if (external) {
       await this.waitForExternal(s, external);
       return;
@@ -2053,6 +2189,7 @@ export class QueueEngine {
       s.externalDownloadId !== undefined || s.externalWaitReason !== undefined;
     s.externalDownloadId = undefined;
     s.externalWaitReason = undefined;
+    s.externalTransfer = undefined;
     if (hadExternal) await this.save(s);
     if (s.hostNotBefore && s.hostNotBefore > this.p.now()) {
       await this.p.alarms.create(ALARM, {
@@ -2077,30 +2214,36 @@ export class QueueEngine {
   private async findExternal(
     ownIds: Set<number>,
     knownId?: number,
+    detachedIds: number[] = [],
   ): Promise<DownloadRecord | undefined> {
-    if (knownId !== undefined && !ownIds.has(knownId)) {
+    for (const id of detachedIds) {
+      const [detached] = await this.p.downloads.search({ id });
+      if (detached && !ownIds.has(id) && detached.state === "in_progress")
+        return detached;
+    }
+    if (
+      knownId !== undefined &&
+      !ownIds.has(knownId) &&
+      !detachedIds.includes(knownId)
+    ) {
       const [known] = await this.p.downloads.search({ id: knownId });
       if (
         known &&
         known.byExtensionId !== this.p.extensionId &&
-        (known.state === "in_progress" ||
-          (known.state === "interrupted" && known.canResume)) &&
+        known.state === "in_progress" &&
         [known.url, known.finalUrl, known.referrer].some(
           (u) => !!u && this.isKatfileReference(u),
         )
       )
         return known;
     }
-    const [active, interrupted] = await Promise.all([
-      this.p.downloads.search({ state: "in_progress" }),
-      this.p.downloads.search({ state: "interrupted" }),
-    ]);
-    return [...active, ...interrupted].find(
+    const active = await this.p.downloads.search({ state: "in_progress" });
+    return active.find(
       (d) =>
         !ownIds.has(d.id) &&
+        !detachedIds.includes(d.id) &&
         d.byExtensionId !== this.p.extensionId &&
-        (d.state === "in_progress" ||
-          (d.state === "interrupted" && d.canResume)) &&
+        d.state === "in_progress" &&
         [d.url, d.finalUrl, d.referrer].some(
           (u) => !!u && this.isKatfileReference(u),
         ),
@@ -2184,17 +2327,128 @@ export class QueueEngine {
     s: AppState,
     external: DownloadRecord,
   ): Promise<void> {
+    if (s.detachedDownloadIds?.includes(external.id)) {
+      if (
+        s.externalDownloadId !== external.id ||
+        s.externalTransfer ||
+        s.externalWaitReason !== EXTERNAL_WAIT
+      ) {
+        s.externalDownloadId = external.id;
+        s.externalWaitReason = EXTERNAL_WAIT;
+        s.externalTransfer = undefined;
+        await this.save(s);
+      }
+      await this.arm(s, true);
+      return;
+    }
+    const item =
+      s.items.find((x) => x.id === s.activeId) ||
+      s.items.find((x) => x.status === "queued");
+    // A filename alone is ambiguous. Only reconnect a unique live download
+    // whose source page carries this file's Katfile ID.
+    const matchesSource = (d: DownloadRecord) =>
+      [d.referrer, d.url, d.finalUrl].some(
+        (url) =>
+          !!url &&
+          !!normalizeSource(url) &&
+          !!item &&
+          this.isSourceFor(item, url),
+      );
+    if (
+      s.running &&
+      item &&
+      !item.gallery &&
+      item.downloadId === undefined &&
+      item.action?.kind !== "download" &&
+      ["queued", "preparing", "waiting", "verification"].includes(
+        item.status,
+      ) &&
+      external.state === "in_progress" &&
+      matchesSource(external)
+    ) {
+      const matches = (
+        await this.p.downloads.search({ state: "in_progress" })
+      ).filter(
+        (d) => !s.items.some((x) => x.downloadId === d.id) && matchesSource(d),
+      );
+      if (matches.length === 1 && matches[0].id === external.id) {
+        s.activeId = item.id;
+        s.externalDownloadId = undefined;
+        s.externalWaitReason = undefined;
+        s.externalTransfer = undefined;
+        item.downloadId = external.id;
+        item.status = "downloading";
+        item.reason = undefined;
+        item.waitUntil = undefined;
+        this.event(item, `已核對 Chrome 下載 #${external.id}`);
+        await this.save(s);
+        await this.syncDownload(s, item);
+        await this.arm(s);
+        return;
+      }
+    }
+    const now = this.p.now();
+    const sample = this.lastSample;
+    // Missing source IDs must not leave a same-name item ready to download
+    // again after the external transfer ends. Reuse the manual candidate checks.
+    let needsConfirmation = false;
+    if (
+      s.running &&
+      item &&
+      !item.gallery &&
+      item.downloadId === undefined &&
+      item.action?.kind !== "download" &&
+      ["queued", "preparing", "waiting", "verification"].includes(
+        item.status,
+      ) &&
+      (await this.manualDownloads(s, item)).some((d) => d.id === external.id)
+    ) {
+      s.activeId = item.id;
+      item.status = "blocked";
+      item.reason = MATCHING_DOWNLOAD;
+      item.waitUntil = undefined;
+      this.event(item, MATCHING_DOWNLOAD);
+      needsConfirmation = true;
+    }
+    const transfer = {
+      title:
+        external.filename?.split(/[\\/]/).pop() ||
+        new URL(external.url).pathname.split("/").pop() ||
+        "Katfile",
+      bytesReceived: external.bytesReceived,
+      totalBytes: external.totalBytes,
+      downloadPaused: external.paused || external.state === "interrupted",
+      speed:
+        sample?.id === external.id && now > sample.at
+          ? Math.max(
+              0,
+              ((external.bytesReceived - sample.bytes) * 1000) /
+                (now - sample.at),
+            )
+          : s.externalDownloadId === external.id
+            ? s.externalTransfer?.speed
+            : undefined,
+    };
+    this.lastSample = {
+      id: external.id,
+      bytes: external.bytesReceived,
+      at: now,
+    };
+    const transferChanged =
+      JSON.stringify(s.externalTransfer) !== JSON.stringify(transfer);
+    s.externalTransfer = transfer;
     if (
       s.externalDownloadId === external.id &&
       s.externalWaitReason === EXTERNAL_WAIT
     ) {
-      await this.p.alarms.create(ALARM, { when: this.p.now() + 30_000 });
+      if (transferChanged || needsConfirmation) await this.save(s);
+      await this.arm(s, true);
       return;
     }
     s.externalDownloadId = external.id;
     s.externalWaitReason = EXTERNAL_WAIT;
     await this.save(s);
-    await this.p.alarms.create(ALARM, { when: this.p.now() + 30_000 });
+    await this.arm(s, true);
   }
   private isSourceFor(item: QueueItem, raw: string): boolean {
     try {
@@ -2246,6 +2500,7 @@ export class QueueEngine {
         ),
       ),
       s.externalDownloadId,
+      s.detachedDownloadIds,
     );
     if (external) {
       await this.waitForExternal(s, external);
@@ -2402,6 +2657,7 @@ export class QueueEngine {
             ),
           ),
           s.externalDownloadId,
+          s.detachedDownloadIds,
         );
         if (concurrent) {
           await this.waitForExternal(s, concurrent);
@@ -2506,6 +2762,20 @@ export class QueueEngine {
   onDownloadChanged(delta: DownloadDelta): Promise<AppState> {
     return this.serial(async () => {
       const s = await this.load();
+      const wasDetached = s.detachedDownloadIds?.includes(delta.id);
+      if (wasDetached) {
+        const [detached] = await this.p.downloads.search({ id: delta.id });
+        if (
+          !detached ||
+          detached.state === "complete" ||
+          detached.state === "interrupted"
+        ) {
+          s.detachedDownloadIds = s.detachedDownloadIds!.filter(
+            (id) => id !== delta.id,
+          );
+          await this.save(s);
+        }
+      }
       const item = s.items.find((x) => x.downloadId === delta.id);
       if (item) {
         if (!isTerminal(item.status))
@@ -2517,13 +2787,10 @@ export class QueueEngine {
       }
       if (s.externalDownloadId === delta.id) {
         const [external] = await this.p.downloads.search({ id: delta.id });
-        if (
-          !external ||
-          (external.state !== "in_progress" &&
-            !(external.state === "interrupted" && external.canResume))
-        ) {
+        if (!external || external.state !== "in_progress") {
           s.externalDownloadId = undefined;
           s.externalWaitReason = undefined;
+          s.externalTransfer = undefined;
           await this.save(s);
           if (s.running && !s.activeId) await this.pump(s);
           else if (s.running) {
@@ -2695,11 +2962,13 @@ export class QueueEngine {
             ? []
             : await this.p.downloads.search({ id: s.externalDownloadId });
         const external =
-          knownExternal &&
-          (knownExternal.state === "in_progress" ||
-            (knownExternal.state === "interrupted" && knownExternal.canResume))
+          knownExternal && knownExternal.state === "in_progress"
             ? knownExternal
-            : await this.findExternal(externalIds);
+            : await this.findExternal(
+                externalIds,
+                undefined,
+                s.detachedDownloadIds,
+              );
         if (external) {
           await this.waitForExternal(s, external);
           return structuredClone(await this.load());
@@ -2707,6 +2976,7 @@ export class QueueEngine {
         if (s.externalDownloadId !== undefined || s.externalWaitReason) {
           s.externalDownloadId = undefined;
           s.externalWaitReason = undefined;
+          s.externalTransfer = undefined;
           await this.save(s);
         }
       }
@@ -2782,9 +3052,16 @@ export class QueueEngine {
           if (item.tabId !== undefined) {
             const t = await this.p.tabs.get(item.tabId);
             if (!t.url || !this.isSourceFor(item, t.url)) throw new Error();
+            if (
+              item.action?.kind !== "download" &&
+              migrateLegacyKatfileSource(t.url) !== t.url
+            ) {
+              await this.reconnectSource(s, item, undefined, true);
+              await this.p.tabs.update(item.tabId, { url: item.sourceUrl });
+            }
             // A restored/discarded page may not have a content receiver yet.
             // Keep its saved wait; the deadline alarm will inspect before advancing.
-            if (
+            else if (
               item.status !== "waiting" ||
               (item.waitUntil || 0) <= this.p.now()
             )
@@ -2880,9 +3157,7 @@ export class QueueEngine {
             ? !["downloading", "handoff", "blocked"].includes(active.status)
             : s.items.some((x) => x.status === "queued"))
         ) {
-          s.externalDownloadId = d.id;
-          s.externalWaitReason = EXTERNAL_WAIT;
-          await this.save(s);
+          await this.waitForExternal(s, d);
           await this.arm(s);
         }
       }

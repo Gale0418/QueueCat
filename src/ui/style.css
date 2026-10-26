@@ -535,6 +535,13 @@ progress:not([value]) {
   font-size: 11px;
   margin-top: 9px;
 }
+.download-remaining {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 8px 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
 .next-file {
   font-size: 10px;
   color: var(--muted);

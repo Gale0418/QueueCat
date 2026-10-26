@@ -149,6 +149,7 @@ export const ja: LocaleMessages = {
   actionRetryAria: "もう一度並ぶ",
   actionShowFileAria: "フォルダーに表示",
   actionRemoveAria: "項目を削除",
+  actionStopRemove: "停止して削除",
   emptyQueueTitle: "待機中のファイルはありません ฅ(－ω－)ฅ",
   emptyQueueDesc:
     "Katfile の URL を貼り付けて、猫ちゃんをお仕事に向かわせましょう。",

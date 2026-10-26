@@ -20,10 +20,17 @@ assert.deepEqual(manifest.host_permissions, [
   "https://katfile.biz/*",
   "https://www.katfile.com/*",
   "https://www.katfile.biz/*",
+  "https://katfile.co/*",
+  "https://www.katfile.co/*",
   "https://hitomi.la/*",
   "https://ltn.gold-usergeneratedcontent.net/*",
   "https://w1.gold-usergeneratedcontent.net/*",
   "https://w2.gold-usergeneratedcontent.net/*",
+]);
+assert.deepEqual(manifest.content_scripts[0].matches, ["https://*/*"]);
+assert.deepEqual(manifest.content_scripts[0].include_globs, [
+  "https://katfile.*/*",
+  "https://www.katfile.*/*",
 ]);
 const files = [
   "popup.html",

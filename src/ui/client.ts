@@ -46,7 +46,9 @@ export function scenario(name: string): void {
   if (name === "blocked")
     Object.assign(sample.items[0], {
       status: "blocked",
-      reason: "下載交接結果不明，請先在 Chrome 下載紀錄確認。",
+      reason: "Chrome 下載中斷（NETWORK_FAILED），請先在 Chrome 核對",
+      downloadId: 77,
+      action: { id: "preview-download", kind: "download", at: now },
     });
   if (name === "unknown-size") sample.items[0].totalBytes = -1;
   if (name === "long-name")

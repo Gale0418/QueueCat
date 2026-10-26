@@ -18,6 +18,8 @@
     "https://katfile.biz/*",
     "https://www.katfile.com/*",
     "https://www.katfile.biz/*",
+    "https://katfile.co/*",
+    "https://www.katfile.co/*",
     "https://hitomi.la/*",
     "https://ltn.gold-usergeneratedcontent.net/*",
     "https://w1.gold-usergeneratedcontent.net/*",
@@ -45,12 +47,8 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://katfile.com/*",
-        "https://katfile.biz/*",
-        "https://www.katfile.com/*",
-        "https://www.katfile.biz/*"
-      ],
+      "matches": ["https://*/*"],
+      "include_globs": ["https://katfile.*/*", "https://www.katfile.*/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

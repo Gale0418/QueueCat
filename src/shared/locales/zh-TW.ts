@@ -137,6 +137,7 @@ export const zhTW: LocaleMessages = {
   actionRetryAria: "重新排隊",
   actionShowFileAria: "在資料夾顯示",
   actionRemoveAria: "移除紀錄",
+  actionStopRemove: "停止並移除",
   emptyQueueTitle: "還沒有要排隊的檔案",
   emptyQueueDesc: "貼上幾個 Katfile 網址，讓貓貓開始值班吧。",
   emptyQueueBtn: "加入第一批網址",

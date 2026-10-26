@@ -1,5 +1,6 @@
 import type { PageAction, PageObservation, Request } from "../shared/types";
 import { inspectPage, performFreeAction } from "./katfile";
+import { isKatfileSourceHost } from "../shared/urls";
 
 const ACTION_KEY_PREFIX = "queuecat.action.";
 const ACTION_ID_LIMIT = 160;
@@ -114,43 +115,54 @@ function handleAction(action: PageAction): { ok: boolean; error?: string } {
   return result;
 }
 
-chrome.runtime.onMessage.addListener(
-  (message: unknown, _sender, sendResponse) => {
-    if (!message || typeof message !== "object") return;
-    const request = message as {
-      type?: string;
-      actionId?: string;
-      kind?: string;
-      expectedUrl?: string;
-    };
-    if (request.type === "QC_INSPECT" || request.type === "QC_OBSERVE") {
-      report(true);
-      sendResponse({ ok: true });
-      return;
-    }
-    if (request.type === "QC_PAGE_ACTION") {
-      const response = handleAction(request as PageAction);
-      sendResponse(response);
-      if (response.ok) window.setTimeout(() => report(true), 0);
-    }
-  },
-);
+function start(): void {
+  chrome.runtime.onMessage.addListener(
+    (message: unknown, _sender, sendResponse) => {
+      if (!message || typeof message !== "object") return;
+      const request = message as {
+        type?: string;
+        actionId?: string;
+        kind?: string;
+        expectedUrl?: string;
+      };
+      if (request.type === "QC_INSPECT" || request.type === "QC_OBSERVE") {
+        report(true);
+        sendResponse({ ok: true });
+        return;
+      }
+      if (request.type === "QC_PAGE_ACTION") {
+        const response = handleAction(request as PageAction);
+        sendResponse(response);
+        if (response.ok) window.setTimeout(() => report(true), 0);
+      }
+    },
+  );
 
-report();
+  report();
 
-const observer = new MutationObserver(() => {
-  if (mutationTimer !== undefined) return;
-  mutationTimer = window.setTimeout(() => {
-    mutationTimer = undefined;
-    report();
-  }, 500);
-});
-observer.observe(document.documentElement, {
-  childList: true,
-  subtree: true,
-  attributes: true,
-  characterData: true,
-});
+  const observer = new MutationObserver(() => {
+    if (mutationTimer !== undefined) return;
+    mutationTimer = window.setTimeout(() => {
+      mutationTimer = undefined;
+      report();
+    }, 500);
+  });
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    characterData: true,
+  });
 
-// 部分倒數文字由頁面計時器更新屬性；10 秒 fallback 僅比對結果有變化時才送到背景。
-window.setInterval(() => report(), 10_000);
+  // 部分倒數文字由頁面計時器更新屬性；10 秒 fallback 僅比對結果有變化時才送到背景。
+  window.setInterval(() => report(), 10_000);
+}
+
+// Chrome matches 不支援尾碼萬用字元；include_globs 先篩選，再核對完整 hostname。
+// 不符合的頁面不讀取 DOM、不註冊 listener、observer 或計時器。
+if (
+  window.location.protocol === "https:" &&
+  isKatfileSourceHost(window.location.hostname)
+) {
+  start();
+}

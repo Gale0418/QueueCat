@@ -22,12 +22,9 @@ const { values } = parseArgs({
   options: {
     "playwright-module": {
       type: "string",
-      default:
-        "C:/Users/USER/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs",
     },
     "browser-cache": {
       type: "string",
-      default: "D:/MyGame/LLMeeting/output/playwright-browsers",
     },
     extension: {
       type: "string",
@@ -35,14 +32,16 @@ const { values } = parseArgs({
     },
     openssl: {
       type: "string",
-      default: "C:/Users/USER/miniconda3/Library/bin/openssl.exe",
+      default: "openssl",
     },
   },
 });
 if (values["browser-cache"])
   process.env.PLAYWRIGHT_BROWSERS_PATH = path.resolve(values["browser-cache"]);
 const { chromium } = await import(
-  pathToFileURL(path.resolve(values["playwright-module"])).href
+  values["playwright-module"]
+    ? pathToFileURL(path.resolve(values["playwright-module"])).href
+    : "playwright"
 );
 const sharp = (await import("sharp")).default;
 
@@ -378,12 +377,24 @@ try {
   await cdp.detach();
   await manager.goto(`${extensionOrigin}/manager.html#add`);
   await manager.locator("#url-input").waitFor({ state: "visible" });
-  await record("fresh interface does not advertise the optional provider", async () => {
-    assert.equal(await manager.locator("#provider-chip").innerText(), "Katfile");
-    assert.doesNotMatch(await manager.locator("#share-intro").inputValue(), /gallery|hitomi|圖庫|ギャラリー/i);
-    assert.doesNotMatch(await manager.locator("#url-input").getAttribute("placeholder"), /hitomi/i);
-    return { defaultProvider: "Katfile" };
-  });
+  await record(
+    "fresh interface does not advertise the optional provider",
+    async () => {
+      assert.equal(
+        await manager.locator("#provider-chip").innerText(),
+        "Katfile",
+      );
+      assert.doesNotMatch(
+        await manager.locator("#share-intro").inputValue(),
+        /gallery|hitomi|圖庫|ギャラリー/i,
+      );
+      assert.doesNotMatch(
+        await manager.locator("#url-input").getAttribute("placeholder"),
+        /hitomi/i,
+      );
+      return { defaultProvider: "Katfile" };
+    },
+  );
 
   const state = async () => {
     const reply = await manager.evaluate(() =>
@@ -793,24 +804,41 @@ try {
     ownProfileOnly: true,
   };
   report.status = "pass";
-  await record("completed ZIP releases private staging and download resources", async () => {
-    const remaining = await manager.evaluate(async () => {
-      const root = await navigator.storage.getDirectory();
-      try {
-        const archives = await root.getDirectoryHandle("queuecat-archives");
-        const keys = [];
-        for await (const key of archives.keys()) keys.push(key);
-        return keys;
-      } catch (error) {
-        if (error.name === "NotFoundError") return [];
-        throw error;
-      }
-    });
-    assert.deepEqual(remaining, []);
-    assert.deepEqual(await worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules()), []);
-    assert.deepEqual(await manager.evaluate(() => chrome.runtime.getContexts({contextTypes:["OFFSCREEN_DOCUMENT"]})), []);
-    return { stagingRemoved:true, offscreenClosed:true, rulesRemoved:true };
-  });
+  await record(
+    "completed ZIP releases private staging and download resources",
+    async () => {
+      const remaining = await manager.evaluate(async () => {
+        const root = await navigator.storage.getDirectory();
+        try {
+          const archives = await root.getDirectoryHandle("queuecat-archives");
+          const keys = [];
+          for await (const key of archives.keys()) keys.push(key);
+          return keys;
+        } catch (error) {
+          if (error.name === "NotFoundError") return [];
+          throw error;
+        }
+      });
+      assert.deepEqual(remaining, []);
+      assert.deepEqual(
+        await worker.evaluate(() =>
+          chrome.declarativeNetRequest.getSessionRules(),
+        ),
+        [],
+      );
+      assert.deepEqual(
+        await manager.evaluate(() =>
+          chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"] }),
+        ),
+        [],
+      );
+      return {
+        stagingRemoved: true,
+        offscreenClosed: true,
+        rulesRemoved: true,
+      };
+    },
+  );
 } catch (error) {
   report.status = "fail";
   report.error = error?.stack || String(error);

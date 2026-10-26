@@ -12,6 +12,7 @@ import {
   bytes,
   briefReason,
   countdown,
+  downloadRemaining,
   escape as e,
   isAttention,
   labels,
@@ -90,7 +91,7 @@ const html = (el: Element, value: string) => {
 };
 const btn = (name: string, label: string, action: string, extra = "") =>
   `<button class="${extra}" data-action="${action}">${icon(name)}<span>${label}</span></button>`;
-app.innerHTML = `${preview ? `<div class="preview-bar">離線介面預覽 · 不會開始下載 <label>情境 <select id="scenario"><option value="empty">空佇列</option><option value="downloading">下載中</option><option value="waiting">網站等待</option><option value="verification">需要驗證</option><option value="blocked">交接不明</option><option value="unknown-size">大小未知</option><option value="long-name">長檔名</option><option value="complete">全部完成</option></select></label></div>` : ""}
+app.innerHTML = `${preview ? `<div class="preview-bar">離線介面預覽 · 不會開始下載 <label>情境 <select id="scenario"><option value="empty">空佇列</option><option value="downloading">下載中</option><option value="waiting">網站等待</option><option value="verification">需要驗證</option><option value="blocked">下載中斷</option><option value="unknown-size">大小未知</option><option value="long-name">長檔名</option><option value="complete">全部完成</option></select></label></div>` : ""}
 <div class="app-shell">
 <aside class="sidebar"><a class="brand" href="manager.html">${icon("cat")}<span>QueueCat<span class="brand-dot">.</span></span></a><p class="brand-note">等待有人顧，時間留給你。</p><nav aria-label="主要導覽"><button data-filter="queue" class="nav-button selected">${icon("list")}下載佇列 <span id="nav-count"></span></button><button data-filter="attention" class="nav-button">${icon("alert")}待處理 <span id="attention-count"></span></button><button data-filter="complete" class="nav-button">${icon("check")}已完成 <span id="complete-count"></span></button></nav><div class="sidebar-bottom">${btn("folder", "Chrome 下載紀錄", "downloads")}${btn("settings", "偏好設定", "settings")}<div class="local-note"><span class="small-dot"></span>網址與紀錄，只留在這台電腦</div></div></aside>
 <main class="main"><header class="topbar"><div class="popup-brand brand">${icon("cat")}QueueCat<span class="brand-dot">.</span></div><div class="breadcrumb">我的下載空間 <span>/</span> <span id="provider-breadcrumb" data-raw>Katfile</span></div><div class="top-actions">${popup ? `<span class="host-chip" id="provider-chip" data-raw>Katfile</span>` + btn("settings", "設定", "settings", "icon-button") : `<span class="host-chip" id="provider-chip" data-raw>Katfile</span>` + btn("settings", "設定", "settings", "icon-button top-settings")}</div></header>
@@ -130,6 +131,11 @@ const canReconcile = (item?: QueueItem) =>
   item.status === "blocked" &&
   item.downloadId === undefined &&
   item.action?.kind !== "download";
+const pendingDownloadMatch = (item?: QueueItem) =>
+  canReconcile(item) &&
+  item?.reason === "Chrome 已有同名下載，請確認是否為同一筆；不會重新下載。";
+const statusText = (item: QueueItem) =>
+  pendingDownloadMatch(item) ? t("待核對下載") : labels[item.status];
 const extractionFor = (itemId?: string) =>
   itemId
     ? [...(state.extractions || [])]
@@ -211,7 +217,7 @@ function currentHtml(item?: QueueItem) {
             ? galleryMessage(item) || gc("album")
             : briefReason(item),
         );
-  return `<div class="current-heading"><span class="current-label">目前${item.gallery ? e(gc("album")) : "檔案"}</span><span class="status-tag ${item.status}">${labels[item.status]}</span></div><div class="current-file">${icon("folder")}<strong data-raw title="${e(displayTitle)}">${e(displayTitle)}</strong></div>${meter(item)}${group ? `<div class="extraction-status ${group.status}">${e(extractionStatus(group))}${group.status === "failed" ? ` · ${e(extractionError(group.errorCode))}` : ""}</div>` : ""}${canReconcile(item) ? `<button data-action="reconcile" class="text-button">核對已開始的下載</button>` : ""}<div class="transfer-meta"><span>${item.gallery && item.status === "downloading" ? `${e(galleryPageProgress(item))} · ${transfer}` : transfer}</span><span>${item.status === "downloading" && item.speed !== undefined ? bytes(item.speed) + "/s" : ""}</span></div>${item.status === "downloading" ? '<button data-action="downloads" class="text-button">到 Chrome 管理這筆下載</button>' : item.gallery && item.status === "blocked" && (item.downloadId !== undefined || item.action?.kind === "download") ? `<button data-action="downloads" class="text-button">${e(t("核對下載狀態"))}</button>` : ""}${!item.gallery && next ? `<div class="next-file">下一筆 <span data-raw>${e(next.title || next.sourceUrl)}</span></div>` : ""}`;
+  return `<div class="current-heading"><span class="current-label">目前${item.gallery ? e(gc("album")) : "檔案"}</span><span class="status-tag ${item.status}">${e(statusText(item))}</span></div><div class="current-file">${icon("folder")}<strong data-raw title="${e(displayTitle)}">${e(displayTitle)}</strong></div>${meter(item)}${group ? `<div class="extraction-status ${group.status}">${e(extractionStatus(group))}${group.status === "failed" ? ` · ${e(extractionError(group.errorCode))}` : ""}</div>` : ""}${canReconcile(item) ? `<button data-action="reconcile" class="text-button">核對已開始的下載</button>` : ""}<div class="transfer-meta"><span>${item.gallery && item.status === "downloading" ? `${e(galleryPageProgress(item))} · ${transfer}` : transfer}</span><span>${item.status === "downloading" && item.speed !== undefined ? bytes(item.speed) + "/s" : ""}</span></div>${item.status === "downloading" ? `<p class="download-remaining">${e(downloadRemaining(item))}</p>` : ""}${item.status === "downloading" ? '<button data-action="downloads" class="text-button">到 Chrome 管理這筆下載</button>' : item.gallery && item.status === "blocked" && (item.downloadId !== undefined || item.action?.kind === "download") ? `<button data-action="downloads" class="text-button">${e(t("核對下載狀態"))}</button>` : ""}${!item.gallery && next ? `<div class="next-file">下一筆 <span data-raw>${e(next.title || next.sourceUrl)}</span></div>` : ""}`;
 }
 function rowHtml(
   item: QueueItem,
@@ -227,6 +233,9 @@ function rowHtml(
     item.status === "blocked" &&
     item.downloadId === undefined &&
     item.action?.kind !== "download";
+  const removableSourceBlock =
+    !item.gallery &&
+    !["queued", "extracting"].includes(extractionFor(item.id)?.status || "");
   const retryable =
     item.status === "failed" ||
     (!item.gallery &&
@@ -234,6 +243,10 @@ function rowHtml(
       item.action?.kind !== "download" &&
       item.downloadId === undefined);
   const group = extractionFor(item.id);
+  const removeLabel =
+    group && group.status !== "complete"
+      ? xc("removeCancelsExtraction")
+      : t("移除紀錄");
   const displayTitle = item.gallery?.title || item.title || item.sourceUrl;
   const secondary = item.gallery
     ? `${galleryPageProgress(item)}${galleryPercent(item) === undefined ? "" : ` · ${galleryPercent(item)!.toFixed(1)}%`}${item.status === "downloading" ? ` · ${bytes(item.bytesReceived || 0)}${item.totalBytes && item.totalBytes > 0 ? " / " + bytes(item.totalBytes) : " · " + t("大小未知")}` : ` · ${galleryMessage(item) || gc("album")}`}`
@@ -242,12 +255,10 @@ function rowHtml(
         (item.totalBytes && item.totalBytes > 0
           ? " / " + bytes(item.totalBytes)
           : " · " + t("大小未知"))
-      : e(
-          item.status === "waiting"
-            ? briefReason(item)
-            : item.reason || "katfile.biz",
-        );
-  return `<article class="queue-row ${selected === item.id ? "is-selected" : ""}" data-id="${item.id}"><button class="file-select" data-select="${item.id}" aria-expanded="${selected === item.id}"><span class="row-number">${item.status === "complete" ? icon("check") : String(n + 1).padStart(2, "0")}</span><span class="file-icon">${icon("folder")}</span><span class="file-info"><strong data-raw title="${e(displayTitle)}">${e(displayTitle)}</strong><small>${e(secondary)}${group ? ` · ${e(extractionStatus(group))}` : ""}</small></span><span class="status-tag ${item.status}">${labels[item.status]}</span></button><div class="row-actions">${item.status === "queued" ? `<button data-item="${item.id}" data-action="up" aria-label="往前移" title="往前移（Alt + ↑）" aria-keyshortcuts="Alt+ArrowUp" ${item.id === firstQueued ? "disabled" : ""}>${icon("up")}</button><button data-item="${item.id}" data-action="down" aria-label="往後移" title="往後移（Alt + ↓）" aria-keyshortcuts="Alt+ArrowDown" ${item.id === lastQueued ? "disabled" : ""}>${icon("down")}</button>` : ""}${retryable ? `<button data-item="${item.id}" data-action="retry" aria-label="重新排隊">${icon("retry")}</button>` : ""}${item.status === "complete" ? `<button data-item="${item.id}" data-action="show-file" aria-label="在資料夾顯示">${icon("folder")}</button>` : ""}${!active || removableGalleryBlock ? `<button data-item="${item.id}" data-action="remove" aria-label="${e(group && group.status !== "complete" ? xc("removeCancelsExtraction") : t("移除紀錄"))}" title="${e(group && group.status !== "complete" ? xc("removeCancelsExtraction") : t("移除紀錄"))}">${icon("trash")}</button>` : ""}</div></article>`;
+      : item.status === "waiting"
+        ? briefReason(item)
+        : item.reason || "katfile.biz";
+  return `<article class="queue-row ${selected === item.id ? "is-selected" : ""}" data-id="${item.id}"><button class="file-select" data-select="${item.id}" aria-expanded="${selected === item.id}"><span class="row-number">${item.status === "complete" ? icon("check") : String(n + 1).padStart(2, "0")}</span><span class="file-icon">${icon("folder")}</span><span class="file-info"><strong data-raw title="${e(displayTitle)}">${e(displayTitle)}</strong><small>${e(secondary)}${group ? ` · ${e(extractionStatus(group))}` : ""}</small></span><span class="status-tag ${item.status}">${e(statusText(item))}</span></button><div class="row-actions">${item.status === "queued" ? `<button data-item="${item.id}" data-action="up" aria-label="往前移" title="往前移（Alt + ↑）" aria-keyshortcuts="Alt+ArrowUp" ${item.id === firstQueued ? "disabled" : ""}>${icon("up")}</button><button data-item="${item.id}" data-action="down" aria-label="往後移" title="往後移（Alt + ↓）" aria-keyshortcuts="Alt+ArrowDown" ${item.id === lastQueued ? "disabled" : ""}>${icon("down")}</button>` : ""}${retryable ? `<button data-item="${item.id}" data-action="retry" aria-label="重新排隊">${icon("retry")}</button>` : ""}${item.status === "complete" ? `<button data-item="${item.id}" data-action="show-file" aria-label="在資料夾顯示">${icon("folder")}</button>` : ""}${!active || removableGalleryBlock || removableSourceBlock ? `<button data-item="${item.id}" data-action="remove" aria-label="${e(removeLabel)}" title="${e(removeLabel)}">${icon("trash")}</button>` : ""}</div></article>`;
 }
 function detailsHtml(item?: QueueItem) {
   if (!item)
@@ -270,7 +281,7 @@ function detailsHtml(item?: QueueItem) {
   const galleryDetails = item.gallery
     ? `<section class="gallery-detail"><p><strong>${e(galleryPageProgress(item))}</strong>${galleryPercent(item) === undefined ? "" : ` · ${galleryPercent(item)!.toFixed(1)}%`}</p>${outputName ? `<p>${e(gc(item.gallery.output === "zip" ? "folder" : "album"))}：<span data-raw title="${e(outputName)}">${e(outputName)}</span></p>` : ""}<p>${e(gc(item.gallery.output === "zip" ? "imageFormat" : "legacyFormat"))}</p>${item.gallery.output === "zip" ? `<p>${e(gc("retryTip"))}</p>` : ""}</section>`
     : "";
-  return `<div class="detail-heading"><h3>檔案詳情</h3><button data-action="close-detail" class="icon-button" aria-label="收起詳情">${icon("close")}</button></div><strong class="detail-filename" data-raw>${e(displayTitle)}</strong><span class="status-tag ${item.status}">${labels[item.status]}</span><h4>${item.gallery ? e(gc("gallerySource")) : "來源網址"}</h4>${item.gallery ? `<a class="text-button" href="${e(sourceHref)}" target="_blank" rel="noopener noreferrer">${icon("arrow")}${e(gc("gallerySource"))}</a><span data-raw title="${e(item.sourceUrl)}">${e(item.sourceUrl)}</span>` : `<a data-raw href="${e(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${e(item.sourceUrl)}</a>`}${item.reason ? `<p class="reason" ${item.gallery ? "data-raw" : ""}>${e(item.gallery ? galleryMessage(item) : item.reason)}</p>` : ""}${galleryDetails}${group ? `<section class="extraction-detail"><h4>${e(xc("enable"))}</h4><p class="extraction-status ${group.status}">${e(extractionStatus(group))}</p>${group.status === "failed" ? `<p class="reason">${e(extractionError(group.errorCode))}${group.errorCode && !(group.errorCode in extractionErrorKeys) ? ` <code data-raw>${e(group.errorCode)}</code>` : ""}</p><label class="retry-password" for="retry-extraction-password">${e(xc(group.errorCode === "password_expired" ? "passwordLabel" : "retryPassword"))}<input id="retry-extraction-password" type="password" autocomplete="new-password" aria-describedby="retry-password-hint" data-group="${e(group.id)}"><small id="retry-password-hint">${e(xc(group.errorCode === "password_expired" ? "expiredPasswordHint" : "retryPasswordHint"))}</small></label><button class="secondary" data-action="retry-extraction" data-group="${e(group.id)}">${e(xc("retry"))}</button>` : ""}${group.outputDir ? `<p class="extraction-output"><span>${e(xc("output"))}:</span> <span data-raw title="${e(group.outputDir)}">${e(group.outputDir)}</span></p>` : ""}</section>` : ""}${!item.gallery && ["verification", "blocked", "waiting", "preparing"].includes(item.status) ? `<div class="detail-actions"><button data-action="focus" data-item="${item.id}">${icon("arrow")}前往工作分頁</button>${item.status === "blocked" ? `<button data-action="recheck" data-item="${item.id}">${icon("retry")}重新檢查</button>` : ""}</div>` : item.gallery && item.status === "blocked" && item.action?.kind === "download" && item.downloadId === undefined ? `<div class="detail-actions"><button data-action="downloads" data-item="${item.id}">${icon("arrow")}${e(t("核對下載狀態"))}</button></div>` : ""}<h4>處理紀錄</h4><ol class="event-list">${
+  return `<div class="detail-heading"><h3>檔案詳情</h3><button data-action="close-detail" class="icon-button" aria-label="收起詳情">${icon("close")}</button></div><strong class="detail-filename" data-raw>${e(displayTitle)}</strong><span class="status-tag ${item.status}">${e(statusText(item))}</span><h4>${item.gallery ? e(gc("gallerySource")) : "來源網址"}</h4>${item.gallery ? `<a class="text-button" href="${e(sourceHref)}" target="_blank" rel="noopener noreferrer">${icon("arrow")}${e(gc("gallerySource"))}</a><span data-raw title="${e(item.sourceUrl)}">${e(item.sourceUrl)}</span>` : `<a data-raw href="${e(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${e(item.sourceUrl)}</a>`}${item.reason ? `<p class="reason" ${item.gallery ? "data-raw" : ""}>${e(item.gallery ? galleryMessage(item) : item.reason)}</p>` : ""}${galleryDetails}${group ? `<section class="extraction-detail"><h4>${e(xc("enable"))}</h4><p class="extraction-status ${group.status}">${e(extractionStatus(group))}</p>${group.status === "failed" ? `<p class="reason">${e(extractionError(group.errorCode))}${group.errorCode && !(group.errorCode in extractionErrorKeys) ? ` <code data-raw>${e(group.errorCode)}</code>` : ""}</p><label class="retry-password" for="retry-extraction-password">${e(xc(group.errorCode === "password_expired" ? "passwordLabel" : "retryPassword"))}<input id="retry-extraction-password" type="password" autocomplete="new-password" aria-describedby="retry-password-hint" data-group="${e(group.id)}"><small id="retry-password-hint">${e(xc(group.errorCode === "password_expired" ? "expiredPasswordHint" : "retryPasswordHint"))}</small></label><button class="secondary" data-action="retry-extraction" data-group="${e(group.id)}">${e(xc("retry"))}</button>` : ""}${group.outputDir ? `<p class="extraction-output"><span>${e(xc("output"))}:</span> <span data-raw title="${e(group.outputDir)}">${e(group.outputDir)}</span></p>` : ""}</section>` : ""}${!item.gallery && ["verification", "blocked", "waiting", "preparing"].includes(item.status) ? `<div class="detail-actions"><button data-action="focus" data-item="${item.id}">${icon("arrow")}前往工作分頁</button>${item.status === "blocked" ? `<button data-action="recheck" data-item="${item.id}">${icon("retry")}重新檢查</button>` : ""}</div>` : item.gallery && item.status === "blocked" && item.action?.kind === "download" && item.downloadId === undefined ? `<div class="detail-actions"><button data-action="downloads" data-item="${item.id}">${icon("arrow")}${e(t("核對下載狀態"))}</button></div>` : ""}<h4>處理紀錄</h4><ol class="event-list">${
     item.events.length
       ? item.events
           .slice(-12)
@@ -380,9 +391,15 @@ function render() {
     active.action?.kind === "download"
       ? btn("trash", e(gc("forgetUncertain")), "forget-gallery", "quiet")
       : "";
+  const removeSourceAction =
+    active &&
+    !active.gallery &&
+    !["queued", "extracting"].includes(extractionFor(active.id)?.status || "")
+      ? `<button data-action="remove" data-item="${active.id}" class="quiet" title="${e(t("只移除 QueueCat 紀錄，Chrome 下載會繼續。"))}">${icon("trash")}${e(t("移除紀錄"))}</button>`
+      : "";
   html(
     hero,
-    `${primaryAction}${active && ["verification", "blocked"].includes(active.status) ? btn(state.running ? "pause" : "play", state.running ? "暫停排隊" : "繼續排隊", state.running ? "pause" : "start") : ""}${forgetAction}${!popup && state.items.length ? btn("plus", "新增網址", "add", "quiet") : ""}`,
+    `${primaryAction}${active && ["verification", "blocked"].includes(active.status) ? btn(state.running ? "pause" : "play", state.running ? "暫停排隊" : "繼續排隊", state.running ? "pause" : "start") : ""}${forgetAction}${removeSourceAction}${!popup && state.items.length ? btn("plus", "新增網址", "add", "quiet") : ""}`,
   );
   hero.setAttribute("aria-busy", String(pending));
   hero.querySelectorAll<HTMLButtonElement>("button").forEach((b) => {
@@ -393,10 +410,30 @@ function render() {
       ) &&
         b.dataset.action === "start");
   });
+  const displayed =
+    state.externalDownloadId !== undefined &&
+    state.externalWaitReason &&
+    state.externalTransfer
+      ? {
+          id: `external-${state.externalDownloadId}`,
+          sourceUrl: "",
+          status: "downloading" as const,
+          createdAt: 0,
+          updatedAt: 0,
+          events: [],
+          ...state.externalTransfer,
+        }
+      : active;
   document.querySelector<HTMLElement>("#current")!.dataset.status =
-    active?.status || "empty";
-  document.querySelector<HTMLElement>("#current")!.hidden = !active;
-  html(document.querySelector("#current")!, currentHtml(active));
+    displayed?.status || "empty";
+  document.querySelector<HTMLElement>("#current")!.hidden = !displayed;
+  html(
+    document.querySelector("#current")!,
+    currentHtml(displayed) +
+      (pendingDownloadMatch(active) && state.externalDownloadId !== undefined
+        ? `<button class="text-button" data-action="confirm-external" data-item="${e(active!.id)}" data-download="${state.externalDownloadId}">${e(t("確認是同一筆下載，接續追蹤"))}</button>`
+        : ""),
+  );
   const queue = state.items.filter(
       (i) => !["failed", "blocked", "complete"].includes(i.status),
     ),
@@ -746,6 +783,12 @@ app.addEventListener("click", (event) => {
       ?.focus();
   } else if (action === "manager") void execute({ kind: "open-manager" });
   else if (action === "downloads") void execute({ kind: "open-downloads" });
+  else if (action === "confirm-external" && id)
+    void execute({
+      kind: "adopt-download",
+      id,
+      downloadId: Number(target.dataset.download),
+    });
   else if (action === "check-helper") void execute({ kind: "check-helper" });
   else if (action === "forget-gallery" && id) {
     const item = state.items.find((entry) => entry.id === id);
@@ -981,7 +1024,11 @@ const refreshTimer = setInterval(() => {
   document
     .querySelectorAll<HTMLTimeElement>("time[data-until]")
     .forEach((el) => (el.textContent = countdown(Number(el.dataset.until))));
-  if (state.items.some((i) => i.status === "downloading")) void refresh();
+  if (
+    state.externalWaitReason ||
+    state.items.some((i) => i.status === "downloading")
+  )
+    void refresh();
 }, 1000);
 window.addEventListener("pagehide", () => clearInterval(refreshTimer), {
   once: true,

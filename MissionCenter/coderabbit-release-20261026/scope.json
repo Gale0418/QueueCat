@@ -1,0 +1,1366 @@
+{
+  "createdAt": "2026-10-26T10:50:48.199Z",
+  "baseCommit": "b8a3fa7c6b3ea0a58bc21a02867e7d489b5a9f6d",
+  "scope": "current maintained source plus earlier related code and bounded product documents",
+  "reviewRoot": "D:\\MyGame\\QueueCat\\artifacts\\coderabbit-release-20261026",
+  "files": 140,
+  "included": [
+    {
+      "path": "src/background/engine.ts",
+      "bytes": 107349,
+      "sha256": "2b149b0ed4df5c5b8e88ab07dc072810b1de7780925de864e56f6ce03deba256"
+    },
+    {
+      "path": "src/background/gallery-transport.ts",
+      "bytes": 16144,
+      "sha256": "92847af2a75d0bce56f9638b4e78027578c9af4c0ae2883a1daef304703506e3"
+    },
+    {
+      "path": "src/background/hitomi.ts",
+      "bytes": 10761,
+      "sha256": "dca5ce9a5250dba085c79f89c84746a0108e8ac326a1a96ccd1b8598899361eb"
+    },
+    {
+      "path": "src/background/index.ts",
+      "bytes": 7112,
+      "sha256": "82e26ba8c48aad3a31c13c548cdfc652ab200f09f7bdd1cb9861546f390260ee"
+    },
+    {
+      "path": "src/content/index.ts",
+      "bytes": 5203,
+      "sha256": "3b7e5cd14a93010d1677814930f27c336a9b55b0f2d1702b6053fd8ef8015a08"
+    },
+    {
+      "path": "src/content/katfile.ts",
+      "bytes": 16291,
+      "sha256": "cf8193cb2df1d6a93abf93f6137a63161e34402df160320e85751dd4fdefe464"
+    },
+    {
+      "path": "src/offscreen/archive.ts",
+      "bytes": 14967,
+      "sha256": "bd7a5d93b40d7c78b4c67f1eb703311138a7e71b6c24040f4b2d6b950d7b4cc5"
+    },
+    {
+      "path": "src/offscreen/gallery.ts",
+      "bytes": 9868,
+      "sha256": "b239c65f51b16e88961449e68cc911d270c683541e2cf1a9f1d72c830286254a"
+    },
+    {
+      "path": "src/shared/copy.ts",
+      "bytes": 2076,
+      "sha256": "2739fd41d7f8ca9abe7d8e71bd39f1439f1c27e75026090bf734b49802acca35"
+    },
+    {
+      "path": "src/shared/extraction-copy.ts",
+      "bytes": 6317,
+      "sha256": "eedbdc3cdf4bf47c14b009d742afe4a0ebe8be289e64a59a832fdb1261555b25"
+    },
+    {
+      "path": "src/shared/extraction.ts",
+      "bytes": 3161,
+      "sha256": "cf0e42eaf47f4e79e0cd2ea55104e14a531606ba399e6e0c9c67c7ec9eec19d6"
+    },
+    {
+      "path": "src/shared/gallery-copy.ts",
+      "bytes": 9564,
+      "sha256": "ddd92a6523e8777f2398a044a588e8ed3101edddad61dd62d53a1a703fa65df1"
+    },
+    {
+      "path": "src/shared/gallery-messages.ts",
+      "bytes": 5193,
+      "sha256": "f9175dd1354c54093124d8f3ec7764d2d9e2b610b7f25eb78136a65919a93712"
+    },
+    {
+      "path": "src/shared/language.ts",
+      "bytes": 1976,
+      "sha256": "f88e31166986b7e9efca5c4e30199240431a92d05ef85aa845d5487e31db4178"
+    },
+    {
+      "path": "src/shared/locales/en.ts",
+      "bytes": 12859,
+      "sha256": "70a3856955d9b74dfdd6f21c780f3fb80c98fbde69bf2ad7a8346606b0e2a677"
+    },
+    {
+      "path": "src/shared/locales/index.ts",
+      "bytes": 1051,
+      "sha256": "2724e099ff605224e43ac5b9369fc54c9b748c4862cdccbe6c03ebd8e8a85fe4"
+    },
+    {
+      "path": "src/shared/locales/ja.ts",
+      "bytes": 15869,
+      "sha256": "3718be3f9af6adce35dcfc7b1f6aa651e065836f36241b0ac47ee0fb34da5363"
+    },
+    {
+      "path": "src/shared/locales/known-text.ts",
+      "bytes": 19065,
+      "sha256": "cebd6444b9ac0acbdf05a5b4bdd4ef3f820d43a4a26ce4fd663a97c54b21f16a"
+    },
+    {
+      "path": "src/shared/locales/types.ts",
+      "bytes": 6652,
+      "sha256": "866ed0ab5eb9e980bc2d2af11efb7f9790adf146bad251121d4c2a3133f4006b"
+    },
+    {
+      "path": "src/shared/locales/zh-TW.ts",
+      "bytes": 11895,
+      "sha256": "aaf344386cb41146d72028ccdd6224dba081f43e8320860994ab1050aea2426e"
+    },
+    {
+      "path": "src/shared/messages.ts",
+      "bytes": 2678,
+      "sha256": "c91ec91a623cc5e571651dd6efd63d24075a09fb80bed2744ae975dee88d4a97"
+    },
+    {
+      "path": "src/shared/types.ts",
+      "bytes": 5092,
+      "sha256": "93ca992ef1210a975cbcef01c7f0c9beb4439408532f2aae8b73196123db5ec8"
+    },
+    {
+      "path": "src/shared/urls.ts",
+      "bytes": 3386,
+      "sha256": "994a4dff571161feff88e17ca7abfbf1ec105343693dfc56c6d4b82743946924"
+    },
+    {
+      "path": "src/ui/brand.ts",
+      "bytes": 512,
+      "sha256": "68026bfe49ca2b01c9d86debbd1d897ce9b5f50b1482d6b2f985cede5cc5d48a"
+    },
+    {
+      "path": "src/ui/client.ts",
+      "bytes": 5850,
+      "sha256": "73a60b44418914f7e51f12a63115b88fc7ebce665b444738989680cc28c42e63"
+    },
+    {
+      "path": "src/ui/gallery.ts",
+      "bytes": 2311,
+      "sha256": "1a025596a00daff1714d71f9cbe58419f434e94c19f0f3ca4499c5bc36c09966"
+    },
+    {
+      "path": "src/ui/icons.ts",
+      "bytes": 1599,
+      "sha256": "c45259be48729a25226f88c6ede9e7ddfb184f0e496a9540c7964af835e36008"
+    },
+    {
+      "path": "src/ui/localization.ts",
+      "bytes": 2029,
+      "sha256": "6c73e1349662acb4dee055c62e9dff98c2974c6a38429105bf8c5e2d2e42db16"
+    },
+    {
+      "path": "src/ui/main.ts",
+      "bytes": 55221,
+      "sha256": "e0dfe2700212683b274f198e32c089fad86372e8669476d445ce4fff488712c2"
+    },
+    {
+      "path": "src/ui/presentation.ts",
+      "bytes": 8523,
+      "sha256": "f201b92c482cf23cc97e7a07fc2f74ec5c72b74548a6675967e1b149e843d33d"
+    },
+    {
+      "path": "src/ui/style.css",
+      "bytes": 32756,
+      "sha256": "af3bc838cab3304167bbcaa74c389f062a0d2e3c2da7b1482c9e22829bb73cd6"
+    },
+    {
+      "path": "tests/background-adapter.test.ts",
+      "bytes": 5026,
+      "sha256": "3a559ba104f02394bbe73e0e37e9e7af1b7b37eb1ded95230fad43ae2ee36e08"
+    },
+    {
+      "path": "tests/browser/extraction-flow.mjs",
+      "bytes": 30087,
+      "sha256": "3413e3248d92fd74d1c70eaff1c55a0d67380a4acc4ac87956d3bb00fc610c0a"
+    },
+    {
+      "path": "tests/browser/extraction.mjs",
+      "bytes": 28147,
+      "sha256": "c5f6a163a4c264d7c71dfa06d0fe266b936391c698404d031598a197b0bbcade"
+    },
+    {
+      "path": "tests/browser/gallery.mjs",
+      "bytes": 29311,
+      "sha256": "3a3d720008a8531d2175b1b6bc53b3ed3a69086f117f9618426b036625c0da78"
+    },
+    {
+      "path": "tests/browser/live-gallery.mjs",
+      "bytes": 13535,
+      "sha256": "819ac7f50b56c93ea28afaaa68c3ce496937bd08039b3cbb5b67cd7924489593"
+    },
+    {
+      "path": "tests/browser/run.mjs",
+      "bytes": 54412,
+      "sha256": "541a2d7b4f6232b8b8283d88a586767347383d2f0852b641cca02d575d03e16e"
+    },
+    {
+      "path": "tests/browser/visibility.mjs",
+      "bytes": 4844,
+      "sha256": "f208efb35085fdd27ed4aa592fc6436a105f34f477fd68f48d50604d4944068d"
+    },
+    {
+      "path": "tests/client.test.ts",
+      "bytes": 564,
+      "sha256": "ba42c1585ca79344bb88e88702c5d6c54d4183b01b3d049667bd0695cf77de78"
+    },
+    {
+      "path": "tests/content-host.test.ts",
+      "bytes": 1761,
+      "sha256": "a6cb836ed7e805eeebc2789885ddf9f9b642b68e7523123e92e367688fcdbd53"
+    },
+    {
+      "path": "tests/engine.test.ts",
+      "bytes": 65777,
+      "sha256": "8b8e66dfd0c9ffac0fce2c6596ad4815070edae68f6ddd5098d88947c528616d"
+    },
+    {
+      "path": "tests/extraction-ui.test.ts",
+      "bytes": 7631,
+      "sha256": "ea9b0140aab47a01f467c395e769e59822b775f8f5e81406d169304c81bf0e43"
+    },
+    {
+      "path": "tests/extraction.test.ts",
+      "bytes": 12067,
+      "sha256": "ab568aa8b33dc6660b1b191777a1c379527766e6c439e2ca7edd2d2ab684052a"
+    },
+    {
+      "path": "tests/fixtures/katfile-cooldown.html",
+      "bytes": 434,
+      "sha256": "40190ce75909ec86b591e03ddc8cf92abbff4bbe3045226081a62df6895d1a8e"
+    },
+    {
+      "path": "tests/fixtures/katfile-final.html",
+      "bytes": 648,
+      "sha256": "1e3e02a8a85c33f59ac1cfef59853da6971b186f4e8ec74c7ab2e7f268dd8f45"
+    },
+    {
+      "path": "tests/fixtures/katfile-initial.html",
+      "bytes": 886,
+      "sha256": "c9439d5b641fd3da6a08547d0730bc0bd2521d4d2ddf3c73185e69efba82683a"
+    },
+    {
+      "path": "tests/gallery-archive.test.ts",
+      "bytes": 9330,
+      "sha256": "f939b3c3dc1e44818a054adf2b8e8f2d2bedd5e122a8ee661332354f058d59e0"
+    },
+    {
+      "path": "tests/gallery-engine.test.ts",
+      "bytes": 20572,
+      "sha256": "0a35632442e592a1acd173cd75aae677ccc44a3c66b11acfabf3ef9a9d31872b"
+    },
+    {
+      "path": "tests/gallery-transport.test.ts",
+      "bytes": 22091,
+      "sha256": "6c9ae8fe5936c15fdcc5a8b909d32a95b2d5eb285d931ff9c7e44b66a0ad3ee1"
+    },
+    {
+      "path": "tests/gallery-ui.test.ts",
+      "bytes": 11514,
+      "sha256": "7cc861dda3bb9fc1ffe3d508f45db78100fce9b93cef7315a222cab799c98df5"
+    },
+    {
+      "path": "tests/gallery-zip-engine.test.ts",
+      "bytes": 22764,
+      "sha256": "67a209d5aaa600a2ed0840b304f78b96b56f2743e60b7a1914a3ac1939622182"
+    },
+    {
+      "path": "tests/hitomi.test.ts",
+      "bytes": 10141,
+      "sha256": "edcacd0dda3845473675d8084aa6d090f2c9779a107ca1f09f46ae723c9ca8d1"
+    },
+    {
+      "path": "tests/katfile.test.ts",
+      "bytes": 14395,
+      "sha256": "6484246bd10754b4ecf802c43bc7d76bc3d95f3c19e9291eb135a65103ad047d"
+    },
+    {
+      "path": "tests/language.test.ts",
+      "bytes": 3854,
+      "sha256": "f3a2ed7583e32c17d66d0e8231b013597f91ff9e2ea6c02f84d79804b40bf0fb"
+    },
+    {
+      "path": "tests/localization.test.ts",
+      "bytes": 2583,
+      "sha256": "e922156afbe9699c7336aecee8a0eb6c3df0d5b9cf9033f0154854697c164f8a"
+    },
+    {
+      "path": "tests/messages.test.ts",
+      "bytes": 1345,
+      "sha256": "7aca95cccd9d4fa5ce960ee56274c61eead1308d8ecc55155e956e9109e5f461"
+    },
+    {
+      "path": "tests/package.test.mjs",
+      "bytes": 4745,
+      "sha256": "71f01ae8fffcea30c649826e5d9a95a7a337ab6fa6aa74231e8ba97c051ec0b9"
+    },
+    {
+      "path": "tests/presentation.test.ts",
+      "bytes": 2952,
+      "sha256": "c92a9657ead4922b046d436889369842c3a21ff7bdc1ccd6d45d6bcb8234dae0"
+    },
+    {
+      "path": "tests/publish.test.mjs",
+      "bytes": 7125,
+      "sha256": "c58260e4d5677ffa44a305a7e151f5f584b6c40a8dda14b9a52f71b19a328ad3"
+    },
+    {
+      "path": "tests/ui-accessibility.test.ts",
+      "bytes": 11278,
+      "sha256": "11ca6083014e79bf3888c0b5ccb562dbd9345cd7e5aa764b75a088c308b9a0f5"
+    },
+    {
+      "path": "tests/urls.test.ts",
+      "bytes": 5806,
+      "sha256": "7d0cb7e028e9b8b3d5df4b348fdb4133fa04100bcb769607363769227f1b28cc"
+    },
+    {
+      "path": "native/Cargo.toml",
+      "bytes": 477,
+      "sha256": "a15c04ebc4d5759731332b6456e3543052459d4fbbce730c5da71da3c78061bb"
+    },
+    {
+      "path": "native/README.md",
+      "bytes": 7921,
+      "sha256": "c8b114fa6284c41e8170d2007fb74f55a073598b0ffbbcb6a23f21a93dc60c2a"
+    },
+    {
+      "path": "native/src/main.rs",
+      "bytes": 81900,
+      "sha256": "61084554333873893c45c90c59b05669ae63202b65018d81439c729cd9f99f2d"
+    },
+    {
+      "path": "native/tests/archive-integration.ps1",
+      "bytes": 20981,
+      "sha256": "6da6e6976949a32bd451ef684793ac077b2254d3a87e806cd626b9c537659ca3"
+    },
+    {
+      "path": "native/tests/installer-rollback.ps1",
+      "bytes": 3519,
+      "sha256": "ce300d5a204a674af221903c4d5e079ac647d70fe189461434f999252fd5c36a"
+    },
+    {
+      "path": "native/tests/protocol-smoke.ps1",
+      "bytes": 3251,
+      "sha256": "3d91df9eaa71fbc39cae8896819634c86159e9ce61df4238a6590520c3b8d4fb"
+    },
+    {
+      "path": "scripts/build-content.mjs",
+      "bytes": 532,
+      "sha256": "1323d6311af787323c37125c45ce7072fea8799827f44cedbb0e527ddcd2f0b8"
+    },
+    {
+      "path": "scripts/install-native-helper.ps1",
+      "bytes": 9718,
+      "sha256": "fd9aa6c8cb9833822396612efe9b3743cf8ef204fc300af5c93546797a484776"
+    },
+    {
+      "path": "scripts/make-icons.mjs",
+      "bytes": 1076,
+      "sha256": "677aa50193520bd1a7e062200e5d2e8fb676a4c4cc2dab5e4d8ba9842617e641"
+    },
+    {
+      "path": "scripts/package-native.mjs",
+      "bytes": 6743,
+      "sha256": "7bad2d73a836faa088de7551679aa8bde87d780d146e4cb4c2c562e90383b1a0"
+    },
+    {
+      "path": "scripts/package.mjs",
+      "bytes": 5517,
+      "sha256": "7933e9845439d2559642c0db38987cd71f42b38bab37a82659a0a20268fb8a40"
+    },
+    {
+      "path": "scripts/publish-extension.mjs",
+      "bytes": 6980,
+      "sha256": "1bb1c1c8b35809ecc98f096ea5a22da4d134568fcec4ad766c0187bd7bcfe525"
+    },
+    {
+      "path": "scripts/uninstall-native-helper.ps1",
+      "bytes": 1305,
+      "sha256": "fa783ad43b30d918b961ed7ba53330a6dcc48e059862346eb51740f007315d4f"
+    },
+    {
+      "path": "scripts/verify-dist.mjs",
+      "bytes": 3141,
+      "sha256": "f196a5c800ac33c9464d4fa02df1f45f8713868b3a024bf33bfc7354c738a942"
+    },
+    {
+      "path": ".gitattributes",
+      "bytes": 74,
+      "sha256": "51a36062778aa9180f9dee63a246615e4e5c043e74456f22a1b22d0b714cb0bf"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 294,
+      "sha256": "8a60b5e196218df15e7eb836433929bc869ddd3c8c89d96f2eb954170f4dce2c"
+    },
+    {
+      "path": "DESIGN.md",
+      "bytes": 4995,
+      "sha256": "50df2051155807f438f4ee9b7d381946a850dd66f18727ad433a8a4b0ca8a2d6"
+    },
+    {
+      "path": "entries/manager.html",
+      "bytes": 315,
+      "sha256": "30dcb13a747c9262b7fdb4f23f26826d57a42a99d2cb9057084626ddacd83a25"
+    },
+    {
+      "path": "entries/popup.html",
+      "bytes": 311,
+      "sha256": "d639ed43cfdf5550fdc853b6fe2ab42dd7dfce5c620b0afc44e130b84dbbd332"
+    },
+    {
+      "path": "MARKETING.md",
+      "bytes": 1066,
+      "sha256": "a072ec0c15cad8d67a199e02d2bb56a5f69432225632e248e79b9fc060a05cfd"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1070,
+      "sha256": "9895485699c30054ed66fb795ad980336c7e06930bc1143d5206cd059cad143d"
+    },
+    {
+      "path": "PRODUCT.md",
+      "bytes": 1486,
+      "sha256": "ef6b5cec1bbb998e2045c20634cb814b6b2a3d4eda3f1f14e4b2cd5294d0fd77"
+    },
+    {
+      "path": "public/assets/FONT-LICENSE.txt",
+      "bytes": 4526,
+      "sha256": "6632e6c45fcc18cc03909a0a53d84e9775185e06203ff80d6367cf93959b91a8"
+    },
+    {
+      "path": "public/assets/PROVENANCE.md",
+      "bytes": 1734,
+      "sha256": "ade738e71567648a188aeb27449b027e27e4c47783bf1ef1da7eae59407c6dde"
+    },
+    {
+      "path": "public/assets/zip-license.txt",
+      "bytes": 1501,
+      "sha256": "1b7ebc8d7889ed25491484ab2b102370742ca6c0b26650a0c62cc2269b579b84"
+    },
+    {
+      "path": "public/gallery-offscreen.html",
+      "bytes": 223,
+      "sha256": "12af454a351309075d9212018dc0fbbaebbff60545369027a1700465a75e7438"
+    },
+    {
+      "path": "public/manifest.json",
+      "bytes": 1550,
+      "sha256": "9db641b59f3dcd6bf2d60ebb193b024b7321366f81a0e72c1d5df2d96ca19d9d"
+    },
+    {
+      "path": "README.md",
+      "bytes": 15479,
+      "sha256": "c96707a6ad1a7b3bc28eb2d3bb24d00a317c1b373cc4a24e325ce97312a34044"
+    },
+    {
+      "path": "tsconfig.json",
+      "bytes": 314,
+      "sha256": "ef606fc6fc234bc03880aabf1df224a0053c80845bf9a43f5d9e90181a53baf3"
+    },
+    {
+      "path": "vite.config.ts",
+      "bytes": 342,
+      "sha256": "d155d32736ad375c16e1410212cbf62da283da5a35324fcbd64dfafe907e3ba0"
+    },
+    {
+      "path": "MissionCenter/archive-maintenance-20261021.md",
+      "bytes": 2854,
+      "sha256": "983700bc3971a2b924a649e28d62c66c36a0a76da05610f44a4e78f47d685eae"
+    },
+    {
+      "path": "MissionCenter/blocked-removal-20261023.md",
+      "bytes": 2875,
+      "sha256": "e94721e2e60d83a9528d1cdb647c74bd92532cf4f811456afcc2d53754c17079"
+    },
+    {
+      "path": "MissionCenter/brand-refinement-20261018.md",
+      "bytes": 2597,
+      "sha256": "73c555ed8631cb5c353cf30434c09378d3ae3925e91cdb621bf5c07199b436b5"
+    },
+    {
+      "path": "MissionCenter/brief.md",
+      "bytes": 153,
+      "sha256": "eee3ac78f1f27176ee7d100eaeca546692255f8384d5897c686d289a693aafa1"
+    },
+    {
+      "path": "MissionCenter/closeout.md",
+      "bytes": 3335,
+      "sha256": "69b7724faef462e6eb79a0662f8670568e51613fb2e705865d6088b891a1b00b"
+    },
+    {
+      "path": "MissionCenter/cloud-source-migration-20261025.md",
+      "bytes": 2750,
+      "sha256": "41c6c8246c790478e584e627f102758c6c0a8d0e24e6a0c1f65c8303b5d38fd0"
+    },
+    {
+      "path": "MissionCenter/critical-lessons.md",
+      "bytes": 907,
+      "sha256": "30a5b5224dcaad5c280c37f613504fac54bf4949c3da3e571a8326918aaf7223"
+    },
+    {
+      "path": "MissionCenter/daily-log.md",
+      "bytes": 6404,
+      "sha256": "c1998690bb3e4087cb14fd08938fbf33219de97fa6ea72bba8e2b46e2f85258e"
+    },
+    {
+      "path": "MissionCenter/decisions.md",
+      "bytes": 556,
+      "sha256": "d3e3ec56975a3185a56f6d30d0d3147173a2e818728c83c8df53f0b110eb2649"
+    },
+    {
+      "path": "MissionCenter/download-tracking-defender-20261025.md",
+      "bytes": 6916,
+      "sha256": "6163522054cd10b10584ccdfe5b3e103925e085af4aa0e2604adb9f57ab86300"
+    },
+    {
+      "path": "MissionCenter/experience-refinement-20261018.md",
+      "bytes": 2744,
+      "sha256": "afb80eb9e297cbc03eae39ca34474351caeaa40da65fbf68a9ddf78485992e18"
+    },
+    {
+      "path": "MissionCenter/extension-observation-method.md",
+      "bytes": 950,
+      "sha256": "e48f4f42c139e97bc4133cb391d69ec8c6e5b68c58e970dc2379c4f36016a4e5"
+    },
+    {
+      "path": "MissionCenter/external-wait-recovery-20261026.md",
+      "bytes": 3086,
+      "sha256": "368ca0760cefd5516348ca2bc484c099976dec6525c30fbfc55be05c1aa141d4"
+    },
+    {
+      "path": "MissionCenter/extraction-20261018.md",
+      "bytes": 8196,
+      "sha256": "cbad2d9c1d71c49c881667b1988b3ec6c2fe0a61bb5068f074cc6758bb610ace"
+    },
+    {
+      "path": "MissionCenter/extraction-delivery-20261018.md",
+      "bytes": 1377,
+      "sha256": "1268366655419e39c99c87d9ce4016113db4816c6cf1b755f287045b088968c4"
+    },
+    {
+      "path": "MissionCenter/final-critic-prompts-20261018.md",
+      "bytes": 2473,
+      "sha256": "2068cab07c6f0e79173ac14db21acbb318b2f771dcddb2d08160bcbd531ce352"
+    },
+    {
+      "path": "MissionCenter/final-review-20261018.md",
+      "bytes": 5248,
+      "sha256": "01fdd6205253b6935abcf067e6a4deba44689c6a6eee510a902269884537348f"
+    },
+    {
+      "path": "MissionCenter/focus.md",
+      "bytes": 576,
+      "sha256": "d8baa55e46e85df450a02aac2c210aa3a1829a0d15a848a262d0f55883124fd5"
+    },
+    {
+      "path": "MissionCenter/full-audit-critic-prompts.md",
+      "bytes": 2397,
+      "sha256": "7bf0fe3ad7acb91c639e9b4d7880581a08c41ed328237fc87f2258e4000ca46f"
+    },
+    {
+      "path": "MissionCenter/full-audit-plan.md",
+      "bytes": 1897,
+      "sha256": "8b10fd746331929f6d53744783c812cef68451828add7f76de1ccbca02e9ea85"
+    },
+    {
+      "path": "MissionCenter/full-audit-report.md",
+      "bytes": 3950,
+      "sha256": "4ef8d93f83def628da7eaf1480f07a8f3c0bce554dd8ca9c196724159705b838"
+    },
+    {
+      "path": "MissionCenter/full-audit-research.md",
+      "bytes": 1704,
+      "sha256": "536f8dc255a8b79f6c935e16f28c0088591f6bf80789087b23bbec54430a429b"
+    },
+    {
+      "path": "MissionCenter/gemini-full-audit-review.md",
+      "bytes": 15306,
+      "sha256": "5a5a944522369c867033d82df859f47a17424d13bf91cfdda4f6fe8e84c80158"
+    },
+    {
+      "path": "MissionCenter/gemini-full-audit-triage.md",
+      "bytes": 2136,
+      "sha256": "bf82b955654fe29710540e065be13c4dbdfe61b23f53ae99f37c1be4db5d746c"
+    },
+    {
+      "path": "MissionCenter/gemini-runtime-review.md",
+      "bytes": 11046,
+      "sha256": "42608822953912cbceb13b5de3dea3a724dd939b8b79ca1e189420627a1cfed2"
+    },
+    {
+      "path": "MissionCenter/gemini-runtime-triage.md",
+      "bytes": 1019,
+      "sha256": "630271fba1aa2ad98a5a03537fca4cbe600f3c66bcc2238d293fc0d1a5d86659"
+    },
+    {
+      "path": "MissionCenter/gemini-ui-review.md",
+      "bytes": 1707,
+      "sha256": "ddc933c822a683fb19570ac399fbfabfd59e143312fd43d5d45397d435baeeb9"
+    },
+    {
+      "path": "MissionCenter/guardrails.md",
+      "bytes": 456,
+      "sha256": "0389282acfbcf416d3ff890ae8b30a8db68e8ae2c934eacd126fced42b97868a"
+    },
+    {
+      "path": "MissionCenter/helper-setup-20261021.md",
+      "bytes": 5407,
+      "sha256": "2cb3e912da82740bf235a0654636631b5fd6dc4112d70a5bfea86b8620b56dbf"
+    },
+    {
+      "path": "MissionCenter/hitomi-20261021.md",
+      "bytes": 9618,
+      "sha256": "bbacc21249fd558ad44a762c133f7dd6b31fe2bb681067fd67138658cf8d74a4"
+    },
+    {
+      "path": "MissionCenter/hitomi-live-20261021.md",
+      "bytes": 2765,
+      "sha256": "44cfd80579855a5471b02130d207d950bc816da21b8d9673632c7c86ce62cf56"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-20261021.md",
+      "bytes": 6119,
+      "sha256": "7c81a6f77a41daafb424f07ca96015468a9b98a7e08c38d044e51707aa6c5337"
+    },
+    {
+      "path": "MissionCenter/isolated-browser-acceptance.md",
+      "bytes": 1991,
+      "sha256": "f1b4d1abd38ef98a3ec8518faa0325a8913c9de2dfcd939b99b0bec1144a5e25"
+    },
+    {
+      "path": "MissionCenter/katfile-co-20261023.md",
+      "bytes": 1890,
+      "sha256": "8042ea9018b4416b46e74c6bba65ba47343911f1b2a978a24872a72d27b17b3d"
+    },
+    {
+      "path": "MissionCenter/katfile-wildcard-20261023.md",
+      "bytes": 2384,
+      "sha256": "c305031daeb3dd53ef0e7656da6738e8136d7449692860b9433f78888e95bb9d"
+    },
+    {
+      "path": "MissionCenter/mascot-i18n-20261018.md",
+      "bytes": 4567,
+      "sha256": "860622105b060040e69064e954421bbb9945eae3dadbedfff87c7dfaaddfe8c6"
+    },
+    {
+      "path": "MissionCenter/notes.md",
+      "bytes": 433,
+      "sha256": "db069ebbbb8bd8a38eaedb9ad0cb50ce6f52c6d412eeff42c49f0cd366ac2012"
+    },
+    {
+      "path": "MissionCenter/playful-interaction-20261018.md",
+      "bytes": 2816,
+      "sha256": "0141e26db4d41c2f3b9ca60b56e87a716abe648b1956b3c2156c23bfd6faecc3"
+    },
+    {
+      "path": "MissionCenter/progress.md",
+      "bytes": 601,
+      "sha256": "d8a74786a0bea91ed2ca683d1f9da3e7c16294b9f17810c4f83f9eba4eeeecd7"
+    },
+    {
+      "path": "MissionCenter/project.md",
+      "bytes": 190,
+      "sha256": "d15b697e1fe99ad8f7b43512ca9bade50e6632e2e7252b78b8b10f2405cdb7b9"
+    },
+    {
+      "path": "MissionCenter/release-20261026.md",
+      "bytes": 3870,
+      "sha256": "22cff0256993a77974b5f01e6d7ec1d36cfe4d71214744499a49f9524e363acf"
+    },
+    {
+      "path": "MissionCenter/reminder-removal-20261025.md",
+      "bytes": 2388,
+      "sha256": "2cd0a55b3689bc538ba5600397ae9391d32bebfa0402fe3fda576e8d5be8a5ce"
+    },
+    {
+      "path": "MissionCenter/smoke-tests.md",
+      "bytes": 6016,
+      "sha256": "0ba6d6cba310db5e723a32c55af9f200134bffbd79c618f75a2feed1162ff3c7"
+    },
+    {
+      "path": "MissionCenter/snapshot.md",
+      "bytes": 3300,
+      "sha256": "d96bf67c85c6b591e68b7aef9a57564677658306188d478d2f3a9209e28a6719"
+    },
+    {
+      "path": "MissionCenter/source-reconnect-20261023.md",
+      "bytes": 2619,
+      "sha256": "52f9a70ee16b335c4e951828d66f99859155aa94dc2cf5cc003f07c3db1f476d"
+    },
+    {
+      "path": "MissionCenter/tasks.md",
+      "bytes": 11546,
+      "sha256": "d6f8e53a0ae2778f7418a8afd983e66e0815cbd194662b01a203bef323bf7433"
+    },
+    {
+      "path": "MissionCenter/visual-hub.md",
+      "bytes": 65,
+      "sha256": "ce36813467aad1775ad5f824ec1dca70b309c2e0271fcc71cbdaf79a8893955b"
+    },
+    {
+      "path": "MissionCenter/working-set.md",
+      "bytes": 389,
+      "sha256": "c4e128294afa22822d23368ec8c6731be60d9e36d268d6cda2b2e125ae5cd83a"
+    },
+    {
+      "path": "REVIEW_CONTEXT.md",
+      "bytes": 1418,
+      "sha256": "cd4d43c252c0cb92986ebc42829255b98a4d7a0aed68bfc218b252472d0eeb56"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "MissionCenter/.mission-center/operations/qc-extraction-acceptance-20261018.json",
+      "bytes": 205,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/qc-extraction-delivery-20261018.json",
+      "bytes": 216,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/qc-extraction-start-20261018.json",
+      "bytes": 200,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/qc-final-review-start-20261018.json",
+      "bytes": 202,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/qc-final-source-ready-20261018.json",
+      "bytes": 202,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/qc-github-delivered-20261018.json",
+      "bytes": 200,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/qc-helper-setup-20261021.json",
+      "bytes": 209,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-archive-20261021.json",
+      "bytes": 197,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-archive-closeout-20261021-03.json",
+      "bytes": 222,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-critic-cleanup-20261018.json",
+      "bytes": 217,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-full-audit-20261018.json",
+      "bytes": 205,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-full-audit-checkpoint-20261018.json",
+      "bytes": 216,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-hitomi-closeout-20261021-v1.json",
+      "bytes": 216,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-hitomi-closeout-20261021-v2.json",
+      "bytes": 208,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-hitomi-live-failed-20261021.json",
+      "bytes": 221,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-hitomi-transport-20261021.json",
+      "bytes": 219,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-isolated-acceptance-20261018.json",
+      "bytes": 222,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-root-layout-20261018.json",
+      "bytes": 206,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/.mission-center/operations/queuecat-runtime-ui-20261018-01.json",
+      "bytes": 208,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/.gitattributes",
+      "bytes": 9,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/browser-acceptance/2026-10-18T09-07-14-905Z/report.json",
+      "bytes": 6399,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/coderabbit/extraction-20261018/run-1.ndjson",
+      "bytes": 4159,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/coderabbit/extraction-20261018/run-2.ndjson",
+      "bytes": 2643,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/coderabbit/extraction-20261018/run-3.ndjson",
+      "bytes": 2551,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/coderabbit/extraction-20261018/scope-2.json",
+      "bytes": 1666,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/coderabbit/extraction-20261018/scope-3.json",
+      "bytes": 555,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/coderabbit/extraction-20261018/scope.json",
+      "bytes": 5266,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-arbiter/final.json",
+      "bytes": 7133,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-browser/2026-10-18T09-54-02-887Z/report.json",
+      "bytes": 3973,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-impeccable.json",
+      "bytes": 3,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-native/rabbit-repairs.json",
+      "bytes": 5550,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-native/rar-acceptance.json",
+      "bytes": 6762,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-native/security-fixes.json",
+      "bytes": 4522,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-queue-review/closure-03.json",
+      "bytes": 7020,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-queue-review/closure.json",
+      "bytes": 4487,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-queue-review/report.json",
+      "bytes": 5070,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-rabbit-dispositions.json",
+      "bytes": 3989,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-review-01/manifest.json",
+      "bytes": 3366,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-review-02/manifest.json",
+      "bytes": 7177,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-review-03/manifest.json",
+      "bytes": 8981,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-security/closure-03.json",
+      "bytes": 13868,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-security/closure.json",
+      "bytes": 10254,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-security/report.json",
+      "bytes": 9896,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-ux/closure-03.json",
+      "bytes": 5426,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/extraction-ux/report.json",
+      "bytes": 5559,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/index.json",
+      "bytes": 6828,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/native-package-report.json",
+      "bytes": 279,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/extraction-acceptance-20261018/output/mission-center-critique/QC-E7-extraction-review-03.json",
+      "bytes": 4056,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/chair-record.json",
+      "bytes": 2587,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/coderabbit-run-1.ndjson",
+      "bytes": 5701,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/coderabbit-run-2.ndjson",
+      "bytes": 1091,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/coderabbit-runs.jsonl",
+      "bytes": 192,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/coderabbit-scope.json",
+      "bytes": 18220,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/final-arbitration.json",
+      "bytes": 7934,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/github-delivery.json",
+      "bytes": 641,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/initial-arbitration.json",
+      "bytes": 7015,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/isolated-browser-final-report.json",
+      "bytes": 6395,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/isolated-browser-report.json",
+      "bytes": 6397,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/issue-dispositions.json",
+      "bytes": 1840,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/queue-closure.json",
+      "bytes": 2723,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/queue-initial.json",
+      "bytes": 3096,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/security-closure.json",
+      "bytes": 4775,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/security-initial.json",
+      "bytes": 4597,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/snapshot-01-manifest.json",
+      "bytes": 24086,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/snapshot-02-manifest.json",
+      "bytes": 28589,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/ux-closure.json",
+      "bytes": 2626,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/final-acceptance-20261018/ux-initial.json",
+      "bytes": 3824,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/helper-acceptance-20261021/.gitattributes",
+      "bytes": 9,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/helper-acceptance-20261021/flow-report.json",
+      "bytes": 4721,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/helper-acceptance-20261021/index.json",
+      "bytes": 524,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/helper-acceptance-20261021/install-report.json",
+      "bytes": 822,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/arbiter-final.json",
+      "bytes": 8971,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/arbiter-initial.json",
+      "bytes": 8903,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/coderabbit-fix-scope.json",
+      "bytes": 564,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/coderabbit-run-1.ndjson",
+      "bytes": 4063,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/coderabbit-run-2.ndjson",
+      "bytes": 1202,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/critic-integration-delta.json",
+      "bytes": 5765,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/critic-integration.json",
+      "bytes": 4646,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/critic-reliability-delta.json",
+      "bytes": 1578,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/critic-reliability.json",
+      "bytes": 3212,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/critic-ux-delta.json",
+      "bytes": 1293,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/critic-ux.json",
+      "bytes": 2838,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/documentation-02.json",
+      "bytes": 372,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/gallery-browser-final.json",
+      "bytes": 8722,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/index.json",
+      "bytes": 5933,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/katfile-browser-final.json",
+      "bytes": 6381,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/snapshot-01.json",
+      "bytes": 11995,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/snapshot-02.json",
+      "bytes": 11995,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-acceptance-20261021/verification-02.json",
+      "bytes": 609,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/arbiter-final.json",
+      "bytes": 929,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/coderabbit-1.ndjson",
+      "bytes": 3018,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/coderabbit-2.ndjson",
+      "bytes": 1417,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/critic-integration-final.json",
+      "bytes": 804,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/fixture-final.json",
+      "bytes": 9857,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/index.json",
+      "bytes": 5385,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/katfile-final.json",
+      "bytes": 6387,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/live-final.json",
+      "bytes": 23502,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/snapshot.json",
+      "bytes": 5302,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "MissionCenter/hitomi-transport-acceptance-20261021/verification.json",
+      "bytes": 630,
+      "reason": "historical generated evidence, receipts, or review logs"
+    },
+    {
+      "path": "design/archive/mascot-v1/PROVENANCE.md",
+      "bytes": 3218,
+      "reason": "outside maintained source scope"
+    },
+    {
+      "path": "design/archive/mascot-v1/cat-confused.png",
+      "bytes": 1440052,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v1/cat-happy.png",
+      "bytes": 1464059,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v1/cat-sleep.png",
+      "bytes": 1424516,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v1/cat-verify.png",
+      "bytes": 1495804,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v1/cat-work.png",
+      "bytes": 1570465,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v2/PROVENANCE.md",
+      "bytes": 1382,
+      "reason": "outside maintained source scope"
+    },
+    {
+      "path": "design/archive/mascot-v2/cat-confused-v2.png",
+      "bytes": 1352896,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v2/cat-happy-v2.png",
+      "bytes": 1323719,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v2/cat-sleep-v2.png",
+      "bytes": 1352733,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v2/cat-verify-v2.png",
+      "bytes": 1257226,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/archive/mascot-v2/cat-work-v2.png",
+      "bytes": 1248596,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/reference/README.md",
+      "bytes": 698,
+      "reason": "outside maintained source scope"
+    },
+    {
+      "path": "design/reference/mascot-v2-prompts.json",
+      "bytes": 7392,
+      "reason": "outside maintained source scope"
+    },
+    {
+      "path": "design/reference/mascot-v3-prompts.json",
+      "bytes": 15255,
+      "reason": "outside maintained source scope"
+    },
+    {
+      "path": "design/reference/queuecat-character.png",
+      "bytes": 1774151,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "design/reference/room-v3-review.md",
+      "bytes": 1223,
+      "reason": "outside maintained source scope"
+    },
+    {
+      "path": "design/reference/room-v3.md",
+      "bytes": 1639,
+      "reason": "outside maintained source scope"
+    },
+    {
+      "path": "design/room-v3-preview.html",
+      "bytes": 2430,
+      "reason": "outside maintained source scope"
+    },
+    {
+      "path": "native/Cargo.lock",
+      "bytes": 3123,
+      "reason": "generated dependency lockfile"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 103816,
+      "reason": "generated dependency lockfile"
+    },
+    {
+      "path": "public/assets/cat-confused-v3.png",
+      "bytes": 1558668,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/assets/cat-happy-v3.png",
+      "bytes": 1594401,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/assets/cat-sleep-v3.png",
+      "bytes": 1651136,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/assets/cat-verify-v3.png",
+      "bytes": 1485039,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/assets/cat-work-v3.png",
+      "bytes": 1471062,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/assets/nunito-sans-latin.woff2",
+      "bytes": 31076,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/icons/128.png",
+      "bytes": 4912,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/icons/16.png",
+      "bytes": 549,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/icons/32.png",
+      "bytes": 1253,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/icons/48.png",
+      "bytes": 1900,
+      "reason": "binary or established visual asset"
+    },
+    {
+      "path": "public/icons/queuecat.svg",
+      "bytes": 733,
+      "reason": "binary or established visual asset"
+    }
+  ]
+}
