@@ -1,3 +1,5 @@
+最新 2026-10-26：[Katfile 維護與 main 交付](release-20261026.md)。CodeRabbit 完整審查140檔、2項Minor均查證修正；3檔複查0 issues，共2次額度。277項測試、完整build、Defender未封裝版與ZIP掃描通過。來源main提交 `3a91a7e` 已推送並核對遠端SHA，僅有main；見[交付回執](coderabbit-release-20261026/github-delivery.json)。沒有把本機驗證說成個人Chrome實站驗收，整產品仍Review。以下為歷史紀錄。
+
 最新 2026-10-21：[Rust 小幫手已設定與完整分卷驗收](helper-setup-20261021.md)。本人確認無下載、正式註冊與重載後就緒；118 項測試與無 state seeding 的完整隔離流程通過，修正分卷 final URL 辨識。保留真 Katfile 實站 Review。
 
 交付回執：功能 main 已推送 `9af93cd` 且遠端 SHA 相符；見 [回執](extraction-delivery-20261018.md)。

@@ -1,0 +1,16 @@
+{
+  "repository": "Gale0418/QueueCat",
+  "branch": "main",
+  "sourceCommit": "3a91a7ebf671c8f077e9c22b84418d4cc092396f",
+  "remoteMainVerified": "3a91a7ebf671c8f077e9c22b84418d4cc092396f",
+  "verification": ["git push origin main succeeded", "git ls-remote origin refs/heads/main matched local HEAD", "GitHub plugin fetch_commit succeeded"],
+  "commitUrl": "https://github.com/Gale0418/QueueCat/commit/3a91a7ebf671c8f077e9c22b84418d4cc092396f",
+  "localBranches": ["main"],
+  "codeRabbit": {"firstReviewFiles": 140, "firstReviewIssues": 2, "fixedMinorIssues": 2, "secondReviewFiles": 3, "secondReviewIssues": 0, "runsUsed": 2, "hourlyLimit": 3, "fileLimitPerRun": 150},
+  "tests": {"files": 21, "passed": 277},
+  "build": "passed",
+  "defender": {"unpacked": "found no threats", "zip": "found no threats"},
+  "zip": {"path": "dist/QueueCat-0.1.0.zip", "bytes": 7575966, "sha256": "CC00F1FB95840CAE4CA895E89250C03BA438E6DF4ACAA3E2D083878C7F8CCB0A"},
+  "personalChromeAcceptance": "not performed for this final source snapshot",
+  "receiptNote": "This receipt is a documentation-only follow-up to the verified source push; its own commit is identified by Git history."
+}
