@@ -8,7 +8,7 @@
 
 - 使用者將角色升級為同一間小房間的生活片段；完成 v3 家具／筆電／手機版。桌椅與沙發採配對局部編輯；獨立 Luna 看六張圖確認 PASS，無必要修正。五圖總覽與380px彈窗確認，build、alpha/提示詞與ZIP結構檢查通過。詳見 design/reference/room-v3-review.md。
 
-- Last organized: 2026-10-26
+- Last organized: 2026-10-31
 
 - 根目錄直接載入／dist只放ZIP已完成，使用者已確認載入。新增安全根目錄發布與ZIP腳本，HTML原始入口在entries。
 - 實站等待原文重複廣告，已修正摘要與字級（說明/按鈕14px、檔名16px、倒數20px）。
