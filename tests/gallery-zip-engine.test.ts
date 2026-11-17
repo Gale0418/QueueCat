@@ -36,6 +36,7 @@ function fixture(seed?: AppState, hooks: {
   const records = hooks.downloads || [];
   const downloadCalls: Array<{ url: string; filename?: string }> = [];
   const stageCalls: Array<{ key: string; index: number; hash: string }> = [];
+  const packCalls: Array<{ hashes: string[]; names: string[] }> = [];
   let packs = 0;
   const cleaned: string[] = [];
   let nextId = 10;
@@ -92,7 +93,8 @@ function fixture(seed?: AppState, hooks: {
           stageCalls.push({ key: input.key, index: input.index, hash: input.hash });
           return hooks.stage ? hooks.stage(input.index) : { staged: input.index + 1, bytes: (input.index + 1) * 100 };
         },
-        async pack() {
+        async pack(input) {
+          packCalls.push(input);
           packs++;
           return hooks.pack ? hooks.pack() : { url: blob(), bytes: 200 };
         },
@@ -110,7 +112,7 @@ function fixture(seed?: AppState, hooks: {
   };
   const engine = new QueueEngine(ports);
   return {
-    engine, ports, records, downloadCalls, stageCalls, cleaned,
+    engine, ports, records, downloadCalls, stageCalls, packCalls, cleaned,
     get packs() { return packs; },
     get state() { return state; },
     setNow(value: number) { now = value; },
@@ -251,6 +253,10 @@ describe("gallery ZIP engine", () => {
     barrier.release();
     await pause;
     expect(f.packs).toBe(1);
+    expect(f.packCalls).toEqual([expect.objectContaining({
+      hashes: manifests["123"].images.map((image) => image.hash),
+      names: ["a1.jpg", "b2.jpg"],
+    })]);
     expect(f.state?.items[0].gallery?.archive?.phase).toBe("ready");
     expect(f.state?.items[0].status).toBe("queued");
     expect(f.state?.items[0].action).toBeUndefined();

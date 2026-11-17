@@ -278,10 +278,7 @@ try {
       assert.ok(entries.every((entry) => !entry.directory));
       assert.deepEqual(
         entries.map((entry) => entry.filename),
-        Array.from(
-          { length: 12 },
-          (_, n) => `${String(n + 1).padStart(4, "0")}.webp`,
-        ),
+        expected.images.map((image) => image.name.replace(/[^.]*$/, "webp")),
         `Gallery ${item.gallery.id} ZIP order`,
       );
       for (let n = 0; n < entries.length; n++) {

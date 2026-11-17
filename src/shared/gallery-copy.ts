@@ -113,6 +113,41 @@ export const galleryCopyEntries = {
     "zh-TW": "網路請求失敗，請稍後按重試（已完成頁面會保留）",
     ja: "ネットワーク接続に失敗しました。後ほど再試行してください（完了したページは保持されます）",
   },
+  accessRequired: {
+    en: "The source refused this request. Open the source page to check access.",
+    "zh-TW": "來源網站拒絕存取。請開啟來源頁面確認是否需要登入或驗證。",
+    ja: "アクセスが拒否されました。元のページでログインや認証が必要か確認してください。",
+  },
+  contentWarning: {
+    en: "E-Hentai shows a content warning. Open the source to review it; Reader ZIP does not accept it automatically.",
+    "zh-TW": "E-Hentai 顯示內容警告。可開啟來源圖庫查看；閱讀圖 ZIP 不會自動同意。",
+    ja: "E-Hentai にコンテンツ警告が表示されています。元のギャラリーで確認してください。閲覧画像 ZIP は自動で同意しません。",
+  },
+  readerTabRequired: {
+    en: "Open this work’s gallery in Chrome. Once its page list is visible, use the work tab to retry.",
+    "zh-TW": "請先在 Chrome 開啟這本的作品清單，再按「使用這本的作品分頁重試」。",
+    ja: "Chrome でこの作品を開き、ページ一覧が表示されたら作品タブを使って再試行してください。",
+  },
+  readerTabUnavailable: {
+    en: "E-Hentai refused a request from the Chrome tab. Reload this gallery in Chrome and check that its pages are visible before retrying.",
+    "zh-TW": "E-Hentai 拒絕了作品分頁的請求。請在 Chrome 重新整理這本，確認看得到作品清單後再重試。",
+    ja: "E-Hentai が Chrome タブからの要求を拒否しました。作品ページを再読み込みし、ページ一覧が表示されることを確認してから再試行してください。",
+  },
+  rateLimited: {
+    en: "The site is limiting requests. The queue is paused; wait, then retry and start it again. Staged pages are kept.",
+    "zh-TW": "網站目前限制請求，佇列已暫停。請稍後重試並重新開始排隊；已暫存的頁面會保留。",
+    ja: "サイトがアクセスを制限したため、キューを一時停止しました。時間をおいて再試行し、キューを再開してください。一時保存済みのページは保持されます。",
+  },
+  unsupportedMedia: {
+    en: "This work contains unsupported media, such as video.",
+    "zh-TW": "這筆作品含有目前不支援的媒體，例如影片。",
+    ja: "この作品には動画などの未対応メディアが含まれています。",
+  },
+  manualArchive: {
+    en: "Open the source page to use the site's own download option.",
+    "zh-TW": "請開啟作品頁，使用網站提供的下載功能。",
+    ja: "作品ページを開いて、サイトのダウンロード機能をご利用ください。",
+  },
   retryTip: {
     en: "Retrying verifies existing staged files and resumes unfinished pages",
     "zh-TW": "重試會核對既有暫存，並接續收集未完成頁面",
@@ -129,9 +164,9 @@ export const galleryCopyEntries = {
     ja: "ZIP アーカイブ",
   },
   imageFormat: {
-    en: "Single ZIP per album containing WebP images ordered by page number",
-    "zh-TW": "一本一個 ZIP，內含依頁碼排序的 WebP 圖片",
-    ja: "作品ごとに1つのZIP、ページ順のWebP画像を収録",
+    en: "Single ZIP per album with images in page order",
+    "zh-TW": "一本一個 ZIP，圖片依頁碼排序",
+    ja: "作品ごとに1つのZIP、画像をページ順に収録",
   },
   gallerySource: {
     en: "Open Gallery Source",

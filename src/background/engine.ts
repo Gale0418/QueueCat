@@ -1,4 +1,9 @@
 import {
+  isAutomaticRetryCandidate,
+  isRetryableChromeError,
+} from "../shared/automatic-retry";
+import { canRetryEhentaiReaderInTab } from "../shared/ehentai-reader-retry";
+import {
   initialState,
   STORAGE_KEY,
   type AppState,
@@ -6,6 +11,7 @@ import {
   type DownloadDelta,
   type DownloadCandidate,
   type GalleryImage,
+  type GalleryImageRoute,
   type GalleryManifest,
   type PageObservation,
   type QueueItem,
@@ -17,12 +23,18 @@ import {
   normalizeLanguagePreference,
 } from "../shared/language";
 import {
-  hitomiGalleryId,
   isKatfileHost,
   migrateLegacyKatfileSource,
   normalizeSource,
   sourceKey,
 } from "../shared/urls";
+import { isGalleryMediaUrl, parseGallerySource, type GallerySite } from "../shared/gallery-sources";
+import {
+  ehentaiArchiveUrl,
+  isEhentaiArchiveCandidate,
+  isEhentaiArchiveDownload,
+  isEhentaiArchivePage,
+} from "../shared/ehentai-archive";
 import {
   planExtractions,
   extractionError,
@@ -36,6 +48,7 @@ export interface DownloadRecord {
   finalUrl?: string;
   referrer?: string;
   filename?: string;
+  mime?: string;
   state: "in_progress" | "interrupted" | "complete";
   bytesReceived: number;
   totalBytes: number;
@@ -79,8 +92,9 @@ export interface EnginePorts {
     show(id: number): Promise<void>;
   };
   gallery?: {
-    load(id: string): Promise<GalleryManifest>;
-    imageUrl(image: GalleryImage): Promise<string>;
+    load(id: string, sourceUrl?: string, signal?: AbortSignal, useTab?: true): Promise<GalleryManifest>;
+    imageUrl(image: GalleryImage, sourceUrl?: string): Promise<string>;
+    ehentaiImageRoute?(image: GalleryImage, sourceUrl: string, useTab?: true): Promise<GalleryImageRoute>;
     prepare?(url: string): Promise<string>;
     release?(blobUrl: string): Promise<void>;
     archive?: {
@@ -91,12 +105,14 @@ export interface EnginePorts {
         index: number;
         hash: string;
         url: string;
+        site?: GallerySite;
       }): Promise<{ staged: number; bytes: number }>;
       pack(input: {
         key: string;
         fingerprint: string;
         total: number;
         hashes: string[];
+        names: string[];
       }): Promise<{ url: string; bytes: number }>;
       cleanup(key: string): Promise<void>;
     };
@@ -136,10 +152,23 @@ const FREE_ACTION_TIMEOUT = 30_000;
 const EXTERNAL_WAIT = "Chrome 正在下載其他 Katfile 檔案，完成後繼續";
 const MATCHING_DOWNLOAD =
   "Chrome 已有同名下載，請確認是否為同一筆；不會重新下載。";
+const EH_ARCHIVE_WAITING = "請在 E-Hentai 選擇原圖 ZIP 並確認點數。";
+const EH_ARCHIVE_AMBIGUOUS = "有多筆可能的 E-Hentai ZIP，請核對這一本的下載。";
 const HITOMI_IMAGE_HOSTS = new Set([
   "w1.gold-usergeneratedcontent.net",
   "w2.gold-usergeneratedcontent.net",
 ]);
+
+type ManifestResult = { manifest: GalleryManifest } | { error: unknown };
+
+function ehentaiReaderNeedsTab(error: unknown): boolean {
+  const code = error !== null && typeof error === "object" && "code" in error
+    ? error.code
+    : error instanceof Error ? error.message : undefined;
+  return code === "gallery_unavailable" ||
+    code === "gallery_access_required" ||
+    code === "gallery_content_warning";
+}
 
 /** All state transitions and Chrome side effects pass through one serialized queue. */
 export class QueueEngine {
@@ -148,6 +177,7 @@ export class QueueEngine {
   private galleryControlRequested = 0;
   private galleryControlApplied = 0;
   private galleryPreparations = new Set<string>();
+  private ehentaiManifestRequest?: AbortController;
   private state?: AppState;
   private lastSample?: { at: number; bytes: number; id: number };
   private unknownSince = new Map<string, number>();
@@ -233,7 +263,7 @@ export class QueueEngine {
     item.events.push({ at: item.updatedAt, message });
     if (item.events.length > 60) item.events.splice(0, item.events.length - 60);
   }
-  private galleryFolder(id: string, title: string, itemId: string): string {
+  private galleryFolder(id: string, title: string, itemId: string, site: GallerySite): string {
     const safeTitle =
       Array.from(
         title
@@ -249,9 +279,11 @@ export class QueueEngine {
     // A new queue entry gets a separate folder, so re-adding changed metadata
     // cannot mix an old completed prefix with pages from a different revision.
     const run = itemId.replace(/[^a-z0-9]/gi, "").slice(0, 12);
-    return `QueueCat/Hitomi-${id}-${run}-${safeTitle}`;
+    const prefix = site === "hitomi" ? "Hitomi" : site;
+    return `QueueCat/${prefix}-${id}-${run}-${safeTitle}`;
   }
-  private validGalleryImageUrl(raw: string, image: GalleryImage): boolean {
+  private validGalleryImageUrl(raw: string, image: GalleryImage, site: GallerySite = "hitomi"): boolean {
+    if (site !== "hitomi") return !!image.source && isGalleryMediaUrl(site, raw);
     try {
       const url = new URL(raw);
       const segments = url.pathname.split("/").filter(Boolean);
@@ -334,7 +366,7 @@ export class QueueEngine {
     title: string,
     images: GalleryImage[],
   ): Promise<string> {
-    const snapshot = images.map(({ hash, name }) => ({ hash, name }));
+    const snapshot = images.map(({ hash, name, source }) => ({ hash, name, source }));
     const bytes = new TextEncoder().encode(
       JSON.stringify({ id, title, images: snapshot }),
     );
@@ -352,6 +384,14 @@ export class QueueEngine {
       error instanceof Error ? error.message : String(error || "");
     const details =
       `${typeof code === "string" ? code : ""} ${message}`.toLowerCase();
+    if (details.includes("gallery_content_warning"))
+      return "gallery_content_warning";
+    if (details.includes("gallery_reader_tab_required"))
+      return "gallery_reader_tab_required";
+    if (details.includes("gallery_reader_tab_unavailable"))
+      return "gallery_reader_tab_unavailable";
+    if (details.includes("gallery_rate_limited") || /gallery_http_(?:429|509)\b/.test(details))
+      return "gallery_rate_limited";
     if (
       /gallery_archive_(?:stage_missing|receipt_mismatch|receipt_invalid)/.test(
         details,
@@ -366,6 +406,10 @@ export class QueueEngine {
       return "gallery_archive_failed";
     if (details.includes("gallery_archive_missing"))
       return "gallery_archive_missing";
+    if (details.includes("gallery_access_required") || /gallery_http_(?:401|403)\b/.test(details))
+      return "gallery_access_required";
+    if (details.includes("gallery_invalid_metadata"))
+      return "gallery_invalid_metadata";
     return "gallery_request_failed";
   }
   private async releaseGalleryBlob(item: QueueItem): Promise<void> {
@@ -378,20 +422,29 @@ export class QueueEngine {
   private async refreshGalleryManifest(
     s: AppState,
     item: QueueItem,
+    result?: ManifestResult,
   ): Promise<boolean> {
     const gallery = item.gallery;
     if (!gallery) return false;
-    if (!/^[1-9]\d{0,9}$/.test(gallery.id)) {
-      await this.block(s, item, "Hitomi 圖庫識別碼無效");
+    const source = parseGallerySource(item.sourceUrl);
+    if (!source || source.id !== gallery.id) {
+      await this.block(s, item, "invalid_gallery");
+      return false;
+    }
+    if (source.site === "nhentai") {
+      await this.block(s, item, "gallery_manual_archive");
       return false;
     }
     if (!this.p.gallery) {
-      await this.failGallery(s, item, "Hitomi 圖庫下載服務尚未就緒");
+      await this.failGallery(s, item, "gallery_request_failed");
       return false;
     }
     let manifest: GalleryManifest;
     try {
-      manifest = await this.p.gallery.load(gallery.id);
+      if (result && "error" in result) throw result.error;
+      manifest = result?.manifest ?? await (source.site === "hitomi"
+        ? this.p.gallery.load(gallery.id)
+        : this.p.gallery.load(gallery.id, source.url));
     } catch (error) {
       const code =
         error !== null && typeof error === "object" && "code" in error
@@ -405,6 +458,12 @@ export class QueueEngine {
             "gallery_unavailable",
             "gallery_invalid_metadata",
             "gallery_invalid_routing",
+            "gallery_access_required",
+            "gallery_content_warning",
+            "gallery_reader_tab_required",
+            "gallery_reader_tab_unavailable",
+            "gallery_rate_limited",
+            "gallery_unsupported_media",
           ].includes(code)
           ? code
           : "gallery_request_failed",
@@ -427,12 +486,13 @@ export class QueueEngine {
           typeof image.name === "string" &&
           image.name.length > 0 &&
           image.name.length <= 512 &&
-          !/[\0\r\n]/.test(image.name),
-      ) &&
-      new Set(manifest.images.map((image) => image.hash.toLowerCase())).size ===
-        manifest.images.length;
+          !/[\0\r\n]/.test(image.name) &&
+          (source.site === "hitomi"
+            ? image.source === undefined
+            : typeof image.source === "string" && image.source.length > 0 && image.source.length <= 2048),
+      );
     if (!valid) {
-      await this.block(s, item, "Hitomi 圖庫資料無效或已無法核對");
+      await this.block(s, item, "gallery_invalid_metadata");
       return false;
     }
     if (!gallery.images && gallery.completed > 0) {
@@ -443,9 +503,11 @@ export class QueueEngine {
       );
       return false;
     }
-    const snapshot = manifest.images.map(({ hash, name }) => ({ hash, name }));
+    const snapshot = manifest.images.map(({ hash, name, source }) => ({
+      hash, name, ...(source === undefined ? {} : { source }),
+    }));
     if (new TextEncoder().encode(JSON.stringify(snapshot)).length > 3_000_000) {
-      await this.block(s, item, "Hitomi 圖庫清單過大，無法安全保存進度");
+      await this.block(s, item, "gallery_invalid_metadata");
       return false;
     }
     const changed =
@@ -458,17 +520,20 @@ export class QueueEngine {
           gallery.images.some(
             (image, index) =>
               image.hash !== snapshot[index].hash ||
-              image.name !== snapshot[index].name,
+              image.name !== snapshot[index].name ||
+              image.source !== snapshot[index].source,
           ))) ||
       (gallery.folder !== undefined &&
         gallery.folder !==
-          this.galleryFolder(gallery.id, manifest.title, item.id));
+          this.galleryFolder(gallery.id, manifest.title, item.id, source.site));
     if (changed) {
       item.title = manifest.title;
       await this.block(
         s,
         item,
-        "Hitomi 圖庫內容或標題已變更；為避免混入不同版本，請重新加入圖庫",
+        source.site === "hitomi"
+          ? "Hitomi 圖庫內容或標題已變更；為避免混入不同版本，請重新加入圖庫"
+          : "gallery_metadata_changed",
       );
       return false;
     }
@@ -478,7 +543,7 @@ export class QueueEngine {
       gallery.images = snapshot;
       gallery.total = snapshot.length;
       gallery.title = manifest.title;
-      gallery.folder = this.galleryFolder(gallery.id, manifest.title, item.id);
+      gallery.folder = this.galleryFolder(gallery.id, manifest.title, item.id, source.site);
       this.event(
         item,
         `已讀取圖庫「${manifest.title}」，共 ${snapshot.length} 張`,
@@ -495,9 +560,15 @@ export class QueueEngine {
   ): Promise<void> {
     if (isTerminal(item.status)) return;
     await this.releaseGalleryBlob(item);
-    item.status = "failed";
+    item.status =
+      reason === "gallery_content_warning" ||
+      reason === "gallery_reader_tab_required" ||
+      reason === "gallery_reader_tab_unavailable"
+        ? "blocked"
+        : "failed";
     item.reason = reason;
-    this.event(item, `圖庫下載失敗：${reason}`);
+    if (reason === "gallery_rate_limited") s.running = false;
+    this.event(item, item.status === "blocked" ? `已暫停：${reason}` : `圖庫下載失敗：${reason}`);
     if (s.activeId === item.id) s.activeId = undefined;
     await this.save(s);
     if (continueQueue && s.running) await this.pump(s);
@@ -510,6 +581,53 @@ export class QueueEngine {
     const canContinue = this.galleryArchiveControlCurrent(s);
     await this.failGallery(s, item, reason, false);
     if (canContinue && this.galleryArchiveControlCurrent(s)) await this.pump(s);
+  }
+  private async prepareEhentaiManifest(
+    id: string,
+    galleryId: string,
+    url: string,
+    controller: AbortController,
+    allowReaderTab?: true,
+    readerTab?: true,
+  ): Promise<void> {
+    const gallery = this.p.gallery!;
+    let result: ManifestResult;
+    let usedTab = readerTab;
+    const load = () => usedTab
+      ? gallery.load(galleryId, url, controller.signal, usedTab)
+      : gallery.load(galleryId, url, controller.signal);
+    try {
+      try {
+        result = { manifest: await load() };
+      } catch (error) {
+        if (!allowReaderTab || usedTab ||
+            controller.signal.aborted || !ehentaiReaderNeedsTab(error)) throw error;
+        usedTab = true;
+        result = { manifest: await load() };
+      }
+    } catch (error) {
+      result = { error };
+    }
+    await this.serial(async () => {
+      this.galleryPreparations.delete(id);
+      this.ehentaiManifestRequest = undefined;
+      const s = await this.load();
+      const item = s.items.find((candidate) => candidate.id === id);
+      if (!item || s.activeId !== id || item.status !== "preparing") return;
+      if (controller.signal.aborted || !this.galleryArchiveControlCurrent(s)) {
+        await this.suspendGalleryArchive(s, item);
+        if (this.galleryArchiveControlCurrent(s)) await this.pump(s);
+        return;
+      }
+      if (usedTab && item.gallery)
+        item.gallery.readerTab = true;
+      if (!(await this.refreshGalleryManifest(s, item, result))) return;
+      if (!this.galleryArchiveControlCurrent(s)) {
+        await this.suspendGalleryArchive(s, item);
+        return;
+      }
+      await this.startGalleryPage(s, item, false);
+    }).catch((error) => console.error("QueueCat E-Hentai manifest callback", error));
   }
   private async startGalleryPage(
     s: AppState,
@@ -535,6 +653,21 @@ export class QueueEngine {
     if (revalidate || !gallery.images) {
       item.status = "preparing";
       await this.save(s);
+      const source = parseGallerySource(item.sourceUrl);
+      if (source?.site === "ehentai" && source.id === gallery.id && this.p.gallery) {
+        await this.arm(s);
+        if (this.galleryPauseRequested(s, pauseEpoch)) {
+          await this.suspendGalleryArchive(s, item);
+          return;
+        }
+        const controller = new AbortController();
+        this.ehentaiManifestRequest = controller;
+        this.galleryPreparations.add(item.id);
+        void this.prepareEhentaiManifest(
+          item.id, gallery.id, source.url, controller, gallery.allowReaderTab, gallery.readerTab,
+        );
+        return;
+      }
       if (!(await this.refreshGalleryManifest(s, item))) return;
     }
     const images = gallery.images;
@@ -762,35 +895,77 @@ export class QueueEngine {
     this.galleryPreparations.add(item.id);
     void this.stageGalleryArchivePage(
       item.id,
+      item.sourceUrl,
       fingerprint,
       total,
       index,
       image,
+      gallery.allowReaderTab,
+      gallery.readerTab,
     );
   }
   private async stageGalleryArchivePage(
     itemId: string,
+    sourceUrl: string,
     fingerprint: string,
     total: number,
     index: number,
     image: GalleryImage,
+    allowReaderTab?: true,
+    readerTab?: true,
   ): Promise<void> {
     let receipt: { staged: number; bytes: number } | undefined;
     let error: unknown;
+    let usedTab = readerTab;
+    const pauseEpoch = this.pauseEpoch;
     try {
-      const url = await this.p.gallery!.imageUrl(image);
-      if (!this.validGalleryImageUrl(url, image))
-        throw Object.assign(new Error("invalid source image url"), {
-          code: "gallery_archive_failed",
+      const source = parseGallerySource(sourceUrl);
+      if (!source) throw new Error("gallery_archive_failed");
+      const gallery = this.p.gallery!;
+      let route: GalleryImageRoute;
+      if (source.site === "ehentai" && gallery.ehentaiImageRoute) {
+        try {
+          route = usedTab
+            ? await gallery.ehentaiImageRoute(image, source.url, usedTab)
+            : await gallery.ehentaiImageRoute(image, source.url);
+        } catch (error) {
+          if (!allowReaderTab || usedTab ||
+              this.pauseEpoch !== pauseEpoch || !ehentaiReaderNeedsTab(error)) throw error;
+          usedTab = true;
+          route = await gallery.ehentaiImageRoute(image, source.url, usedTab);
+        }
+      } else {
+        route = { url: await (source.site === "hitomi"
+          ? gallery.imageUrl(image)
+          : gallery.imageUrl(image, source.url)) };
+      }
+      const stage = (url: string) => {
+        if (!this.validGalleryImageUrl(url, image, source.site))
+          throw new Error("gallery_archive_failed");
+        return gallery.archive!.stagePage({
+          key: itemId,
+          fingerprint,
+          total,
+          index,
+          hash: image.hash,
+          url,
+          ...(source.site !== "hitomi" ? { site: source.site } : {}),
         });
-      receipt = await this.p.gallery!.archive!.stagePage({
-        key: itemId,
-        fingerprint,
-        total,
-        index,
-        hash: image.hash,
-        url,
-      });
+      };
+      try {
+        receipt = await stage(route.url);
+      } catch (firstError) {
+        // Retry only explicit media failures, never an unknown OPFS/Chrome response.
+        if (
+          !route.retry ||
+          this.pauseEpoch !== pauseEpoch ||
+          !(firstError instanceof Error) ||
+          !/^(?:gallery_media_network|gallery_fetch_timeout|gallery_http_(?:404|410|500|502|503|504))$/.test(firstError.message)
+        ) throw firstError;
+        const alternate = await route.retry();
+        if (!alternate || this.pauseEpoch !== pauseEpoch) throw firstError;
+        receipt = await stage(alternate);
+      }
     } catch (caught) {
       error = caught;
     }
@@ -814,6 +989,7 @@ export class QueueEngine {
         )) !== fingerprint
       )
         return;
+      if (usedTab && target.gallery) target.gallery.readerTab = true;
       if (error !== undefined) {
         await this.failGalleryArchive(
           current,
@@ -864,6 +1040,7 @@ export class QueueEngine {
         fingerprint,
         total: images.length,
         hashes: images.map((image) => image.hash),
+        names: images.map((image) => image.name),
       });
     } catch (caught) {
       error = caught;
@@ -915,7 +1092,8 @@ export class QueueEngine {
       }
       archive.phase = "ready";
       archive.zipBytes = result.bytes;
-      archive.filename = `QueueCat/${target.gallery!.id}-${this.safeGalleryTitle(
+      const filenamePrefix = parseGallerySource(target.sourceUrl)?.site === "ehentai" ? "E-Hentai-" : "";
+      archive.filename = `QueueCat/${filenamePrefix}${target.gallery!.id}-${this.safeGalleryTitle(
         target.gallery!.title || target.title,
       )}.zip`;
       await this.save(current);
@@ -1259,7 +1437,10 @@ export class QueueEngine {
       return;
     }
     if (!s.activeId) {
-      if (s.running && s.items.some((x) => x.status === "queued")) {
+      if (
+        s.running &&
+        s.items.some((item) => item.status === "queued" || isAutomaticRetryCandidate(item))
+      ) {
         // 下載結束與外部下載等待都可能沒有 activeId，仍須保存下一次喚醒。
         const next =
           s.hostNotBefore && s.hostNotBefore > this.p.now()
@@ -1542,7 +1723,10 @@ export class QueueEngine {
   }
   command(command: Command): Promise<AppState> {
     const galleryControl = command.kind === "pause" || command.kind === "start";
-    if (command.kind === "pause") this.pauseEpoch++;
+    if (command.kind === "pause") {
+      this.pauseEpoch++;
+      this.ehentaiManifestRequest?.abort();
+    }
     const controlGeneration = galleryControl
       ? ++this.galleryControlRequested
       : this.galleryControlRequested;
@@ -1562,30 +1746,59 @@ export class QueueEngine {
             /[\0\r\n]/.test(c.extraction.password))
         )
           throw new Error("invalid_archive");
-        if (c.extraction && c.urls.some((raw) => hitomiGalleryId(raw)))
+        if (c.extraction && c.urls.some((raw) => parseGallerySource(raw)))
           throw new Error("gallery_extraction_not_supported");
         const additions: QueueItem[] = [];
+        let requeuedReader = false;
         for (const raw of c.urls) {
           const url = normalizeSource(raw);
           if (!url) continue;
+          const gallery = parseGallerySource(url);
+          const ehentai = gallery?.site === "ehentai";
+          const officialArchive = ehentai && c.ehentaiMode !== "reader";
           const key = sourceKey(url);
-          if (
-            s.items.some((x) => sourceKey(x.sourceUrl) === key) ||
-            additions.some((x) => sourceKey(x.sourceUrl) === key)
-          )
+          const matches = (item: QueueItem) =>
+            sourceKey(item.sourceUrl) === key &&
+            (!ehentai || !!item.ehArchive === officialArchive);
+          const existing = s.items.find(matches);
+          if (existing) {
+            if (
+              ehentai &&
+              !officialArchive &&
+              c.ehentaiBrowserFallback === true &&
+              existing.sourceUrl === url &&
+              this.p.gallery?.ehentaiImageRoute &&
+              canRetryEhentaiReaderInTab(existing)
+            ) {
+              this.requeueEhentaiReaderInTab(s, existing);
+              requeuedReader = true;
+            }
             continue;
+          }
+          if (additions.some(matches)) continue;
           const at = this.p.now();
+          const suppliedTitle = ehentai ? c.titles?.[url] : undefined;
+          const title = typeof suppliedTitle === "string"
+            ? suppliedTitle.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 300)
+            : "";
+          const manualArchive = gallery?.site === "nhentai";
           additions.push({
             id: crypto.randomUUID(),
             sourceUrl: url,
-            title: url,
-            status: "queued",
-            ...(hitomiGalleryId(url)
+            title: title || (ehentai ? `E-Hentai #${gallery.id}` : url),
+            status: manualArchive ? "blocked" : "queued",
+            reason: manualArchive ? "gallery_manual_archive" : undefined,
+            ...(officialArchive
+              ? { ehArchive: {} }
+              : gallery
               ? {
                   gallery: {
-                    id: hitomiGalleryId(url)!,
+                    id: gallery.id,
                     completed: 0,
-                    output: this.p.gallery?.archive ? "zip" : "pages",
+                    ...(ehentai && c.ehentaiBrowserFallback === true ? { allowReaderTab: true as const } : {}),
+                    output: manualArchive
+                      ? undefined
+                      : this.p.gallery?.archive || gallery.site !== "hitomi" ? "zip" : "pages",
                   },
                 }
               : {}),
@@ -1674,20 +1887,21 @@ export class QueueEngine {
           s.nativeHelper = { available: true, engineAvailable: true };
         }
         s.items.push(...additions);
-        if (additions.length && !s.running && !s.activeId) {
+        if ((additions.length || requeuedReader) && !s.running && !s.activeId) {
           s.cycleStartedAt = undefined;
           s.cycleNotifiedAt = undefined;
         }
         await this.save(s);
         if (c.extraction) await this.syncExtractions(s);
-        await this.arm(s);
-        return structuredClone(s);
+        if (requeuedReader && s.running && !s.activeId) await this.pump(s);
+        else await this.arm(s);
+        return structuredClone(await this.load());
       }
       case "start": {
         if (
           !s.running &&
           !s.activeId &&
-          s.items.some((x) => x.status === "queued")
+          s.items.some((item) => item.status === "queued")
         ) {
           s.cycleStartedAt = this.p.now();
           s.cycleNotifiedAt = undefined;
@@ -1696,7 +1910,10 @@ export class QueueEngine {
         if (!s.cycleStartedAt) s.cycleStartedAt = this.p.now();
         await this.save(s);
         const active = s.items.find((x) => x.id === s.activeId);
-        if (active?.gallery && active.downloadId === undefined)
+        if (active?.ehArchive && active.downloadId === undefined) {
+          await this.recoverEhentaiDownload(s, active);
+          await this.arm(await this.load());
+        } else if (active?.gallery && active.downloadId === undefined)
           await this.startGalleryPage(s, active, true);
         else await this.pump(s);
         return structuredClone(await this.load());
@@ -1774,7 +1991,7 @@ export class QueueEngine {
             s.externalTransfer = undefined;
           if (
             removedActiveSource &&
-            item.action?.kind === "download" &&
+            (item.action?.kind === "download" || item.ehArchive?.openedAt !== undefined) &&
             item.downloadId === undefined
           )
             s.running = false;
@@ -1814,10 +2031,30 @@ export class QueueEngine {
         else await this.arm(s);
         return structuredClone(await this.load());
       }
+      case "use-ehentai-tab": {
+        const item = s.items.find((candidate) => candidate.id === c.id);
+        if (!item || !canRetryEhentaiReaderInTab(item) || !this.p.gallery?.ehentaiImageRoute)
+          throw new Error("gallery_reader_tab_required");
+        return this.retryEhentaiReaderInTab(s, item);
+      }
       case "retry": {
         let item = s.items.find((x) => x.id === c.id);
         if (!item || !["failed", "blocked"].includes(item.status))
           throw new Error("只能重試失敗或暫停項目");
+        if (canRetryEhentaiReaderInTab(item) && this.p.gallery?.ehentaiImageRoute)
+          return this.retryEhentaiReaderInTab(s, item);
+        if (item.reason === "gallery_manual_archive" ||
+            item.reason === "gallery_content_warning" ||
+            item.reason === "gallery_reader_tab_required")
+          return this.focusItem(s, item.id);
+        if (this.awaitingEhentaiDownload(s, item)) {
+          await this.recoverEhentaiDownload(s, item);
+          const current = await this.load();
+          const pending = current.items.find((x) => x.id === item!.id)!;
+          if (this.awaitingEhentaiDownload(current, pending))
+            await this.openEhentaiArchive(current, pending);
+          return structuredClone(await this.load());
+        }
         if (
           item.gallery &&
           item.action?.kind === "download" &&
@@ -1848,6 +2085,10 @@ export class QueueEngine {
             throw new Error(
               "Chrome 找不到原下載紀錄，結果仍未知；請先人工核對，不會重新下載",
             );
+          if (item.ehArchive && d.state === "complete" && !isTerminal(item.status)) {
+            await this.syncDownload(s, item);
+            return structuredClone(await this.load());
+          }
           if (
             d.state === "in_progress" ||
             (d.state === "interrupted" && d.canResume)
@@ -1868,13 +2109,8 @@ export class QueueEngine {
             .catch(() => undefined);
           item.gallery.archive = undefined;
         }
-        if (s.activeId === item.id) s.activeId = undefined;
-        item.status = "queued";
-        item.reason = undefined;
-        item.tabId = undefined;
-        item.downloadId = undefined;
-        item.action = undefined;
-        item.waitUntil = undefined;
+        this.requeueDownload(s, item);
+        if (item.ehArchive) item.ehArchive.openedAt = undefined;
         this.event(item, "已重新排入佇列");
         await this.save(s);
         if (s.running) await this.pump(s);
@@ -1885,6 +2121,13 @@ export class QueueEngine {
         const item = s.items.find((x) => x.id === c.id);
         if (!item || item.status !== "blocked")
           throw new Error("項目目前不是暫停狀態");
+        if (item.reason === "gallery_content_warning" || item.reason === "gallery_reader_tab_required")
+          return this.focusItem(s, item.id);
+        if (this.awaitingEhentaiDownload(s, item)) {
+          await this.recoverEhentaiDownload(s, item);
+          await this.arm(await this.load());
+          return structuredClone(await this.load());
+        }
         item.reason = undefined;
         if (item.gallery && item.downloadId !== undefined)
           await this.syncGalleryDownload(s, item);
@@ -2043,6 +2286,21 @@ export class QueueEngine {
   private async focusItem(s: AppState, id: string): Promise<AppState> {
     const item = s.items.find((x) => x.id === id);
     if (!item) throw new Error("找不到佇列項目");
+    if (item.reason === "gallery_manual_archive" ||
+        item.reason === "gallery_content_warning" ||
+        item.reason === "gallery_reader_tab_required") {
+      const source = parseGallerySource(item.sourceUrl);
+      const expectedSite = item.reason === "gallery_manual_archive" ? "nhentai" : "ehentai";
+      if (source?.site !== expectedSite) throw new Error("invalid_gallery");
+      await this.p.tabs.create(source.url);
+      return structuredClone(s);
+    }
+    if (item.ehArchive) {
+      if (item.downloadId !== undefined) await this.p.tabs.create("chrome://downloads/");
+      else if (this.awaitingEhentaiDownload(s, item)) await this.openEhentaiArchive(s, item);
+      else await this.p.tabs.create(item.sourceUrl);
+      return structuredClone(await this.load());
+    }
     const reconnect =
       s.running &&
       !item.gallery &&
@@ -2068,7 +2326,7 @@ export class QueueEngine {
         /* 原分頁已關閉，重新建立來源分頁供使用者查看。 */
       }
       if (tab?.url && this.isSourceFor(item, tab.url)) {
-        if (reconnect && migrateLegacyKatfileSource(tab.url) !== tab.url) {
+        if (reconnect && this.shouldMigrateSourceTab(item, tab.url)) {
           await this.reconnectSource(s, item, undefined, true);
           await this.p.tabs.update(item.tabId, {
             url: item.sourceUrl,
@@ -2140,12 +2398,79 @@ export class QueueEngine {
       }
     }
   }
+  private requeueEhentaiReaderInTab(s: AppState, item: QueueItem): void {
+    item.gallery!.allowReaderTab = true;
+    item.gallery!.readerTab = true;
+    this.requeueDownload(s, item);
+    this.event(item, "已排入作品分頁重試");
+  }
+  private async retryEhentaiReaderInTab(s: AppState, item: QueueItem): Promise<AppState> {
+    this.requeueEhentaiReaderInTab(s, item);
+    await this.save(s);
+    if (s.running) await this.pump(s);
+    else await this.arm(s);
+    return structuredClone(await this.load());
+  }
+  private requeueDownload(s: AppState, item: QueueItem): void {
+    if (s.activeId === item.id) s.activeId = undefined;
+    this.unknownSince.delete(item.id);
+    item.status = "queued";
+    item.reason = undefined;
+    item.tabId = undefined;
+    item.downloadId = undefined;
+    item.action = undefined;
+    item.waitUntil = undefined;
+    item.bytesReceived = undefined;
+    item.totalBytes = undefined;
+    item.speed = undefined;
+    item.downloadPaused = undefined;
+    item.canResume = undefined;
+  }
+  private async canRetryAutomatically(item: QueueItem): Promise<boolean> {
+    if (item.downloadId === undefined) return true;
+    // 確認先前交接的檔案已明確中斷，且 Chrome 無法續傳。
+    const [download] = await this.p.downloads
+      .search({ id: item.downloadId })
+      .catch(() => []);
+    return (
+      download?.id === item.downloadId &&
+      download.byExtensionId === this.p.extensionId &&
+      download.url === item.action?.expectedUrl &&
+      download.state === "interrupted" &&
+      download.canResume === false &&
+      (!download.danger || ["safe", "accepted"].includes(download.danger)) &&
+      isRetryableChromeError(download.error)
+    );
+  }
   private async pump(s: AppState): Promise<void> {
     if (!s.running || s.activeId) {
       await this.arm(s);
       return;
     }
-    const item = s.items.find((x) => x.status === "queued");
+    let item = s.items.find((x) => x.status === "queued");
+    if (!item) {
+      const retry: QueueItem[] = [];
+      for (const candidate of s.items.filter(isAutomaticRetryCandidate)) {
+        if (!this.galleryArchiveControlCurrent(s)) return;
+        if (await this.canRetryAutomatically(candidate)) retry.push(candidate);
+      }
+      if (!this.galleryArchiveControlCurrent(s)) return;
+      if (retry.length) {
+        if (s.cycleNotifiedAt !== undefined) {
+          s.cycleStartedAt = this.p.now();
+          s.cycleNotifiedAt = undefined;
+        }
+        for (const candidate of retry) {
+          candidate.autoRetried = true;
+          this.requeueDownload(s, candidate);
+          this.event(candidate, "已排入一次自動重試");
+        }
+        // 重排和消耗重試次數一起保存，背景重啟也不會重複重排。
+        await this.save(s);
+        if (!this.galleryArchiveControlCurrent(s)) return;
+        item = retry[0];
+      }
+    }
     if (!item) {
       s.running = false;
       s.activeId = undefined;
@@ -2160,7 +2485,7 @@ export class QueueEngine {
         await this.notify(
           s,
           "QueueCat 佇列已完成",
-          s.items.some((x) => x.gallery)
+          s.items.some((x) => x.gallery || x.ehArchive)
             ? "QueueCat 佇列已完成"
             : "本輪 Katfile 下載工作已結束。",
           `queuecat-cycle-${s.cycleStartedAt || s.cycleNotifiedAt}`,
@@ -2191,6 +2516,10 @@ export class QueueEngine {
     s.externalWaitReason = undefined;
     s.externalTransfer = undefined;
     if (hadExternal) await this.save(s);
+    if (item.ehArchive) {
+      await this.openEhentaiArchive(s, item);
+      return;
+    }
     if (s.hostNotBefore && s.hostNotBefore > this.p.now()) {
       await this.p.alarms.create(ALARM, {
         when: Math.min(s.hostNotBefore, this.p.now() + 30_000),
@@ -2249,10 +2578,98 @@ export class QueueEngine {
         ),
     );
   }
+  private awaitingEhentaiDownload(s: AppState, item: QueueItem): boolean {
+    return (
+      item.ehArchive?.openedAt !== undefined &&
+      s.activeId === item.id &&
+      item.downloadId === undefined &&
+      (item.status === "verification" || item.status === "blocked")
+    );
+  }
+  private async openEhentaiArchive(s: AppState, item: QueueItem): Promise<void> {
+    const url = ehentaiArchiveUrl(item.sourceUrl);
+    s.activeId = item.id;
+    if (!url || !item.ehArchive) {
+      await this.block(s, item, "E-Hentai 圖庫網址無效。");
+      return;
+    }
+    if (item.tabId !== undefined) {
+      const tabId = item.tabId;
+      try {
+        const tab = await this.p.tabs.get(tabId);
+        if (isEhentaiArchivePage(item.sourceUrl, tab.url)) {
+          await this.p.tabs.update(tabId, { active: true });
+          return;
+        }
+      } catch {
+        // The previous work tab may have been closed or replaced.
+      }
+    }
+    item.tabId = undefined;
+    item.ehArchive.openedAt ??= this.p.now();
+    item.status = "verification";
+    item.reason = EH_ARCHIVE_WAITING;
+    this.event(item, EH_ARCHIVE_WAITING);
+    // Save the time boundary before navigation, including for an already paid ZIP.
+    await this.save(s);
+    try {
+      const tab = await this.p.tabs.create(url);
+      if (tab.id === undefined) throw new Error();
+      item.tabId = tab.id;
+      await this.save(s);
+      await this.arm(s);
+    } catch {
+      await this.block(s, item, "無法開啟 E-Hentai 官方下載頁。");
+    }
+  }
+  private async ehentaiDownloads(
+    s: AppState,
+    item: QueueItem,
+  ): Promise<DownloadRecord[]> {
+    const openedAt = item.ehArchive?.openedAt;
+    if (
+      openedAt === undefined ||
+      !Number.isFinite(openedAt) ||
+      !this.awaitingEhentaiDownload(s, item)
+    ) return [];
+    const claimed = new Set([
+      ...s.items.map((x) => x.downloadId),
+      ...(s.detachedDownloadIds || []),
+    ]);
+    const records = await this.p.downloads.search({
+      startedAfter: new Date(openedAt - 1).toISOString(),
+    });
+    return records.filter((d) =>
+      !claimed.has(d.id) &&
+      !d.byExtensionId &&
+      Date.parse(d.startTime || "") >= openedAt &&
+      isEhentaiArchiveCandidate(d, item.sourceUrl),
+    );
+  }
+  private async recoverEhentaiDownload(s: AppState, item: QueueItem): Promise<void> {
+    if (!this.awaitingEhentaiDownload(s, item)) return;
+    const matching = (await this.ehentaiDownloads(s, item)).filter((d) =>
+      isEhentaiArchiveDownload(item.sourceUrl, d),
+    );
+    if (matching.length > 1) {
+      await this.block(s, item, EH_ARCHIVE_AMBIGUOUS);
+      return;
+    }
+    const [download] = matching;
+    if (!download) return;
+    item.downloadId = download.id;
+    item.status = "downloading";
+    item.reason = undefined;
+    this.event(item, "已連結 E-Hentai 官方 ZIP 下載。");
+    await this.save(s);
+    await this.syncDownload(s, item);
+  }
   private manualDownloadItem(s: AppState, id: string): QueueItem {
     const item = s.items.find((i) => i.id === id);
+    if (item?.ehArchive && this.awaitingEhentaiDownload(s, item)) return item;
     if (
       !item ||
+      !!item.ehArchive ||
       !!item.gallery ||
       s.activeId !== id ||
       item.status !== "blocked" ||
@@ -2267,6 +2684,25 @@ export class QueueEngine {
     item: QueueItem,
   ): Promise<DownloadCandidate[]> {
     const basename = (value: string) => value.split(/[\\/]/).pop() || "";
+    if (item.ehArchive) {
+      const records = await this.ehentaiDownloads(s, item);
+      return records.flatMap((d) => {
+        if (
+          d.state === "interrupted" ||
+          (d.danger && !["safe", "accepted"].includes(d.danger))
+        ) return [];
+        const url = new URL(d.finalUrl || d.url);
+        return [{
+          id: d.id,
+          filename: basename(d.filename || "") || basename(url.pathname) || "ZIP",
+          host: url.host,
+          state: d.state,
+          startTime: d.startTime!,
+          bytesReceived: d.bytesReceived,
+          totalBytes: d.totalBytes,
+        }];
+      });
+    }
     const decode = (value: string) => {
       try {
         return decodeURIComponent(value);
@@ -2358,6 +2794,7 @@ export class QueueEngine {
       s.running &&
       item &&
       !item.gallery &&
+      !item.ehArchive &&
       item.downloadId === undefined &&
       item.action?.kind !== "download" &&
       ["queued", "preparing", "waiting", "verification"].includes(
@@ -2464,6 +2901,16 @@ export class QueueEngine {
       return false;
     }
   }
+  private shouldMigrateSourceTab(item: QueueItem, raw: string): boolean {
+    const migrated = migrateLegacyKatfileSource(raw);
+    if (migrated === raw) return false;
+    try {
+      // 只有已遷移至相同目標網域的項目才導航，避免其他來源的站方轉址循環。
+      return new URL(migrated).hostname === new URL(item.sourceUrl).hostname;
+    } catch {
+      return false;
+    }
+  }
   private async observe(
     o: PageObservation,
     senderTabId?: number,
@@ -2472,6 +2919,7 @@ export class QueueEngine {
     const item = s.items.find((x) => x.id === s.activeId);
     if (
       !item ||
+      item.ehArchive ||
       item.tabId === undefined ||
       senderTabId !== item.tabId ||
       !this.isSourceFor(item, o.pageUrl)
@@ -2797,6 +3245,7 @@ export class QueueEngine {
             const active = s.items.find((x) => x.id === s.activeId);
             if (
               active &&
+              !active.ehArchive &&
               !["downloading", "handoff", "blocked"].includes(active.status) &&
               active.tabId !== undefined
             ) {
@@ -2823,6 +3272,15 @@ export class QueueEngine {
       if (handoff) {
         if (handoff.gallery) await this.recoverGalleryHandoff(s, handoff);
         else await this.recoverHandoff(s, handoff);
+      } else if (delta.state || delta.filename || delta.finalUrl) {
+        const archive = s.items.find((x) => this.awaitingEhentaiDownload(s, x));
+        if (archive) {
+          const [download] = await this.p.downloads.search({ id: delta.id });
+          if (download && isEhentaiArchiveDownload(archive.sourceUrl, download)) {
+            await this.recoverEhentaiDownload(s, archive);
+            await this.arm(await this.load());
+          }
+        }
       }
       return structuredClone(await this.load());
     });
@@ -2874,7 +3332,7 @@ export class QueueEngine {
     item.downloadPaused = d.paused;
     item.canResume = d.canResume;
     const fileName = d.filename?.split(/[\\/]/).pop();
-    if (fileName) item.title = fileName;
+    if (fileName && !item.ehArchive) item.title = fileName;
     const now = this.p.now();
     if (this.lastSample?.id === d.id && now > this.lastSample.at)
       item.speed = Math.max(
@@ -2893,7 +3351,8 @@ export class QueueEngine {
       this.event(item, "下載完成");
       if (s.activeId === item.id) {
         s.activeId = undefined;
-        s.hostNotBefore = Math.max(s.hostNotBefore || 0, now + HOST_GAP);
+        if (!item.ehArchive)
+          s.hostNotBefore = Math.max(s.hostNotBefore || 0, now + HOST_GAP);
       }
       await this.save(s);
       await this.syncExtractions(s);
@@ -2926,6 +3385,13 @@ export class QueueEngine {
       const s = await this.load();
       await this.syncExtractions(s);
       const item = s.items.find((x) => x.id === s.activeId);
+      if (item?.ehArchive) {
+        if (item.downloadId !== undefined) await this.syncDownload(s, item);
+        else await this.recoverEhentaiDownload(s, item);
+        const current = await this.load();
+        await this.arm(current);
+        return structuredClone(current);
+      }
       if (item?.gallery) {
         if (item.downloadId !== undefined)
           await this.syncGalleryDownload(s, item);
@@ -3030,7 +3496,10 @@ export class QueueEngine {
       const s = await this.load();
       await this.syncExtractions(s);
       const item = s.items.find((x) => x.id === s.activeId);
-      if (item?.gallery) {
+      if (item?.ehArchive) {
+        if (item.downloadId !== undefined) await this.syncDownload(s, item);
+        else await this.recoverEhentaiDownload(s, item);
+      } else if (item?.gallery) {
         if (item.downloadId !== undefined)
           await this.syncGalleryDownload(s, item);
         else if (item.action?.kind === "download")
@@ -3054,7 +3523,7 @@ export class QueueEngine {
             if (!t.url || !this.isSourceFor(item, t.url)) throw new Error();
             if (
               item.action?.kind !== "download" &&
-              migrateLegacyKatfileSource(t.url) !== t.url
+              this.shouldMigrateSourceTab(item, t.url)
             ) {
               await this.reconnectSource(s, item, undefined, true);
               await this.p.tabs.update(item.tabId, { url: item.sourceUrl });
@@ -3081,6 +3550,13 @@ export class QueueEngine {
     return this.serial(async () => {
       const s = await this.load();
       const i = s.items.find((x) => x.id === s.activeId);
+      if (i?.ehArchive && i.tabId === tabId) {
+        i.tabId = undefined;
+        await this.save(s);
+        if (i.downloadId === undefined) await this.recoverEhentaiDownload(s, i);
+        await this.arm(await this.load());
+        return structuredClone(await this.load());
+      }
       if (
         i?.tabId === tabId &&
         !["downloading", "handoff"].includes(i.status)
@@ -3098,6 +3574,16 @@ export class QueueEngine {
   onDownloadCreated(d: DownloadRecord): Promise<AppState> {
     return this.serial(async () => {
       const s = await this.load();
+      const activeArchive = s.items.find((x) => x.id === s.activeId && x.ehArchive);
+      if (
+        activeArchive &&
+        this.awaitingEhentaiDownload(s, activeArchive) &&
+        isEhentaiArchiveDownload(activeArchive.sourceUrl, d)
+      ) {
+        await this.recoverEhentaiDownload(s, activeArchive);
+        await this.arm(await this.load(), true);
+        return structuredClone(await this.load());
+      }
       const item = s.items.find(
         (x) =>
           x.status === "handoff" &&
@@ -3154,7 +3640,7 @@ export class QueueEngine {
         if (
           s.running &&
           (active
-            ? !["downloading", "handoff", "blocked"].includes(active.status)
+            ? !active.ehArchive && !["downloading", "handoff", "blocked"].includes(active.status)
             : s.items.some((x) => x.status === "queued"))
         ) {
           await this.waitForExternal(s, d);

@@ -1,4 +1,5 @@
 import { build } from "esbuild";
+import { copyBundledLicenses } from "./copy-bundled-licenses.mjs";
 await build({
   entryPoints: ["src/offscreen/gallery.ts"],
   bundle: true,
@@ -20,3 +21,4 @@ await build({
   target: "chrome120",
   format: "esm",
 });
+await copyBundledLicenses();

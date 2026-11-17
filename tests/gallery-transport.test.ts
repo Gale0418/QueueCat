@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createGalleryTransport,
   fetchGalleryWebp,
+  fetchGalleryMedia,
   isExtensionBlobUrl,
   isSafeGalleryImageUrl,
   readWebpResponse,
+  readGalleryMediaResponse,
 } from "../src/background/gallery-transport";
 
 const validImageUrl = `https://w1.gold-usergeneratedcontent.net/123/45/${"a".repeat(64)}.webp`;
@@ -12,6 +14,7 @@ const extensionOrigin = "chrome-extension://queuecat-test";
 const validWebp = new Uint8Array([
   0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50,
 ]);
+const validFoxUrl = "https://i3.hentaifox.com/5/42/1.jpg";
 
 function response(bytes: Uint8Array, contentType = "image/webp"): Response {
   const buffer = bytes.buffer.slice(
@@ -118,6 +121,27 @@ describe("圖庫 Blob 傳輸輸入驗證", () => {
       expect.objectContaining({ credentials: "omit", redirect: "error" }),
     );
   });
+
+  it("新來源只接受白名單媒體 URL，並核對 JPEG MIME 與簽章", async () => {
+    const jpeg = new Uint8Array([
+      0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1,
+    ]);
+    const fetcher = vi.fn(async () =>
+      response(jpeg, "image/jpeg; charset=binary"),
+    );
+    const blob = await fetchGalleryMedia("hentaifox", validFoxUrl, fetcher);
+    expect(blob.type).toBe("image/jpeg");
+    expect(fetcher).toHaveBeenCalledWith(
+      validFoxUrl,
+      expect.objectContaining({ credentials: "omit", redirect: "error" }),
+    );
+    await expect(
+      fetchGalleryMedia("hentaifox", "https://evil.example/image.jpg", fetcher),
+    ).rejects.toThrow("gallery_invalid_image_url");
+    await expect(
+      readGalleryMediaResponse(response(jpeg, "image/png")),
+    ).rejects.toThrow("gallery_invalid_image");
+  });
 });
 
 describe("圖庫傳輸取消與錯誤收尾", () => {
@@ -165,19 +189,34 @@ describe("圖庫傳輸取消與錯誤收尾", () => {
           url: validImageUrl,
         }),
       ).resolves.toMatchObject({ staged: 1, bytes: 12 });
+      await expect(
+        transport.archive.stagePage({
+          key: "11111111-1111-4111-8111-111111111111",
+          fingerprint: "f".repeat(64),
+          total: 1,
+          index: 0,
+          hash: "a".repeat(64),
+          url: validFoxUrl,
+          site: "hentaifox",
+        }),
+      ).resolves.toMatchObject({ staged: 1, bytes: 12 });
       await transport.archive.pack({
         key: "11111111-1111-4111-8111-111111111111",
         fingerprint: "f".repeat(64),
         total: 1,
         hashes: ["a".repeat(64)],
+        names: ["game_007.jpg"],
       });
       await transport.archive.cleanup("11111111-1111-4111-8111-111111111111");
       expect(
         sent
           .filter(({ type }) => type === "QC_GALLERY_ARCHIVE")
           .map(({ action }) => action),
-      ).toEqual(["stagePage", "pack", "cleanup"]);
-      expect(sent.filter(({ action }) => action === "status")).toHaveLength(3);
+      ).toEqual(["stagePage", "stagePage", "pack", "cleanup"]);
+      expect(sent.find(({ action }) => action === "pack")).toMatchObject({
+        input: { names: ["game_007.jpg"] },
+      });
+      expect(sent.filter(({ action }) => action === "status")).toHaveLength(4);
       expect(rules[0]).toMatchObject({
         addRules: [
           {
@@ -185,6 +224,31 @@ describe("圖庫傳輸取消與錯誤收尾", () => {
               initiatorDomains: [extensionId],
               requestMethods: ["get"],
               resourceTypes: ["xmlhttprequest"],
+            },
+          },
+        ],
+      });
+      expect(rules[0]).toMatchObject({
+        addRules: [
+          {
+            action: {
+              requestHeaders: [
+                { header: "Referer", value: "https://hitomi.la/" },
+              ],
+            },
+          },
+        ],
+      });
+      expect(rules[2]).toMatchObject({
+        addRules: [
+          {
+            action: {
+              requestHeaders: [
+                { header: "Referer", value: "https://hentaifox.com/" },
+              ],
+            },
+            condition: {
+              regexFilter: "^https://i3\\.hentaifox\\.com/5/42/1\\.jpg$",
             },
           },
         ],

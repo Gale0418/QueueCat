@@ -11,8 +11,10 @@
     "notifications",
     "nativeMessaging",
     "offscreen",
-    "declarativeNetRequestWithHostAccess"
+    "declarativeNetRequestWithHostAccess",
+    "scripting"
   ],
+  "optional_permissions": ["tabs"],
   "host_permissions": [
     "https://katfile.com/*",
     "https://katfile.biz/*",
@@ -23,7 +25,18 @@
     "https://hitomi.la/*",
     "https://ltn.gold-usergeneratedcontent.net/*",
     "https://w1.gold-usergeneratedcontent.net/*",
-    "https://w2.gold-usergeneratedcontent.net/*"
+    "https://w2.gold-usergeneratedcontent.net/*",
+    "https://e-hentai.org/*",
+    "https://*.hath.network/*",
+    "https://*.hentaifox.com/*",
+    "https://j.gold-usergeneratedcontent.net/*",
+    "https://w.gold-usergeneratedcontent.net/*",
+    "https://g.gold-usergeneratedcontent.net/*",
+    "https://danbooru.donmai.us/*",
+    "https://cdn.donmai.us/*",
+    "https://*.gelbooru.com/*",
+    "https://www.zerochan.net/*",
+    "https://static.zerochan.net/*"
   ],
   "background": {
     "service_worker": "background.js",

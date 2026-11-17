@@ -8,7 +8,7 @@
 
 - 使用者將角色升級為同一間小房間的生活片段；完成 v3 家具／筆電／手機版。桌椅與沙發採配對局部編輯；獨立 Luna 看六張圖確認 PASS，無必要修正。五圖總覽與380px彈窗確認，build、alpha/提示詞與ZIP結構檢查通過。詳見 design/reference/room-v3-review.md。
 
-- Last organized: 2026-10-31
+- Last organized: 2026-11-18
 
 - 根目錄直接載入／dist只放ZIP已完成，使用者已確認載入。新增安全根目錄發布與ZIP腳本，HTML原始入口在entries。
 - 實站等待原文重複廣告，已修正摘要與字級（說明/按鈕14px、檔名16px、倒數20px）。
@@ -40,3 +40,7 @@
 ## 2026-10-21 正式小幫手設定
 
 使用者兩次確認無下載；因 browser policy 禁止 chrome://downloads，未繞過，採本人確認。固定位置註冊 Rust helper，原生 ping／7z 通過；使用者於日常 Chrome 檢查、重載後再檢查均就緒。新增無 state seeding 的正式 UI→兩卷下載→自動解壓測試通過，原卷與既有資料夾保留；補上 split final URL 辨識缺口，118 項測試與build通過。證據 helper-setup-20261021.md。hitomi 僅查可行性，未新增站點支援。
+
+## 2026-11-18 圖庫與下載恢復原始碼交付
+
+QC-T35：CodeRabbit 審查 150／7／4 檔，三個問題經查證後修正兩個、排除一個。最終 380 項自動測試、MV3 及 ZIP 打包通過；隔離 Chromium 151 的原生彈窗修後高 556 px，頁尾可操作。README、審查處置和驗收證據見 [本輪交付紀錄](release-20261118.md)。由 Git 直接交付 `main`；E-Hentai 六筆與 Katfile 全自動實站流程保留 Review。

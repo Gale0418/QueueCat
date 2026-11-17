@@ -18,11 +18,21 @@ export interface QueueEvent {
 export interface GalleryImage {
   hash: string;
   name: string;
+  /** Media URL or stable reader page for sources without Hitomi's content hashes. */
+  source?: string;
 }
 export interface GalleryManifest {
   id: string;
   title: string;
   images: GalleryImage[];
+}
+export interface GalleryImageRoute {
+  url: string;
+  retry?: () => Promise<string | undefined>;
+}
+export interface EhentaiReaderTab {
+  tabId: number;
+  documentId: string;
 }
 export interface GalleryProgress {
   id: string;
@@ -33,6 +43,8 @@ export interface GalleryProgress {
   completed: number;
   lastDownloadId?: number;
   output?: "zip" | "pages";
+  allowReaderTab?: true;
+  readerTab?: true;
   archive?: {
     key: string;
     fingerprint: string;
@@ -54,6 +66,8 @@ export interface QueueItem {
   waitUntil?: number;
   downloadId?: number;
   gallery?: GalleryProgress;
+  ehArchive?: { openedAt?: number };
+  autoRetried?: true;
   reason?: string;
   bytesReceived?: number;
   totalBytes?: number;
@@ -111,12 +125,21 @@ export interface AppState {
   pendingSecretDeletes?: string[];
   nextSecretCleanupAt?: number;
 }
+export type EhentaiMode = "reader" | "archive";
 export type Command =
-  | { kind: "add"; urls: string[]; extraction?: { password: string } }
+  | {
+      kind: "add";
+      urls: string[];
+      titles?: Record<string, string>;
+      ehentaiMode?: EhentaiMode;
+      ehentaiBrowserFallback?: true;
+      extraction?: { password: string };
+    }
   | { kind: "start" }
   | { kind: "pause" }
   | { kind: "remove"; id: string; confirmUncertain?: boolean }
   | { kind: "retry"; id: string }
+  | { kind: "use-ehentai-tab"; id: string }
   | { kind: "move"; id: string; direction: -1 | 1 }
   | { kind: "focus"; id: string }
   | { kind: "recheck"; id: string }
@@ -167,6 +190,8 @@ export interface PageAction {
 }
 export interface DownloadDelta {
   id: number;
+  filename?: { current?: string };
+  finalUrl?: { current?: string };
   state?: { current: "in_progress" | "interrupted" | "complete" };
   error?: { current: string };
   paused?: { current: boolean };

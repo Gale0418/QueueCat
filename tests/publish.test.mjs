@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { publishExtension } from "../scripts/publish-extension.mjs";
+import { copyBundledLicenses } from "../scripts/copy-bundled-licenses.mjs";
 
 const directories = [];
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -163,15 +164,7 @@ describe("publishExtension", () => {
     const manifest = {
       manifest_version: 3,
       version: "1.2.3",
-      permissions: [
-        "storage",
-        "downloads",
-        "alarms",
-        "notifications",
-        "nativeMessaging",
-        "offscreen",
-        "declarativeNetRequestWithHostAccess",
-      ],
+      permissions: sourceManifest.permissions,
       host_permissions: sourceManifest.host_permissions,
       content_scripts: sourceManifest.content_scripts,
       icons,
@@ -214,6 +207,7 @@ describe("publishExtension", () => {
       resolve(staging, "assets/zip-license.txt"),
       "BSD-3-Clause test license",
     );
+    await copyBundledLicenses({ cwd });
     await mkdir(resolve(staging, "icons"), { recursive: true });
     for (const state of ["sleep", "work", "verify", "confused", "happy"]) {
       await writeFile(resolve(staging, `assets/cat-${state}-v3.png`), png);

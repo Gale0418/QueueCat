@@ -2,8 +2,8 @@
 # Progress
 
 - Project: QueueCat
-- Objective: Katfile修正、CodeRabbit審查與main交付
-- Current status: 0/26 tasks
+- Objective: 圖庫下載、下載恢復與 main 原始碼交付
+- Current status: 0/35 tasks
 - Milestone: Next slice
 - Progress bar: [----------] 0%
 - Active tasks:

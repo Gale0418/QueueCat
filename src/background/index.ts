@@ -1,6 +1,7 @@
 import { QueueEngine, type DownloadRecord } from "./engine";
-import { createHitomiClient } from "./hitomi";
+import { createGallerySiteClient } from "./gallery-site-client";
 import { createGalleryTransport } from "./gallery-transport";
+import { GELBOORU_SESSION_KEY, gelbooruCredentials } from "../shared/gelbooru-session";
 import type { Request } from "../shared/types";
 import { currentLanguage, type LanguagePreference } from "../shared/language";
 import { translateMessage } from "../shared/messages";
@@ -9,7 +10,13 @@ import { getLocale } from "../shared/locales";
 import type { NativeRequest, NativeReply } from "../shared/extraction";
 
 const ports = {
-  gallery: { ...createHitomiClient(), ...createGalleryTransport() },
+  gallery: {
+    ...createGallerySiteClient(fetch, async () => {
+      const session = await chrome.storage.session?.get(GELBOORU_SESSION_KEY);
+      return gelbooruCredentials(session?.[GELBOORU_SESSION_KEY]);
+    }),
+    ...createGalleryTransport(),
+  },
   native: {
     request(message: NativeRequest): Promise<NativeReply> {
       return new Promise((resolve, reject) => {

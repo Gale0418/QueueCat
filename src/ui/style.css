@@ -842,6 +842,55 @@ progress:not([value]) {
   font-size: 12px;
   margin-bottom: 16px;
 }
+#read-source-tabs {
+  margin: 0 0 12px;
+}
+#source-tabs-panel {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--paper);
+  padding: 12px;
+  margin: 0 0 14px;
+}
+#source-tabs-panel > p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 9px;
+}
+.source-tab-select-all,
+.source-tab-list label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+.source-tab-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 12px;
+  max-height: 230px;
+  overflow: auto;
+}
+.source-tab-list li {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.source-tab-list input,
+.source-tab-select-all input {
+  margin: 2px 0 0;
+}
+.source-tab-list span,
+.source-tab-list small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source-tab-list small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 12px;
+}
 .inline-panel textarea {
   display: block;
   width: 100%;
@@ -1327,6 +1376,94 @@ body.popup {
   max-height: 580px;
   overflow-y: auto;
 }
+.ehentai-import-panel {
+  position: relative;
+  z-index: 1;
+  padding: 16px;
+  margin: 0 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.ehentai-import-panel > p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ehentai-import-list {
+  max-height: 310px;
+  overflow: auto;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+.ehentai-import-list li {
+  border-top: 1px solid var(--line);
+}
+.ehentai-import-list label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 5px 9px;
+  padding: 10px 2px;
+  cursor: pointer;
+}
+.ehentai-import-list input {
+  grid-row: span 2;
+  margin-top: 3px;
+}
+.ehentai-import-list span,
+.ehentai-import-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ehentai-import-list small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.ehentai-mode-options {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.ehentai-mode-options legend {
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ehentai-mode-options label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  cursor: pointer;
+}
+.ehentai-mode-options label > input {
+  margin: 3px 0 0;
+}
+.ehentai-mode-options label > span {
+  display: grid;
+  gap: 2px;
+}
+.ehentai-mode-options small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.ehentai-import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.popup .ehentai-import-panel {
+  margin-top: 4px;
+}
 .popup .app-shell {
   min-height: 0;
 }
@@ -1340,9 +1477,21 @@ body.popup {
   display: none;
 }
 .popup .main {
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  max-height: min(580px, 100vh);
   padding: 0 20px;
   margin: 0;
+}
+/* Chrome sizes the toolbar popup to its content, so viewport units can keep it collapsed. */
+.toolbar-popup .main {
+  max-height: 580px;
+}
+.popup .popup-body {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .popup .topbar {
   height: 60px;
@@ -1630,7 +1779,7 @@ body:not(.popup)[data-panel="settings"] #settings-panel {
   height: 270px;
   top: auto;
   bottom: -102px;
-  right: -8px;
+  right: 0;
   margin-right: 0;
   opacity: 1;
 }
@@ -1810,10 +1959,8 @@ kbd {
   padding-block: 8px;
   flex-wrap: wrap;
   gap: 4px;
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   background: var(--paper);
-  z-index: 2;
 }
 .popup[data-empty="true"] .popup-footer [data-action="add"] {
   display: none;

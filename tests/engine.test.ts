@@ -160,44 +160,82 @@ const url2 = "https://katfile.com/abcdefghijkl/second.rar.html";
 describe("舊 cloud 來源的持久化遷移", () => {
   const cloud = "https://katfile.cloud/f2zz0o58k8ef/SO-37194.rar.html";
   const co = cloud.replace("katfile.cloud", "katfile.co");
-  function seed(status: ItemStatus = "queued"): AppState {
+  const com = cloud.replace("katfile.cloud", "katfile.com");
+  const oldOrigins = [cloud, co];
+  function seed(sourceUrl: string, status: ItemStatus = "queued"): AppState {
     const s = initialState();
     s.items = [
       {
         id: "legacy",
-        sourceUrl: cloud,
+        sourceUrl,
         title: "SO-37194.rar",
         status,
         createdAt: 1,
-        updatedAt: 1,
+        updatedAt: 2,
+        tabId: 42,
+        waitUntil: 1_800_000_030_000,
         events: [],
       },
     ];
     return s;
   }
-  it.each<ItemStatus>([
-    "queued",
-    "preparing",
-    "waiting",
-    "verification",
-    "handoff",
-    "downloading",
-    "blocked",
-    "failed",
-    "complete",
-  ])("%s 只修正來源，保留狀態、順序、下載 ID 與交接連結", async (status) => {
-    const s = seed(status);
-    s.items[0].downloadId = 77;
-    s.items[0].action = {
-      id: "sent",
-      kind: "download",
-      at: 10,
-      expectedUrl: "https://s5003.katfile.cloud:183/d/unchanged/file.rar",
-    };
+  function seedWithFullItem(sourceUrl: string, status: ItemStatus): AppState {
+    const s = seed(sourceUrl, status);
+    Object.assign(s.items[0], {
+      downloadId: 77,
+      gallery: {
+        id: "gallery-id",
+        title: "gallery title",
+        completed: 3,
+        lastDownloadId: 76,
+        output: "zip",
+        archive: {
+          key: "archive-key",
+          fingerprint: "archive-fingerprint",
+          staged: 2,
+          bytes: 4096,
+          phase: "ready",
+          zipBytes: 2048,
+          filename: "gallery.zip",
+        },
+      },
+      reason: "preserve reason",
+      bytesReceived: 1234,
+      totalBytes: 5678,
+      speed: 90,
+      downloadPaused: true,
+      canResume: true,
+      action: {
+        id: "sent",
+        kind: "download",
+        at: 10,
+        step: "download2",
+        expectedUrl: "https://s5003.katfile.cloud:183/d/unchanged/file.rar",
+        sourceImageUrl: "https://img.example/unchanged.jpg",
+        archiveFingerprint: "handoff-fingerprint",
+      },
+      events: [{ at: 11, message: "preserve event" }],
+    });
+    return s;
+  }
+  it.each(oldOrigins.flatMap((sourceUrl) =>
+    ([
+      "queued",
+      "preparing",
+      "waiting",
+      "verification",
+      "handoff",
+      "downloading",
+      "blocked",
+      "failed",
+      "complete",
+    ] as ItemStatus[]).map((status) => [sourceUrl, status] as const),
+  ))("%s 的 %s 狀態只修正來源並保留完整資料", async (sourceUrl, status) => {
+    const s = seedWithFullItem(sourceUrl, status);
     const f = fixture(s);
     const result = await f.engine.getState();
-    expect(result.items[0]).toEqual({ ...s.items[0], sourceUrl: co });
-    expect(f.state!.items[0].sourceUrl).toBe(co);
+    expect(result.items[0]).toEqual({ ...s.items[0], sourceUrl: com });
+    expect(f.state!.items[0].sourceUrl).toBe(com);
     expect(f.writes).toBe(1);
     expect(f.created).toHaveLength(0);
     expect(f.actions).toHaveLength(0);
@@ -208,41 +246,44 @@ describe("舊 cloud 來源的持久化遷移", () => {
     await restarted.engine.getState();
     expect(restarted.writes).toBe(0);
   });
-  it("遷移保存失敗不會快取成功，下次載入會重試", async () => {
-    const f = fixture(seed());
+  it.each(oldOrigins)("%s 遷移保存失敗後下次載入會重試", async (sourceUrl) => {
+    const f = fixture(seed(sourceUrl));
     f.failStorage(true);
     await expect(f.engine.getState()).rejects.toThrow("storage denied");
-    expect(f.state!.items[0].sourceUrl).toBe(cloud);
+    expect(f.state!.items[0].sourceUrl).toBe(sourceUrl);
     f.failStorage(false);
-    expect((await f.engine.getState()).items[0].sourceUrl).toBe(co);
-    expect(f.state!.items[0].sourceUrl).toBe(co);
+    expect((await f.engine.getState()).items[0].sourceUrl).toBe(com);
+    expect(f.state!.items[0].sourceUrl).toBe(com);
   });
-  it("新加入 cloud 使用 co 開頁；再加入 co 不會重複排隊", async () => {
+  it("新加入 cloud 與 co 皆使用 com 開頁且去重", async () => {
     const f = fixture();
     await f.engine.command({ kind: "add", urls: [cloud, co] });
     expect(f.state!.items).toHaveLength(1);
-    expect(f.state!.items[0].sourceUrl).toBe(co);
+    expect(f.state!.items[0].sourceUrl).toBe(com);
     await f.engine.command({ kind: "start" });
-    expect(f.created).toEqual([co]);
+    expect(f.created).toEqual([com]);
+    expect(f.downloads).toHaveLength(0);
   });
-  it.each<ItemStatus>(["preparing", "waiting", "verification"])(
-    "背景重啟時將 %s 的 cloud 工作頁改開 co，等待新頁回報",
-    async (status) => {
-      const s = seed(status);
+  it.each(oldOrigins.flatMap((sourceUrl) =>
+    (["preparing", "waiting", "verification"] as ItemStatus[]).map(
+      (status) => [sourceUrl, status] as const,
+    ),
+  ))(
+    "背景重啟將 %s 的 %s 工作頁改開 com，等待新頁回報",
+    async (sourceUrl, status) => {
+      const s = seed(sourceUrl, status);
       s.running = true;
       s.activeId = "legacy";
-      s.items[0].tabId = 42;
-      s.items[0].waitUntil = 1_800_000_030_000;
       const f = fixture(s);
-      f.ports.tabs.get = async (id) => ({ id, url: cloud });
+      f.ports.tabs.get = async (id) => ({ id, url: sourceUrl });
       const updates: unknown[] = [];
       f.ports.tabs.update = async (_id, props) => {
         updates.push(props);
       };
       await f.engine.onStartup();
-      expect(updates).toEqual([{ url: co }]);
+      expect(updates).toEqual([{ url: com }]);
       expect(f.state!.items[0]).toMatchObject({
-        sourceUrl: co,
+        sourceUrl: com,
         status: "preparing",
         tabId: 42,
       });
@@ -251,35 +292,75 @@ describe("舊 cloud 來源的持久化遷移", () => {
       expect(f.downloads).toHaveLength(0);
     },
   );
-  it("blocked 的舊工作頁按前往後只導航至 co，再接回倒數", async () => {
-    const s = seed("blocked");
+  it("既有 co 下載中的項目重啟後保留下載與交接資料，不重複下載", async () => {
+    const s = seed(co, "downloading");
     s.running = true;
     s.activeId = "legacy";
-    s.items[0].tabId = 42;
-    const f = fixture(s);
-    let currentUrl = cloud;
-    const updates: unknown[] = [];
-    f.ports.tabs.get = async (id) => ({ id, url: currentUrl });
-    f.ports.tabs.update = async (_id, props) => {
-      updates.push(props);
-      if (props.url) currentUrl = props.url;
+    s.items[0].downloadId = 77;
+    s.items[0].action = {
+      id: "sent",
+      kind: "download",
+      at: 10,
+      expectedUrl: "https://s5003.katfile.cloud:183/d/unchanged/file.rar",
     };
-    await f.engine.command({ kind: "focus", id: "legacy" });
-    expect(updates).toEqual([{ url: co, active: true }]);
-    expect(f.actions).toHaveLength(0);
-    await f.engine.handleRequest(
-      {
-        type: "QC_PAGE",
-        observation: {
-          kind: "waiting",
-          pageUrl: co,
-          waitSeconds: 120,
-        },
-      },
-      42,
-    );
-    expect(f.state!.items[0].status).toBe("waiting");
+    const originalAction = structuredClone(s.items[0].action);
+    const f = fixture(s);
+    f.downloads.push({
+      id: 77,
+      url: originalAction!.expectedUrl!,
+      state: "in_progress",
+      bytesReceived: 1234,
+      totalBytes: 5678,
+      paused: false,
+      canResume: true,
+      danger: "safe",
+      byExtensionId: "test",
+      startTime: new Date(1_800_000_000_000).toISOString(),
+    });
+
+    await f.engine.onStartup();
+
+    expect(f.state!.items[0]).toMatchObject({
+      sourceUrl: com,
+      status: "downloading",
+      downloadId: 77,
+      action: originalAction,
+    });
+    expect(f.downloads).toHaveLength(1);
+    expect(f.created).toHaveLength(0);
   });
+  it.each(oldOrigins)(
+    "blocked 的 %s 舊工作頁按前往後只導航至 com，再接回倒數",
+    async (sourceUrl) => {
+      const s = seed(sourceUrl, "blocked");
+      s.running = true;
+      s.activeId = "legacy";
+      const f = fixture(s);
+      let currentUrl = sourceUrl;
+      const updates: unknown[] = [];
+      f.ports.tabs.get = async (id) => ({ id, url: currentUrl });
+      f.ports.tabs.update = async (_id, props) => {
+        updates.push(props);
+        if (props.url) currentUrl = props.url;
+      };
+      await f.engine.command({ kind: "focus", id: "legacy" });
+      expect(updates).toEqual([{ url: com, active: true }]);
+      expect(f.actions).toHaveLength(0);
+      expect(f.downloads).toHaveLength(0);
+      await f.engine.handleRequest(
+        {
+          type: "QC_PAGE",
+          observation: {
+            kind: "waiting",
+            pageUrl: com,
+            waitSeconds: 120,
+          },
+        },
+        42,
+      );
+      expect(f.state!.items[0].status).toBe("waiting");
+    },
+  );
 });
 
 describe("前往工作分頁時自動接回來源觀察", () => {
@@ -290,6 +371,24 @@ describe("前往工作分頁時自動接回來源觀察", () => {
     await f.engine.onTabRemoved(f.state!.items[0].tabId!);
     return f;
   }
+  it("背景重啟時保留其他來源自行轉址的 co 工作頁，避免轉址循環", async () => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1] });
+    await f.engine.command({ kind: "start" });
+    const updates: unknown[] = [];
+    f.ports.tabs.get = async (id) => ({
+      id,
+      url: url1.replace("katfile.biz", "katfile.co"),
+    });
+    f.ports.tabs.update = async (_id, props) => {
+      updates.push(props);
+    };
+    await f.engine.onStartup();
+    expect(updates).toEqual([]);
+    expect(f.actions).toContainEqual({ type: "QC_OBSERVE" });
+    expect(f.state!.items[0].sourceUrl).toBe(url1);
+    expect(f.downloads).toHaveLength(0);
+  });
   it("重新使用同一檔案的現有分頁，直接接回網站倒數", async () => {
     const f = await disconnected();
     const item = f.state!.items[0];
@@ -1579,6 +1678,47 @@ describe("QueueEngine", () => {
     expect(f.downloads.filter((d) => d.byExtensionId === "test")).toHaveLength(
       1,
     );
+  });
+
+  it.each([
+    { name: "不可續傳的網路中斷", error: "NETWORK_TIMEOUT", canResume: false, retry: true },
+    { name: "可續傳的網路中斷", error: "NETWORK_TIMEOUT", canResume: true, retry: false },
+    { name: "使用者取消", error: "USER_CANCELED", canResume: false, retry: false },
+  ])("自動重試前核對 Chrome 傳輸結果：$name", async ({ error, canResume, retry }) => {
+    const f = fixture();
+    await f.engine.command({ kind: "add", urls: [url1] });
+    await f.engine.command({ kind: "start" });
+    const item = f.state!.items[0];
+    await f.engine.handleRequest(
+      {
+        type: "QC_PAGE",
+        observation: {
+          kind: "ready",
+          pageUrl: item.sourceUrl,
+          finalUrl: "https://katfile.com/get/file",
+        },
+      },
+      item.tabId,
+    );
+    Object.assign(f.downloads[0], { state: "interrupted", canResume, error });
+    await f.engine.onDownloadChanged({ id: 77, state: { current: "interrupted" } });
+    if (retry) {
+      expect(f.state!.items[0]).toMatchObject({ status: "queued", autoRetried: true });
+      expect(f.state!.items[0].downloadId).toBeUndefined();
+      expect(f.state!.cycleNotifiedAt).toBeUndefined();
+      expect(f.created).toHaveLength(1);
+      f.setNow(f.state!.hostNotBefore! + 1);
+      await new QueueEngine(f.ports).onStartup();
+      expect(f.created).toEqual([url1, url1]);
+    } else {
+      expect(f.state!.items[0]).toMatchObject({
+        status: canResume ? "blocked" : "failed",
+        downloadId: 77,
+      });
+      expect(f.state!.items[0].autoRetried).toBeUndefined();
+      expect(f.created).toHaveLength(1);
+    }
+    expect(f.downloads).toHaveLength(1);
   });
 
   it("blocks only preparing tabs when their source tab closes", async () => {

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { bundledLicenses } from "./copy-bundled-licenses.mjs";
 import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
@@ -14,6 +15,7 @@ assert.deepEqual(manifest.permissions, [
   "nativeMessaging",
   "offscreen",
   "declarativeNetRequestWithHostAccess",
+  "scripting",
 ]);
 assert.deepEqual(manifest.host_permissions, [
   "https://katfile.com/*",
@@ -26,6 +28,17 @@ assert.deepEqual(manifest.host_permissions, [
   "https://ltn.gold-usergeneratedcontent.net/*",
   "https://w1.gold-usergeneratedcontent.net/*",
   "https://w2.gold-usergeneratedcontent.net/*",
+  "https://e-hentai.org/*",
+  "https://*.hath.network/*",
+  "https://*.hentaifox.com/*",
+  "https://j.gold-usergeneratedcontent.net/*",
+  "https://w.gold-usergeneratedcontent.net/*",
+  "https://g.gold-usergeneratedcontent.net/*",
+  "https://danbooru.donmai.us/*",
+  "https://cdn.donmai.us/*",
+  "https://*.gelbooru.com/*",
+  "https://www.zerochan.net/*",
+  "https://static.zerochan.net/*",
 ]);
 assert.deepEqual(manifest.content_scripts[0].matches, ["https://*/*"]);
 assert.deepEqual(manifest.content_scripts[0].include_globs, [
@@ -47,6 +60,14 @@ for (const file of files)
     (await readFile(`${output}/${file}`)).length > 0,
     `Missing ${file}`,
   );
+for await (const license of bundledLicenses()) {
+  const packaged = await readFile(`${output}/${license.path}`);
+  assert.deepEqual(
+    packaged,
+    license.bytes,
+    `${license.path} must match its original LICENSE file`,
+  );
+}
 const assets = {};
 for (const state of ["sleep", "work", "verify", "confused", "happy"]) {
   const path = `${output}/assets/cat-${state}-v3.png`;

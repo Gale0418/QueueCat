@@ -1146,11 +1146,11 @@ try {
       await popup.setViewportSize({ width: 380, height: 420 });
       await popup.goto(`${origin}/popup.html`);
       await popup.locator('#current[data-status="blocked"]').waitFor();
-      const dimensions = await popup.evaluate(() => ({
-        width: document.documentElement.clientWidth,
-        scrollWidth: document.documentElement.scrollWidth,
-        height: document.documentElement.clientHeight,
-        scrollHeight: document.documentElement.scrollHeight,
+      const dimensions = await popup.locator(".popup-body").evaluate((body) => ({
+        width: body.clientWidth,
+        scrollWidth: body.scrollWidth,
+        height: body.clientHeight,
+        scrollHeight: body.scrollHeight,
       }));
       assert.ok(dimensions.scrollHeight > dimensions.height);
       assert.ok(dimensions.scrollWidth <= dimensions.width);
@@ -1212,9 +1212,13 @@ try {
       await popup.locator('#current[data-status="downloading"]').waitFor();
       const footer = await popup.locator(".popup-footer").boundingBox();
       assert.ok(footer && footer.y >= 0 && footer.y + footer.height <= 580);
-      const card = await popup.locator("#current").boundingBox();
-      const summary = await popup.locator("#popup-summary").boundingBox();
-      assert.ok(card && summary && card.y + card.height <= summary.y);
+      assert.equal(await popup.locator('[data-action="import-ehentai"]').isVisible(), false);
+      const scrollArea = await popup.locator(".popup-body").boundingBox();
+      assert.ok(scrollArea && scrollArea.y + scrollArea.height <= footer.y + 1);
+      const downloadAction = popup.locator('#current [data-action="downloads"]');
+      await downloadAction.scrollIntoViewIfNeeded();
+      await downloadAction.click({ trial: true });
+      assert.deepEqual(await popup.locator(".popup-footer").boundingBox(), footer);
       assert.equal(
         await popup.locator("#current progress").getAttribute("value"),
         "25",

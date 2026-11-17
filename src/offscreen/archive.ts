@@ -1,9 +1,12 @@
 import { BlobReader, ZipWriter } from "@zip.js/zip.js/lib/zip-core-native.js";
 import {
+  fetchGalleryMedia,
   fetchGalleryWebp,
   isSafeGalleryImageUrl,
   MAX_GALLERY_IMAGE_BYTES,
 } from "../background/gallery-transport";
+import { galleryArchiveFilenames } from "../shared/gallery-filenames";
+import { isGalleryMediaUrl, type GallerySite } from "../shared/gallery-sources";
 
 export const MAX_GALLERY_PAGES = 2_000;
 export const MAX_GALLERY_ARCHIVE_BYTES = 2 * 1024 * 1024 * 1024;
@@ -19,12 +22,14 @@ export interface ArchiveStageInput {
   index: number;
   hash: string;
   url: string;
+  site?: GallerySite;
 }
 export interface ArchivePackInput {
   key: string;
   fingerprint: string;
   total: number;
   hashes: string[];
+  names: string[];
 }
 export interface ArchiveFileHandle {
   getFile(): Promise<File>;
@@ -49,31 +54,65 @@ type ReceiptEntry = {
   size: number;
   contentSHA: string;
   sourceHash: string;
+  extension?: string;
 };
 type Receipt = {
   version: 1;
   fingerprint: string;
   total: number;
   entries: ReceiptEntry[];
-  ready?: { size: number; hashes: string[] };
+  ready?: { size: number; hashes: string[]; names?: string[] };
 };
 
 function fail(code: string): never {
   throw new Error(code);
 }
-async function isWebp(blob: Blob): Promise<boolean> {
-  if (blob.size < 12 || blob.type.toLowerCase() !== "image/webp") return false;
+async function imageExtension(
+  blob: Blob,
+  site: GallerySite,
+): Promise<string | undefined> {
+  const type = blob.type.split(";", 1)[0].trim().toLowerCase();
+  const extensionByType: Record<string, string> = {
+    "image/webp": ".webp",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/avif": ".avif",
+  };
+  const extension = extensionByType[type];
+  if (!extension || (site === "hitomi" && extension !== ".webp"))
+    return undefined;
+  if (blob.size < 12) return undefined;
   const bytes = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
-  return (
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  );
+  const valid =
+    extension === ".webp"
+      ? bytes[0] === 0x52 &&
+        bytes[1] === 0x49 &&
+        bytes[2] === 0x46 &&
+        bytes[3] === 0x46 &&
+        bytes[8] === 0x57 &&
+        bytes[9] === 0x45 &&
+        bytes[10] === 0x42 &&
+        bytes[11] === 0x50
+      : extension === ".jpg"
+        ? bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+        : extension === ".png"
+          ? bytes[0] === 0x89 &&
+            bytes[1] === 0x50 &&
+            bytes[2] === 0x4e &&
+            bytes[3] === 0x47 &&
+            bytes[4] === 0x0d &&
+            bytes[5] === 0x0a &&
+            bytes[6] === 0x1a &&
+            bytes[7] === 0x0a
+          : extension === ".gif"
+            ? String.fromCharCode(...bytes.slice(0, 6)) === "GIF87a" ||
+              String.fromCharCode(...bytes.slice(0, 6)) === "GIF89a"
+            : String.fromCharCode(...bytes.slice(4, 8)) === "ftyp" &&
+              ["avif", "avis"].includes(
+                String.fromCharCode(...bytes.slice(8, 12)),
+              );
+  return valid ? extension : undefined;
 }
 function validateIdentity(
   key: string,
@@ -125,7 +164,13 @@ async function loadReceipt(
           receipt.ready.size > MAX_GALLERY_ARCHIVE_BYTES ||
           !Array.isArray(receipt.ready.hashes) ||
           receipt.ready.hashes.length !== total ||
-          receipt.ready.hashes.some((hash) => !HASH.test(hash)))) ||
+          receipt.ready.hashes.some((hash) => !HASH.test(hash)) ||
+          (receipt.ready.names !== undefined &&
+            (!Array.isArray(receipt.ready.names) ||
+              receipt.ready.names.length !== total ||
+              receipt.ready.names.some(
+                (name) => typeof name !== "string",
+              ))))) ||
       receipt.entries.some(
         (entry, index) =>
           entry.index !== index ||
@@ -133,7 +178,9 @@ async function loadReceipt(
           entry.size < 1 ||
           entry.size > MAX_GALLERY_IMAGE_BYTES ||
           !HASH.test(entry.contentSHA) ||
-          !HASH.test(entry.sourceHash),
+          !HASH.test(entry.sourceHash) ||
+          (entry.extension !== undefined &&
+            !/^\.(?:webp|jpe?g|png|gif|avif)$/i.test(entry.extension)),
       )
     )
       fail("gallery_archive_receipt_mismatch");
@@ -153,7 +200,7 @@ async function readVerifiedPage(
 ): Promise<File> {
   try {
     const file = await (
-      await dir.getFileHandle(`page-${index}.webp`)
+      await dir.getFileHandle(`page-${index}${entry.extension || ".webp"}`)
     ).getFile();
     if (file.size !== entry.size || (await digest(file)) !== entry.contentSHA)
       fail("gallery_archive_receipt_mismatch");
@@ -186,7 +233,10 @@ async function persistReceipt(
 
 export function createArchiveManager(
   storage: ArchiveStorage,
-  fetcher: (url: string) => Promise<Blob> = (url) => fetchGalleryWebp(url),
+  fetcher: (url: string, site?: GallerySite) => Promise<Blob> = (url, site) =>
+    site === undefined || site === "hitomi"
+      ? fetchGalleryWebp(url)
+      : fetchGalleryMedia(site, url),
 ) {
   const inFlight = new Map<string, Promise<unknown>>();
   const tails = new Map<string, Promise<void>>();
@@ -232,13 +282,16 @@ export function createArchiveManager(
         `${input.key}:stage:${JSON.stringify(input)}`,
         async () => {
           validateIdentity(input.key, input.fingerprint, input.total);
+          const site = input.site ?? "hitomi";
           if (
             !Number.isInteger(input.index) ||
             input.index < 0 ||
             input.index >= input.total ||
             !HASH.test(input.hash) ||
-            !isSafeGalleryImageUrl(input.url) ||
-            !input.url.endsWith(`/${input.hash.toLowerCase()}.webp`)
+            !(site === "hitomi"
+              ? isSafeGalleryImageUrl(input.url) &&
+                input.url.endsWith(`/${input.hash.toLowerCase()}.webp`)
+              : isGalleryMediaUrl(site, input.url))
           )
             fail("gallery_archive_limit");
           let dir: ArchiveDirectoryHandle;
@@ -259,7 +312,9 @@ export function createArchiveManager(
               fail("gallery_archive_receipt_mismatch");
             try {
               const page = await (
-                await dir!.getFileHandle(`page-${input.index}.webp`)
+                await dir!.getFileHandle(
+                  `page-${input.index}${prior.extension || ".webp"}`,
+                )
               ).getFile();
               if (
                 page.size !== prior.size ||
@@ -281,8 +336,9 @@ export function createArchiveManager(
           }
           if (input.index !== receipt.entries.length)
             fail("gallery_archive_stage_missing");
-          const blob = await fetcher(input.url);
-          if (blob.size > MAX_GALLERY_IMAGE_BYTES || !(await isWebp(blob)))
+          const blob = await fetcher(input.url, site);
+          const extension = await imageExtension(blob, site);
+          if (blob.size > MAX_GALLERY_IMAGE_BYTES || extension === undefined)
             fail("gallery_archive_failed");
           const stagedBytes = receipt.entries.reduce(
             (n, entry) => n + entry.size,
@@ -293,7 +349,7 @@ export function createArchiveManager(
           const contentSHA = await digest(blob);
           try {
             await writeBlob(
-              await dir!.getFileHandle(`page-${input.index}.webp`, {
+              await dir!.getFileHandle(`page-${input.index}${extension}`, {
                 create: true,
               }),
               blob,
@@ -306,6 +362,7 @@ export function createArchiveManager(
             size: blob.size,
             contentSHA,
             sourceHash,
+            extension,
           });
           await persistReceipt(dir!, receipt);
           return {
@@ -324,7 +381,16 @@ export function createArchiveManager(
           if (
             !Array.isArray(input.hashes) ||
             input.hashes.length !== input.total ||
-            input.hashes.some((hash) => !HASH.test(hash))
+            input.hashes.some((hash) => !HASH.test(hash)) ||
+            !Array.isArray(input.names) ||
+            input.names.length !== input.total ||
+            input.names.some(
+              (name) =>
+                typeof name !== "string" ||
+                !name.trim() ||
+                name.length > 512 ||
+                /[\0\r\n]/.test(name),
+            )
           )
             fail("gallery_archive_limit");
           const dir = await itemDir(input.key, false).catch(() =>
@@ -340,6 +406,10 @@ export function createArchiveManager(
           const normalizedHashes = input.hashes.map((hash) =>
             hash.toLowerCase(),
           );
+          const extensions = receipt.entries.map(
+            (entry) => entry.extension || ".webp",
+          );
+          const names = galleryArchiveFilenames(input.names, extensions);
           let bytes = 0;
           for (let i = 0; i < input.total; i++) {
             const entry = receipt.entries[i];
@@ -350,7 +420,8 @@ export function createArchiveManager(
           }
           if (
             receipt.ready &&
-            receipt.ready.hashes.join() === normalizedHashes.join()
+            receipt.ready.hashes.join() === normalizedHashes.join() &&
+            JSON.stringify(receipt.ready.names) === JSON.stringify(names)
           ) {
             const existingUrl = urls.get(input.key);
             if (existingUrl)
@@ -370,11 +441,11 @@ export function createArchiveManager(
           try {
             for (let i = 0; i < input.total; i++) {
               const page = await readVerifiedPage(dir, i, receipt.entries[i]);
-              await writer.add(
-                `${String(i + 1).padStart(4, "0")}.webp`,
-                new BlobReader(page),
-                { level: 0, useWebWorkers: false, compressionMethod: 0 },
-              );
+              await writer.add(names[i], new BlobReader(page), {
+                level: 0,
+                useWebWorkers: false,
+                compressionMethod: 0,
+              });
             }
             await writer.close();
           } catch (error) {
@@ -396,7 +467,11 @@ export function createArchiveManager(
               part,
             );
             await dir.removeEntry("gallery.zip.part");
-            receipt.ready = { size: part.size, hashes: normalizedHashes };
+            receipt.ready = {
+              size: part.size,
+              hashes: normalizedHashes,
+              names,
+            };
             await persistReceipt(dir, receipt);
           } catch {
             fail("gallery_archive_quota");
@@ -407,6 +482,8 @@ export function createArchiveManager(
           const url = URL.createObjectURL(
             new Blob([completed], { type: "application/zip" }),
           );
+          const previousUrl = urls.get(input.key);
+          if (previousUrl) URL.revokeObjectURL(previousUrl);
           urls.set(input.key, url);
           return { url, bytes: completed.size };
         },

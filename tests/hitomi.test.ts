@@ -168,14 +168,10 @@ describe("Hitomi metadata 與圖片路由轉接", () => {
     delete (globalThis as Record<string, unknown>)[globalName];
   });
 
-  it("拒絕 metadata 不一致、重複或格式錯誤的 hash", async () => {
+  it("拒絕 metadata 不一致或格式錯誤的 hash", async () => {
     for (const body of [
       metadataWithoutId(),
       metadata("43"),
-      metadata("42", [
-        { hash: HASH_ROUTED_TO_ONE, name: "a" },
-        { hash: HASH_ROUTED_TO_ONE.toUpperCase(), name: "b" },
-      ]),
       metadata("42", [{ hash: "https://attacker.invalid/image", name: "a" }]),
       metadata("42", [{ hash: HASH_ROUTED_TO_ONE, name: "bad\0name" }]),
       metadata("42", [{ hash: HASH_ROUTED_TO_ONE, name: "bad\rname" }]),
@@ -186,6 +182,25 @@ describe("Hitomi metadata 與圖片路由轉接", () => {
         createHitomiClient(fetcher).load("42"),
       ).rejects.toBeInstanceOf(HitomiClientError);
     }
+  });
+
+  it("保留重複 hash 的每個頁面及原始順序", async () => {
+    const files = [
+      { hash: HASH_ROUTED_TO_ONE, name: "first.webp" },
+      { hash: HASH_ROUTED_TO_ONE.toUpperCase(), name: "duplicate.webp" },
+      { hash: HASH_ROUTED_TO_TWO, name: "last.webp" },
+    ];
+    const { fetcher } = fetchSequence([response(metadata("42", files))]);
+
+    await expect(createHitomiClient(fetcher).load("42")).resolves.toEqual({
+      id: "42",
+      title: "Example gallery",
+      images: [
+        { hash: HASH_ROUTED_TO_ONE, name: "first.webp" },
+        { hash: HASH_ROUTED_TO_ONE, name: "duplicate.webp" },
+        { hash: HASH_ROUTED_TO_TWO, name: "last.webp" },
+      ],
+    });
   });
 
   it("拒絕超大回應與可疑 GG 程式碼", async () => {

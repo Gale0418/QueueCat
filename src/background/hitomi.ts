@@ -120,7 +120,6 @@ function parseMetadata(source: string, requestedId: string): GalleryManifest {
     );
   }
 
-  const seenHashes = new Set<string>();
   const images: GalleryImage[] = raw.files.map((file: unknown) => {
     if (!isRecord(file))
       return invalidMetadata("Gallery file entry must be an object.");
@@ -130,9 +129,6 @@ function parseMetadata(source: string, requestedId: string): GalleryManifest {
       );
     }
     const hash = file.hash.toLowerCase();
-    if (seenHashes.has(hash))
-      return invalidMetadata("Gallery contains a duplicate image hash.");
-    seenHashes.add(hash);
     if (
       typeof file.name !== "string" ||
       !file.name.trim() ||
@@ -143,7 +139,7 @@ function parseMetadata(source: string, requestedId: string): GalleryManifest {
         "Gallery file name is empty, too long, or contains a forbidden control character.",
       );
     }
-    // Name is retained only as metadata. It is never interpolated into a URL or path.
+    // Keep the source name for ZIP entries; the packer sanitizes it before use.
     return { hash, name: file.name };
   });
 

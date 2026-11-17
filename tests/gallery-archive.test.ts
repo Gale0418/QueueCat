@@ -106,9 +106,89 @@ function setup(
 }
 
 describe("ZIP 私有圖庫封裝", () => {
-  it("以真實 STORE ZIP 保留頁面順序、內容與可重用結果", async () => {
+  it("ZIP 新來源的常見影像格式並保留已驗證副檔名", async () => {
+    const formats = [
+      {
+        extension: "jpg",
+        mime: "image/jpeg",
+        bytes: [0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1],
+      },
+      {
+        extension: "png",
+        mime: "image/png",
+        bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0],
+      },
+      {
+        extension: "gif",
+        mime: "image/gif",
+        bytes: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0, 0, 0, 0, 0, 0],
+      },
+      {
+        extension: "avif",
+        mime: "image/avif",
+        bytes: [0, 0, 0, 0, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66],
+      },
+    ];
+    const root = new MemoryDirectory();
+    const manager = createArchiveManager(
+      { getDirectory: async () => root } as ArchiveStorage,
+      async (url, site) => {
+        expect(site).toBe("hentaifox");
+        const format = formats.find((candidate) =>
+          url.endsWith(`.${candidate.extension}`),
+        );
+        if (!format) throw new Error("unexpected image URL");
+        return new Blob([new Uint8Array(format.bytes)], { type: format.mime });
+      },
+    );
+    const common = {
+      key,
+      fingerprint,
+      total: formats.length,
+      site: "hentaifox" as const,
+    };
+    const hashes = formats.map((_, index) => String(index + 1).repeat(64));
+    for (let index = 0; index < formats.length; index++) {
+      const format = formats[index];
+      await manager.stagePage({
+        ...common,
+        index,
+        hash: hashes[index],
+        url: `https://i3.hentaifox.com/5/42/${index + 1}.${format.extension}`,
+      });
+    }
+    const result = await manager.pack({
+      ...common,
+      hashes,
+      names: formats.map(
+        (format, index) => `page-${index}.${format.extension}`,
+      ),
+    });
+    const reader = new ZipReader(
+      new BlobReader(await (await fetch(result.url)).blob()),
+    );
+    try {
+      const entries = await reader.getEntries();
+      expect(entries.map((entry) => entry.filename)).toEqual([
+        "page-0.jpg",
+        "page-1.png",
+        "page-2.gif",
+        "page-3.avif",
+      ]);
+    } finally {
+      await reader.close();
+      await manager.cleanup(key);
+    }
+  });
+
+  it("以真實 STORE ZIP 保留原始編號、頁面順序、內容與可重用結果", async () => {
     const { manager } = setup();
-    const common = { key, fingerprint, total: 2 };
+    const common = {
+      key,
+      fingerprint,
+      total: 2,
+      names: ["game_007.jpg", "0042.png"],
+    };
     await manager.stagePage({ ...common, index: 0, hash: hashA, url: urlA });
     await manager.stagePage({ ...common, index: 1, hash: hashB, url: urlB });
     const result = await manager.pack({ ...common, hashes: [hashA, hashB] });
@@ -120,8 +200,8 @@ describe("ZIP 私有圖庫封裝", () => {
     try {
       const entries = await reader.getEntries();
       expect(entries.map((entry) => entry.filename)).toEqual([
-        "0001.webp",
-        "0002.webp",
+        "game_007.webp",
+        "0042.webp",
       ]);
       if (!("getData" in entries[0]) || !("getData" in entries[1]))
         throw new Error("expected file entries");
@@ -145,6 +225,39 @@ describe("ZIP 私有圖庫封裝", () => {
     expect(manager.idle).toBe(true);
   });
 
+  it("相同 hash 仍按頁索引封裝成兩個獨立 ZIP 頁面", async () => {
+    const { manager } = setup();
+    const common = {
+      key,
+      fingerprint,
+      total: 2,
+      names: ["cg_012.jpg", "cg_012.png"],
+    };
+    await manager.stagePage({ ...common, index: 0, hash: hashA, url: urlA });
+    await manager.stagePage({ ...common, index: 1, hash: hashA, url: urlA });
+    const result = await manager.pack({ ...common, hashes: [hashA, hashA] });
+    const zipBlob = await (await fetch(result.url)).blob();
+    const reader = new ZipReader(new BlobReader(zipBlob), { checkCrc32: true });
+    try {
+      const entries = await reader.getEntries();
+      expect(entries.map((entry) => entry.filename)).toEqual([
+        "cg_012.webp",
+        "cg_012 (2).webp",
+      ]);
+      for (const entry of entries) {
+        if (!("getData" in entry)) throw new Error("expected file entries");
+        expect([
+          ...new Uint8Array(
+            await (await entry.getData(new BlobWriter())).arrayBuffer(),
+          ),
+        ]).toEqual([...new Uint8Array(await webp(1).arrayBuffer())]);
+      }
+    } finally {
+      await reader.close();
+    }
+    await manager.cleanup(key);
+  });
+
   it("拒絕超前索引與不一致 receipt，重送已提交頁面不會重抓", async () => {
     const { manager, fetcher } = setup();
     const common = { key, fingerprint, total: 2 };
@@ -157,6 +270,57 @@ describe("ZIP 私有圖庫封裝", () => {
     await expect(
       manager.stagePage({ ...common, index: 0, hash: hashB, url: urlB }),
     ).rejects.toThrow("gallery_archive_receipt_mismatch");
+  });
+
+  it("檔名變更或舊版 ready receipt 缺少檔名時，沿用暫存重新封裝", async () => {
+    const { manager, root, fetcher } = setup();
+    const common = { key, fingerprint, total: 1, hashes: [hashA] };
+    await manager.stagePage({ ...common, index: 0, hash: hashA, url: urlA });
+    const first = await manager.pack({ ...common, names: ["old.jpg"] });
+    const renamed = await manager.pack({ ...common, names: ["game_042.png"] });
+    expect(renamed.url).not.toBe(first.url);
+    const item = (await (
+      await root.getDirectoryHandle("queuecat-archives")
+    ).getDirectoryHandle(key)) as MemoryDirectory;
+    const receipt = JSON.parse(
+      new TextDecoder().decode(item.files.get("receipt.json")),
+    );
+    delete receipt.ready.names;
+    item.files.set(
+      "receipt.json",
+      new TextEncoder().encode(JSON.stringify(receipt)),
+    );
+    const repacked = await manager.pack({ ...common, names: ["game_042.png"] });
+    expect(repacked.url).not.toBe(renamed.url);
+    const reader = new ZipReader(
+      new BlobReader(await (await fetch(repacked.url)).blob()),
+    );
+    try {
+      expect(
+        (await reader.getEntries()).map((entry) => entry.filename),
+      ).toEqual(["game_042.webp"]);
+    } finally {
+      await reader.close();
+    }
+    expect(fetcher).toHaveBeenCalledOnce();
+    await manager.cleanup(key);
+    expect(manager.idle).toBe(true);
+  });
+
+  it("拒絕缺頁、多頁或無效的檔名清單，不建立封裝檔", async () => {
+    const { manager, root } = setup();
+    for (const names of [
+      [],
+      ["a.jpg", "b.jpg"],
+      [""],
+      ["a\n.jpg"],
+      ["x".repeat(513)],
+    ]) {
+      await expect(
+        manager.pack({ key, fingerprint, total: 1, hashes: [hashA], names }),
+      ).rejects.toThrow("gallery_archive_limit");
+    }
+    expect(root.dirs.size).toBe(0);
   });
 
   it("quota 會明確失敗，半寫 receipt 可安全重試", async () => {
@@ -266,7 +430,13 @@ describe("ZIP 私有圖庫封裝", () => {
       url: urlA,
     });
     await expect(
-      manager.pack({ key, fingerprint, total: 1, hashes: [hashB] }),
+      manager.pack({
+        key,
+        fingerprint,
+        total: 1,
+        hashes: [hashB],
+        names: ["cg_007.jpg"],
+      }),
     ).rejects.toThrow("gallery_archive_receipt_mismatch");
     const item = await (
       await root.getDirectoryHandle("queuecat-archives")
@@ -289,7 +459,13 @@ describe("ZIP 私有圖庫封裝", () => {
     item.files.delete("page-0.webp");
 
     await expect(
-      manager.pack({ key, fingerprint, total: 1, hashes: [hashA] }),
+      manager.pack({
+        key,
+        fingerprint,
+        total: 1,
+        hashes: [hashA],
+        names: ["cg_007.jpg"],
+      }),
     ).rejects.toThrow("gallery_archive_receipt_mismatch");
   });
 });

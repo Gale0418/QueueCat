@@ -197,6 +197,20 @@ function handoffState(at: number, expectedUrl: string): AppState {
 }
 
 describe("Hitomi 圖庫佇列引擎", () => {
+  it("保留 nhentai 官方作品入口，讓其他圖庫正常排隊", async () => {
+    const f = fixture();
+    const manualUrl = "https://nhentai.net/g/123/";
+    const added = await f.engine.command({ kind: "add", urls: [manualUrl, source] });
+    const manual = added.items.find((item) => item.sourceUrl === manualUrl)!;
+    expect(manual).toMatchObject({ status: "blocked", reason: "gallery_manual_archive" });
+    expect(f.openedTabs).toEqual([]);
+
+    await f.engine.command({ kind: "focus", id: manual.id });
+    expect(f.openedTabs).toEqual([manualUrl]);
+    await f.engine.command({ kind: "start" });
+    expect(f.manifestLoads).toBe(1);
+    expect(f.state?.items.find((item) => item.id === f.state?.activeId)?.sourceUrl).toBe(source);
+  });
   const blob =
     "blob:chrome-extension://queuecat-test/12345678-1234-1234-1234-123456789abc";
   it("persists the source and exact owned Blob before Chrome handoff, then releases after completion", async () => {
@@ -352,6 +366,31 @@ describe("Hitomi 圖庫佇列引擎", () => {
     expect(f.shown).toEqual([f.downloads[1].id]);
   });
 
+  it("accepts repeated hashes and downloads each page at its own index", async () => {
+    const f = fixture();
+    const repeatedHash = baseManifest.images[0].hash;
+    f.setManifest({
+      ...baseManifest,
+      images: [
+        { hash: repeatedHash, name: "first.webp" },
+        { hash: repeatedHash, name: "duplicate.webp" },
+        baseManifest.images[1],
+      ],
+    });
+    await addAndStart(f);
+
+    expect(f.state?.items[0].gallery).toMatchObject({ total: 3, completed: 0 });
+    expect(f.options[0].filename).toContain("/0001.webp");
+    await complete(f, 0);
+    expect(f.options).toHaveLength(2);
+    expect(f.options[1].filename).toContain("/0002.webp");
+    expect(f.state?.items[0].gallery).toMatchObject({ total: 3, completed: 1 });
+    await complete(f, 1);
+    expect(f.options).toHaveLength(3);
+    expect(f.options[2].filename).toContain("/0003.webp");
+    expect(f.state?.items[0].gallery).toMatchObject({ total: 3, completed: 2 });
+  });
+
   it("pause lets the active image finish and resumes at the first incomplete image", async () => {
     const f = fixture();
     await addAndStart(f);
@@ -451,7 +490,7 @@ describe("Hitomi 圖庫佇列引擎", () => {
     expect(f.options).toHaveLength(0);
   });
 
-  it("retries a failed page from the saved cursor without downloading the completed prefix again", async () => {
+  it("automatically retries a failed page from the saved cursor without downloading the completed prefix again", async () => {
     const f = fixture();
     await addAndStart(f);
     await complete(f, 0);
@@ -466,11 +505,10 @@ describe("Hitomi 圖庫佇列引擎", () => {
     });
 
     expect(f.state?.items[0]).toMatchObject({
-      status: "failed",
+      status: "downloading",
+      autoRetried: true,
       gallery: { completed: 1 },
     });
-    await f.engine.command({ kind: "retry", id: f.state!.items[0].id });
-    await f.engine.command({ kind: "start" });
     expect(f.options).toHaveLength(3);
     expect(f.options[2].filename).toContain("/0002.webp");
     expect(f.state?.items[0].gallery?.completed).toBe(1);

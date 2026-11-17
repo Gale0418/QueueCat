@@ -1,3 +1,5 @@
+import { parseGallerySource } from "./gallery-sources";
+
 // 接受 katfile.<任意單一網域尾碼>；不宣稱該網域由 Katfile 擁有。
 const KATFILE_DOMAIN = /^katfile\.[a-z](?:[a-z0-9-]{0,61}[a-z0-9])$/i;
 export function isKatfileSourceHost(hostname: string): boolean {
@@ -8,29 +10,12 @@ export function isKatfileHost(hostname: string): boolean {
   return KATFILE_DOMAIN.test(hostname.split(".").slice(-2).join("."));
 }
 export function hitomiGalleryId(raw: string): string | undefined {
-  try {
-    const url = new URL(raw);
-    if (
-      !["http:", "https:"].includes(url.protocol) ||
-      !["hitomi.la", "www.hitomi.la"].includes(url.hostname) ||
-      url.username ||
-      url.password ||
-      url.port
-    )
-      return undefined;
-    const match =
-      /^\/(?:reader|galleries)\/([1-9]\d{0,9})\.html$/.exec(url.pathname) ||
-      /^\/(?:doujinshi|manga|cg|gamecg|artistcg|anime|imageset)\/[^/]+-([1-9]\d{0,9})\.html$/.exec(
-        url.pathname,
-      );
-    return match?.[1];
-  } catch {
-    return undefined;
-  }
+  const source = parseGallerySource(raw);
+  return source?.site === "hitomi" ? source.id : undefined;
 }
 export function normalizeSource(raw: string): string | null {
-  const galleryId = hitomiGalleryId(raw);
-  if (galleryId) return `https://hitomi.la/galleries/${galleryId}.html`;
+  const gallery = parseGallerySource(raw);
+  if (gallery) return gallery.url;
   try {
     const url = new URL(raw);
     if (
@@ -44,7 +29,8 @@ export function normalizeSource(raw: string): string | null {
     if (!/^\/[a-z0-9]{12}(?:\/[^\s]*)?\/?$/i.test(url.pathname)) return null;
     url.protocol = "https:";
     url.hostname = url.hostname.replace(/^www\./, "");
-    if (url.hostname === "katfile.cloud") url.hostname = "katfile.co";
+    if (["katfile.cloud", "katfile.co"].includes(url.hostname))
+      url.hostname = "katfile.com";
     url.hash = "";
     url.port = "";
     return url.href;
@@ -55,7 +41,14 @@ export function normalizeSource(raw: string): string | null {
 /** 只遷移已知舊來源網域，不改寫 CDN 下載連結或其他站點。 */
 export function migrateLegacyKatfileSource(raw: string): string {
   try {
-    if (!["katfile.cloud", "www.katfile.cloud"].includes(new URL(raw).hostname))
+    if (
+      ![
+        "katfile.cloud",
+        "www.katfile.cloud",
+        "katfile.co",
+        "www.katfile.co",
+      ].includes(new URL(raw).hostname)
+    )
       return raw;
     return normalizeSource(raw) ?? raw;
   } catch {
@@ -63,8 +56,8 @@ export function migrateLegacyKatfileSource(raw: string): string {
   }
 }
 export function sourceKey(raw: string): string {
-  const galleryId = hitomiGalleryId(raw);
-  if (galleryId) return `hitomi:${galleryId}`;
+  const gallery = parseGallerySource(raw);
+  if (gallery) return `${gallery.site}:${gallery.id}`;
   try {
     const url = new URL(raw);
     return (url.pathname.split("/")[1] || "").toLowerCase();

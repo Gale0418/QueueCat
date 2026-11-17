@@ -1,4 +1,5 @@
 import type { AppState, ItemStatus, Mascot, QueueItem } from "../shared/types";
+import { isAutomaticRetryCandidate } from "../shared/automatic-retry";
 import { extractionCopy } from "../shared/extraction-copy";
 import { galleryCopy } from "../shared/gallery-copy";
 import { galleryMessage, galleryPageProgress } from "./gallery";
@@ -90,6 +91,12 @@ export function summary(state: AppState): {
       title: "需要確認下載狀態",
       subtitle: active.reason || "先確認目前狀態，再讓貓貓繼續。",
     };
+  if (active?.status === "verification" && active.ehArchive)
+    return {
+      mascot: "verify",
+      title: "等你確認原圖 ZIP",
+      subtitle: active.reason || "請在 E-Hentai 選擇原圖 ZIP 並確認點數。",
+    };
   if (active?.status === "verification")
     return {
       mascot: "verify",
@@ -97,6 +104,17 @@ export function summary(state: AppState): {
       subtitle: state.running
         ? "在原本的 Katfile 分頁完成驗證，貓貓會接著排。"
         : "排隊已暫停；驗證完成後按「繼續排隊」。",
+    };
+  if (
+    !state.running &&
+    !active &&
+    !state.items.some((item) => item.status === "queued") &&
+    state.items.some(isAutomaticRetryCandidate)
+  )
+    return {
+      mascot: "sleep",
+      title: "有失敗項目可以重試",
+      subtitle: "按「開始排隊」，每筆可重試的項目會再跑一次。",
     };
   if (
     !active &&
@@ -173,7 +191,10 @@ export function summary(state: AppState): {
 export function briefReason(item: QueueItem): string {
   if (item.gallery) return galleryMessage(item) || galleryCopy("album");
   if (item.status === "waiting") return "倒數結束後，會重新確認網站。";
-  if (item.status === "verification") return "請到原分頁完成驗證。";
+  if (item.status === "verification")
+    return item.ehArchive
+      ? item.reason || "請在 E-Hentai 選擇原圖 ZIP 並確認點數。"
+      : "請到原分頁完成驗證。";
   if (item.status === "preparing") return "正在確認網站狀態。";
   if (item.status === "blocked") {
     if (item.reason === "來源分頁已關閉") return "工作分頁追蹤已中斷。";

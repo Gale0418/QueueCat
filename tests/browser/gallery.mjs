@@ -12,7 +12,7 @@ import {
   ZipReader,
 } from "@zip.js/zip.js/lib/zip-core-external.js";
 
-// End-to-end Hitomi gallery checks use only this owned Chromium profile and a
+// End-to-end gallery checks use only this owned Chromium profile and a
 // loopback HTTPS fixture. QueueCat's production extension files are copied as-is.
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -26,6 +26,7 @@ const { values } = parseArgs({
     "browser-cache": {
       type: "string",
     },
+    "browser-executable": { type: "string" },
     extension: {
       type: "string",
       default: path.join(root, "artifacts", "unpacked"),
@@ -57,7 +58,11 @@ const hosts = [
   "ltn.gold-usergeneratedcontent.net",
   "w1.gold-usergeneratedcontent.net",
   "w2.gold-usergeneratedcontent.net",
+  "www.zerochan.net",
+  "static.zerochan.net",
 ];
+const zerochanId = "701";
+const zerochanImage = `https://static.zerochan.net/QueueCat.full.${zerochanId}.jpg`;
 const base = "1792544401/";
 const rootOut = path.join(
   root,
@@ -248,6 +253,7 @@ try {
     })),
   })};`;
   const routing = `'use strict';\ngg = { m: function(g) { var o = 1; switch (g) { case 3312: o = 0; break; } return o; }, s: function(h) { var m = /(..)(.)$/.exec(h); return parseInt(m[2]+m[1], 16).toString(10); }, b: '${base}' };`;
+  const fixtureJpeg = await sharp({ create: { width: 24, height: 24, channels: 3, background: "#f1b66d" } }).jpeg().toBuffer();
   let metadataRequests = 0;
   let routingRequests = 0;
   fixtureServer = https.createServer(tls, (req, res) => {
@@ -256,6 +262,22 @@ try {
       const pathname = new URL(req.url || "/", `https://${host || "hitomi.la"}`)
         .pathname;
       if (req.method !== "GET") return res.writeHead(405).end();
+      if (host === "www.zerochan.net" && pathname === `/${zerochanId}`) {
+        const metadata = JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ImageObject",
+          name: "QueueCat Zerochan fixture",
+          contentUrl: zerochanImage,
+        });
+        return res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" })
+          .end(`<script type="application/ld+json">${metadata}</script>`);
+      }
+      if (host === "static.zerochan.net" && pathname === new URL(zerochanImage).pathname) {
+        if (req.headers.referer !== "https://www.zerochan.net/") {
+          return res.writeHead(403).end("missing source header");
+        }
+        return res.writeHead(200, { "Content-Type": "image/jpeg" }).end(fixtureJpeg);
+      }
       if (
         host === "ltn.gold-usergeneratedcontent.net" &&
         pathname === `/galleries/${galleryId}.js`
@@ -336,6 +358,7 @@ try {
   console.log("Launching owned isolated Chromium profile...");
   context = await chromium.launchPersistentContext(profile, {
     channel: "chromium",
+    executablePath: values["browser-executable"],
     headless: false,
     acceptDownloads: true,
     downloadsPath: downloadsDir,
@@ -715,7 +738,7 @@ try {
         assert.deepEqual(
           archiveEntries.map((entry) => entry.filename),
           imageFiles.map(
-            (_, index) => `${String(index + 1).padStart(4, "0")}.webp`,
+            (_, index) => `fixture-${index + 1}.webp`,
           ),
         );
         for (let index = 0; index < archiveEntries.length; index++) {
@@ -839,6 +862,44 @@ try {
       };
     },
   );
+  await record("Zerochan URL preserves its JPEG bytes through the ZIP queue", async () => {
+    await manager.goto(`${extensionOrigin}/manager.html#add`);
+    await manager.locator("#url-input").fill(`https://www.zerochan.net/${zerochanId}`);
+    await manager.locator("#confirm-add").click();
+    const find = (current) => current.items.find((item) => item.gallery?.id === zerochanId);
+    const added = await eventually(async () => {
+      const item = find(await state());
+      assert.ok(item);
+      assert.equal(item.gallery.output, "zip");
+      return item;
+    }, "add Zerochan through manager UI");
+    if (added.status === "queued" && !(await state()).running) {
+      await manager.locator('#hero-actions [data-action="start"]').click();
+    }
+    const finished = await eventually(async () => {
+      const item = find(await state());
+      if (item.status === "failed" || item.status === "blocked") {
+        throw Object.assign(new Error(item.reason), { fatalCheck: true });
+      }
+      assert.equal(item.status, "complete");
+      return item;
+    }, "finish Zerochan archive");
+    const downloadId = finished.gallery.lastDownloadId;
+    assert.ok(Number.isInteger(downloadId));
+    const [download] = await manager.evaluate((id) => chrome.downloads.search({ id }), downloadId);
+    assert.equal(download.state, "complete");
+    const reader = new ZipReader(new BlobReader(new Blob([await fs.readFile(download.filename)])));
+    try {
+      const [entry, extra] = await reader.getEntries();
+      assert.equal(extra, undefined);
+      assert.match(entry.filename, /^0001.*\.jpg$/);
+      const saved = await entry.getData(new BlobWriter());
+      assert.deepEqual(Buffer.from(await saved.arrayBuffer()), fixtureJpeg);
+      return { entries: 1, originalJpegPreserved: true };
+    } finally {
+      await reader.close();
+    }
+  });
 } catch (error) {
   report.status = "fail";
   report.error = error?.stack || String(error);

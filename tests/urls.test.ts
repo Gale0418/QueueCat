@@ -9,21 +9,29 @@ import {
   sourceKey,
 } from "../src/shared/urls";
 describe("批次網址", () => {
-  it("舊 cloud 來源保留檔案與查詢參數轉為 co，並跨新舊網址去重", () => {
+  it("cloud 與 co 檔案來源（含 www）轉為 com，保留查詢並可重複遷移", () => {
     const cloud =
       "http://www.katfile.cloud/f2zz0o58k8ef/SO-37194.rar.html?download=1#section";
-    const co = "https://katfile.co/f2zz0o58k8ef/SO-37194.rar.html?download=1";
-    expect(normalizeSource(cloud)).toBe(co);
-    expect(migrateLegacyKatfileSource(cloud)).toBe(co);
-    expect(previewUrls(`${cloud}\n${co}`).map((r) => r.status)).toEqual([
+    const co =
+      "https://www.katfile.co/f2zz0o58k8ef/SO-37194.rar.html?download=1#section";
+    const com =
+      "https://katfile.com/f2zz0o58k8ef/SO-37194.rar.html?download=1";
+    for (const legacy of [cloud, co]) {
+      expect(normalizeSource(legacy)).toBe(com);
+      expect(migrateLegacyKatfileSource(legacy)).toBe(com);
+      expect(migrateLegacyKatfileSource(com)).toBe(com);
+    }
+    expect(previewUrls(`${cloud}\n${com}`).map((r) => r.status)).toEqual([
       "valid",
       "duplicate",
     ]);
     for (const untouched of [
       "https://s5003.katfile.cloud:183/d/token/file.rar",
+      "https://cdn.katfile.co/d/token/file.rar",
       "https://katfile.cloud.evil.test/f2zz0o58k8ef",
       "https://u:p@katfile.cloud/f2zz0o58k8ef",
       "https://katfile.cloud/login.html",
+      "https://katfile.co/login.html",
       "https://katfile.biz/f2zz0o58k8ef/file.rar.html",
       "broken",
     ])
@@ -34,8 +42,9 @@ describe("批次網址", () => {
     (suffix) => {
       const host = `katfile.${suffix}`;
       const url = `https://${host}/wfnml3a1oeg6/archive.rar.html`;
-      const expected =
-        suffix === "cloud" ? url.replace(host, "katfile.co") : url;
+      const expected = ["cloud", "co"].includes(suffix)
+        ? url.replace(host, "katfile.com")
+        : url;
       expect(normalizeSource(url)).toBe(expected);
       expect(normalizeSource(url.replace(host, `www.${host}`))).toBe(expected);
       expect(previewUrls(url)[0].status).toBe("valid");
@@ -59,11 +68,12 @@ describe("批次網址", () => {
     expect(isKatfileSourceHost(host)).toBe(false);
     expect(normalizeSource(`https://${host}/wfnml3a1oeg6`)).toBeNull();
   });
-  it("接受 katfile.co 檔案頁與 www 別名，跨網域仍會去重", () => {
+  it("接受 katfile.co 檔案頁與 www 別名並轉為 com，跨網域仍會去重", () => {
     const url = "https://katfile.co/wfnml3a1oeg6/08-1924140.rar.html";
-    expect(normalizeSource(url)).toBe(url);
+    const com = "https://katfile.com/wfnml3a1oeg6/08-1924140.rar.html";
+    expect(normalizeSource(url)).toBe(com);
     expect(normalizeSource(url.replace("katfile.co/", "www.katfile.co/"))).toBe(
-      url,
+      com,
     );
     expect(previewUrls(url)[0].status).toBe("valid");
     expect(

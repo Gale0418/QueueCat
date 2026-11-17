@@ -1,3 +1,9 @@
+import {
+  galleryReferer,
+  isGalleryMediaUrl,
+  type GallerySite,
+} from "../shared/gallery-sources";
+
 const MESSAGE_TYPE = "QC_GALLERY_TRANSPORT" as const;
 const ARCHIVE_MESSAGE_TYPE = "QC_GALLERY_ARCHIVE" as const;
 const REQUEST_TIMEOUT_MS = 65_000;
@@ -176,6 +182,175 @@ export async function fetchGalleryWebp(
   }
 }
 
+const IMAGE_TYPES = new Set([
+  "image/webp",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/avif",
+]);
+const MAX_IMAGE_CHUNKS = 4_096;
+
+export async function readGalleryMediaResponse(
+  response: Response,
+  maxBytes = MAX_GALLERY_IMAGE_BYTES,
+): Promise<Blob> {
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error(`gallery_http_${response.status}`);
+  }
+  const contentType = response.headers
+    .get("content-type")
+    ?.split(";", 1)[0]
+    .trim()
+    .toLowerCase();
+  if (!contentType || !IMAGE_TYPES.has(contentType)) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error("gallery_invalid_content_type");
+  }
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error("gallery_image_too_large");
+  }
+  if (!response.body) throw new Error("gallery_empty_response");
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > maxBytes) throw new Error("gallery_image_too_large");
+      if (chunks.length < MAX_IMAGE_CHUNKS) {
+        chunks.push(value);
+      } else {
+        const combined = new Uint8Array(size);
+        let combinedOffset = 0;
+        for (const chunk of chunks) {
+          combined.set(chunk, combinedOffset);
+          combinedOffset += chunk.byteLength;
+        }
+        combined.set(value, combinedOffset);
+        chunks.splice(0, chunks.length, combined);
+      }
+    }
+  } catch (error) {
+    void reader.cancel().catch(() => undefined);
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+  if (size < 12) throw new Error("gallery_invalid_image");
+  const prefix = new Uint8Array(12);
+  let offset = 0;
+  for (const chunk of chunks) {
+    const count = Math.min(chunk.byteLength, 12 - offset);
+    prefix.set(chunk.subarray(0, count), offset);
+    offset += count;
+    if (offset === 12) break;
+  }
+  const signatureMatches =
+    (contentType === "image/webp" &&
+      prefix[0] === 0x52 &&
+      prefix[1] === 0x49 &&
+      prefix[2] === 0x46 &&
+      prefix[3] === 0x46 &&
+      prefix[8] === 0x57 &&
+      prefix[9] === 0x45 &&
+      prefix[10] === 0x42 &&
+      prefix[11] === 0x50) ||
+    (contentType === "image/jpeg" &&
+      prefix[0] === 0xff &&
+      prefix[1] === 0xd8 &&
+      prefix[2] === 0xff) ||
+    (contentType === "image/png" &&
+      prefix[0] === 0x89 &&
+      prefix[1] === 0x50 &&
+      prefix[2] === 0x4e &&
+      prefix[3] === 0x47 &&
+      prefix[4] === 0x0d &&
+      prefix[5] === 0x0a &&
+      prefix[6] === 0x1a &&
+      prefix[7] === 0x0a) ||
+    (contentType === "image/gif" &&
+      ["GIF87a", "GIF89a"].includes(
+        String.fromCharCode(...prefix.subarray(0, 6)),
+      )) ||
+    (contentType === "image/avif" &&
+      String.fromCharCode(...prefix.subarray(4, 8)) === "ftyp" &&
+      ["avif", "avis"].includes(
+        String.fromCharCode(...prefix.subarray(8, 12)),
+      ));
+  if (!signatureMatches) throw new Error("gallery_invalid_image");
+  return new Blob(
+    chunks.map(
+      (chunk) =>
+        chunk.buffer.slice(
+          chunk.byteOffset,
+          chunk.byteOffset + chunk.byteLength,
+        ) as ArrayBuffer,
+    ),
+    { type: contentType },
+  );
+}
+
+export async function fetchGalleryMedia(
+  site: GallerySite,
+  url: string,
+  fetcher: (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) => Promise<Response> = fetch,
+  timeoutMs = GALLERY_FETCH_TIMEOUT_MS,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  if (!isGalleryMediaUrl(site, url))
+    throw new Error("gallery_invalid_image_url");
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let onAbort: (() => void) | undefined;
+  const externalCancellation = signal
+    ? new Promise<never>((_, reject) => {
+        onAbort = () => {
+          controller.abort();
+          reject(new Error("gallery_request_cancelled"));
+        };
+        if (signal.aborted) onAbort();
+        else signal.addEventListener("abort", onAbort, { once: true });
+      })
+    : undefined;
+  try {
+    const operations: Array<Promise<Blob>> = [
+      (async () => {
+        const response = await fetcher(url, {
+          credentials: "omit",
+          redirect: "error",
+          signal: controller.signal,
+        });
+        return readGalleryMediaResponse(response);
+      })(),
+      new Promise<Blob>((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error("gallery_fetch_timeout"));
+        }, timeoutMs);
+      }),
+    ];
+    if (externalCancellation) operations.push(externalCancellation);
+    return await Promise.race(operations);
+  } catch (error) {
+    if (site === "ehentai" && error instanceof TypeError)
+      throw new Error("gallery_media_network", { cause: error });
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    if (signal && onAbort) signal.removeEventListener("abort", onAbort);
+  }
+}
+
 type PrepareMessage = {
   type: typeof MESSAGE_TYPE;
   action: "prepare";
@@ -215,12 +390,14 @@ export interface GalleryTransport {
       index: number;
       hash: string;
       url: string;
+      site?: GallerySite;
     }): Promise<{ staged: number; bytes: number }>;
     pack(input: {
       key: string;
       fingerprint: string;
       total: number;
       hashes: string[];
+      names: string[];
     }): Promise<{ url: string; bytes: number }>;
     cleanup(key: string): Promise<void>;
   };
@@ -295,6 +472,7 @@ export function createGalleryTransport(
 
   async function updateRefererRule(
     url: string,
+    site: GallerySite,
     enabled: boolean,
   ): Promise<void> {
     await chrome.declarativeNetRequest.updateSessionRules({
@@ -311,12 +489,12 @@ export function createGalleryTransport(
                     {
                       header: "Referer",
                       operation: "set" as const,
-                      value: "https://hitomi.la/",
+                      value: galleryReferer(site),
                     },
                   ],
                 },
                 condition: {
-                  regexFilter: `^${url.replaceAll(".", "\\.")}$`,
+                  regexFilter: `^${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
                   initiatorDomains: [chrome.runtime.id],
                   requestMethods: ["get"],
                   resourceTypes: ["xmlhttprequest"],
@@ -328,12 +506,15 @@ export function createGalleryTransport(
     });
   }
 
-  async function clearRefererRule(url: string): Promise<void> {
+  async function clearRefererRule(
+    url: string,
+    site: GallerySite,
+  ): Promise<void> {
     try {
-      await updateRefererRule(url, false);
+      await updateRefererRule(url, site, false);
     } catch (firstError) {
       try {
-        await updateRefererRule(url, false);
+        await updateRefererRule(url, site, false);
       } catch (secondError) {
         throw new AggregateError(
           [firstError, secondError],
@@ -389,21 +570,27 @@ export function createGalleryTransport(
   }
 
   async function withArchiveSource<T>(
+    site: GallerySite,
     url: string,
     operation: () => Promise<T>,
   ): Promise<T> {
-    if (!isSafeGalleryImageUrl(url)) throw new Error("gallery_archive_failed");
+    if (
+      site === "hitomi"
+        ? !isSafeGalleryImageUrl(url)
+        : !isGalleryMediaUrl(site, url)
+    )
+      throw new Error("gallery_archive_failed");
     let result: T | undefined;
     let operationError: unknown;
     try {
-      await updateRefererRule(url, true);
+      await updateRefererRule(url, site, true);
       result = await operation();
     } catch (error) {
       operationError = error;
     }
     let cleanupError: unknown;
     try {
-      await clearRefererRule(url);
+      await clearRefererRule(url, site);
     } catch (error) {
       cleanupError = error;
     }
@@ -449,7 +636,7 @@ export function createGalleryTransport(
         let blobUrl: string | undefined;
         let operationError: unknown;
         try {
-          await updateRefererRule(url, true);
+          await updateRefererRule(url, "hitomi", true);
           const result = await messageOffscreen({
             type: MESSAGE_TYPE,
             action: "prepare",
@@ -467,7 +654,7 @@ export function createGalleryTransport(
 
         let ruleCleanupError: unknown;
         try {
-          await clearRefererRule(url);
+          await clearRefererRule(url, "hitomi");
         } catch (error) {
           ruleCleanupError = error;
         }
@@ -513,7 +700,7 @@ export function createGalleryTransport(
     archive: {
       stagePage(input): Promise<{ staged: number; bytes: number }> {
         return runExclusive(() =>
-          withArchiveSource(input.url, () =>
+          withArchiveSource(input.site ?? "hitomi", input.url, () =>
             archiveMessage("stagePage", { input }, ARCHIVE_STAGE_TIMEOUT_MS),
           ),
         );

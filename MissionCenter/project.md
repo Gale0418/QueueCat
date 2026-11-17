@@ -2,7 +2,7 @@
 # Project
 
 - Project: QueueCat
-- Goal: Katfile修正、CodeRabbit審查與main交付
+- Goal: 圖庫下載、下載恢復與 main 原始碼交付
 - Cycle: Unassigned
 - Labels: mission-center
 - Activity log:
